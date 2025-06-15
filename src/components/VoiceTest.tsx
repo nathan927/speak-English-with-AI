@@ -3,11 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Mic, MicOff, Play, Pause, RotateCcw, Volume2 } from 'lucide-react';
+import { ArrowLeft, Mic, MicOff, Play, Pause, RotateCcw, Volume2, Settings2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { performAIEvaluation } from '@/services/aiEvaluationService';
 import { getRandomQuestionSet, type Question } from '@/data/questionBank';
 import { buildNaturalQuestion, getCompletionPhrase } from '@/services/conversationService';
+import { Slider } from '@/components/ui/slider';
 
 interface VoiceTestProps {
   grade: string;
@@ -37,7 +38,8 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
   const [recordings, setRecordings] = useState<RecordingData[]>([]);
   const [responseStartTime, setResponseStartTime] = useState<number | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [pendingCompletionPhrase, setPendingCompletionPhrase] = useState(''); // 新增，持有過渡語
+  const [pendingCompletionPhrase, setPendingCompletionPhrase] = useState('');
+  const [speechRate, setSpeechRate] = useState(1.1);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -53,29 +55,41 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
   const currentQ = questions[currentQuestion];
   const progress = ((currentQuestion + 1) / questions.length) * 100;
 
+  const isReadingQuestion = useMemo(() => 
+    currentQ?.section.toLowerCase() === 'reading' || 
+    currentQ?.instruction.toLowerCase().includes('read') || 
+    currentQ?.section === 'B. 朗讀',
+    [currentQ]
+  );
+
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
-      if (speechTimeoutRef.current) clearTimeout(speechTimeoutRef.current);
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-      }
-      // Clean up speech synthesis
       if ('speechSynthesis' in window) {
         speechSynthesis.cancel();
       }
     };
   }, []);
 
-  // Auto-trigger LISTEN when question changes (EXCLUDE Reading questions completely)
   useEffect(() => {
-    if (currentQ && currentQ.section.toLowerCase() !== 'reading' && !currentQ.instruction.toLowerCase().includes('read') && currentQ.section !== 'B. 朗讀') {
-      // Small delay to ensure UI is ready
+    if (pendingCompletionPhrase) {
       const timer = setTimeout(() => {
-        handleListen();
+        speakText(pendingCompletionPhrase, () => {
+          if (currentQ && !isReadingQuestion) {
+            setTimeout(() => handleListen(), 250);
+          }
+        });
+        setPendingCompletionPhrase('');
       }, 500);
-      
       return () => clearTimeout(timer);
+    }
+    else if (currentQ && !isReadingQuestion) {
+      const initialListenTimeout = setTimeout(() => {
+        if (!hasRecorded) {
+          handleListen();
+        }
+      }, 500);
+      return () => clearTimeout(initialListenTimeout);
     }
   }, [currentQuestion]);
 
@@ -312,27 +326,27 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
     }
     
     if ('speechSynthesis' in window) {
-      // Cancel any ongoing speech
-      speechSynthesis.cancel();
+      if (speechSynthesis.speaking) {
+        speechSynthesis.cancel();
+      }
       
-      // Set a safety timeout to prevent getting stuck
       speechTimeoutRef.current = setTimeout(() => {
         console.log('Speech timeout triggered, force completing');
         setIsSpeaking(false);
         if (onEnd) {
           onEnd();
         }
-      }, Math.max(3000, text.length * 100)); // At least 3 seconds, or 100ms per character
+      }, Math.max(5000, text.length * 200 / speechRate));
       
-      // Wait a bit for cancel to complete
       setTimeout(() => {
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'en-US';
-        utterance.rate = 0.8;
+        utterance.rate = speechRate;
         utterance.volume = 1.0;
         
         utterance.onstart = () => {
           console.log('Speech started');
+          setIsSpeaking(true);
         };
         
         utterance.onend = () => {
@@ -355,16 +369,10 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
           if (onEnd) {
             onEnd();
           }
-          toast({
-            title: "Speech playback failed",
-            description: "Skipped speech playback, you can start recording directly",
-            variant: "default",
-          });
         };
         
-        console.log('Starting speech synthesis...');
         speechSynthesis.speak(utterance);
-      }, 100);
+      }, 150);
     } else {
       console.log('Speech synthesis not supported, using fallback');
       // Fallback: call onEnd after estimated reading time
@@ -409,11 +417,6 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
     );
   }
 
-  // Check if current question is a reading question
-  const isReadingQuestion = currentQ?.section.toLowerCase() === 'reading' || 
-                           currentQ?.instruction.toLowerCase().includes('read') || 
-                           currentQ?.section === 'B. 朗讀';
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <div className="container mx-auto px-4 py-8">
@@ -428,6 +431,19 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
               <ArrowLeft className="w-4 h-4 mr-2 transition-transform duration-300 group-hover:-translate-x-1" />
               <span className="relative z-10">Back to Selection</span>
             </Button>
+            <div className="flex items-center space-x-2 w-full max-w-xs">
+                <Settings2 className="w-5 h-5 text-gray-600" />
+                <span className="text-sm font-medium text-gray-700">Speed</span>
+                <Slider
+                    value={[speechRate]}
+                    onValueChange={(value) => setSpeechRate(value[0])}
+                    min={0.7}
+                    max={2.5}
+                    step={0.1}
+                    className="w-[120px] md:w-[150px]"
+                />
+                <span className="text-sm font-mono text-gray-800 w-10 text-center">{speechRate.toFixed(1)}x</span>
+            </div>
           </div>
           
           <div className="flex items-center justify-between mb-4">
