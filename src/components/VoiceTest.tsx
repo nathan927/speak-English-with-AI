@@ -36,6 +36,7 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [recordings, setRecordings] = useState<RecordingData[]>([]);
   const [responseStartTime, setResponseStartTime] = useState<number | null>(null);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -56,18 +57,30 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
       }
+      // Clean up speech synthesis
+      if ('speechSynthesis' in window) {
+        speechSynthesis.cancel();
+      }
     };
   }, []);
 
   const handleListen = () => {
+    console.log('Listen button clicked');
+    console.log('Current question:', currentQ);
+    console.log('Speech synthesis available:', 'speechSynthesis' in window);
+    
     if (currentQ) {
+      setIsSpeaking(true);
       speakText(currentQ.text, () => {
         questionReadTimeRef.current = Date.now();
+        setIsSpeaking(false);
+        console.log('Speech completed, question read time set');
       });
     }
   };
 
   const startRecording = async () => {
+    console.log('Starting recording...');
     try {
       // Record the time when recording starts (user starts responding)
       if (questionReadTimeRef.current > 0 && !responseStartTime) {
@@ -101,6 +114,7 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
         const blob = new Blob(chunks, { type: 'audio/webm' });
         setAudioBlob(blob);
         setHasRecorded(true);
+        console.log('Recording completed, blob size:', blob.size);
       };
       
       mediaRecorder.start(100); // Collect data every 100ms
@@ -122,6 +136,7 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
   };
 
   const stopRecording = () => {
+    console.log('Stopping recording...');
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
@@ -250,17 +265,56 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
   };
 
   const speakText = (text: string, onEnd?: () => void) => {
+    console.log('speakText called with:', text);
+    
     if ('speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'en-US';
-      utterance.rate = 0.8;
+      // Cancel any ongoing speech
+      speechSynthesis.cancel();
+      
+      // Wait a bit for cancel to complete
+      setTimeout(() => {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'en-US';
+        utterance.rate = 0.8;
+        utterance.volume = 1.0;
+        
+        utterance.onstart = () => {
+          console.log('Speech started');
+        };
+        
+        utterance.onend = () => {
+          console.log('Speech ended');
+          if (onEnd) {
+            onEnd();
+          }
+        };
+        
+        utterance.onerror = (event) => {
+          console.error('Speech error:', event);
+          if (onEnd) {
+            onEnd();
+          }
+          toast({
+            title: "語音播放失敗",
+            description: "請檢查瀏覽器設置或嘗試重新整理頁面",
+            variant: "destructive",
+          });
+        };
+        
+        console.log('Starting speech synthesis...');
+        speechSynthesis.speak(utterance);
+      }, 100);
+    } else {
+      console.log('Speech synthesis not supported, using fallback');
+      toast({
+        title: "語音不支援",
+        description: "您的瀏覽器不支援語音播放功能",
+        variant: "destructive",
+      });
       if (onEnd) {
-        utterance.onend = onEnd;
+        // Fallback: call onEnd after estimated reading time
+        setTimeout(onEnd, text.length * 80);
       }
-      speechSynthesis.speak(utterance);
-    } else if (onEnd) {
-      // Fallback: call onEnd after estimated reading time
-      setTimeout(onEnd, text.length * 80);
     }
   };
 
@@ -338,6 +392,12 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
                 <p className="text-xl font-medium text-gray-900 mb-2">
                   {currentQ.text}
                 </p>
+                {isSpeaking && (
+                  <div className="flex items-center space-x-2 mt-4">
+                    <Volume2 className="w-4 h-4 text-blue-600 animate-pulse" />
+                    <span className="text-sm text-blue-600">正在播放問題...</span>
+                  </div>
+                )}
               </div>
               
               <div className="text-center space-y-4">
@@ -348,10 +408,11 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
                         <Button
                           size="lg"
                           onClick={handleListen}
-                          className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg mr-4"
+                          disabled={isSpeaking}
+                          className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg mr-4 disabled:opacity-50"
                         >
                           <Volume2 className="w-6 h-6 mr-2" />
-                          Listen
+                          {isSpeaking ? '播放中...' : 'Listen'}
                         </Button>
                         <Button
                           size="lg"
