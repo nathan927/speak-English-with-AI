@@ -1,9 +1,9 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Mic, BookOpen, Award, TrendingUp, Users, Globe } from 'lucide-react';
+import { Mic, BookOpen, Award, TrendingUp, Users, Globe, Star } from 'lucide-react';
 import { GradeSelector } from '@/components/GradeSelector';
 import { VoiceTest } from '@/components/VoiceTest';
 import { ResultsAnalysis } from '@/components/ResultsAnalysis';
@@ -39,6 +39,27 @@ const Index = () => {
     setCurrentView('home');
     setSelectedGrade('');
     setTestResults(null);
+  };
+
+  // Helper function to render stars based on level
+  const renderStars = (maxLevel: number) => {
+    return (
+      <div className="space-y-2">
+        {Array.from({ length: maxLevel }, (_, i) => i + 1).map((level) => (
+          <div key={level} className="flex justify-between items-center">
+            <span className="text-sm">Level {level}</span>
+            <div className="flex">
+              {Array.from({ length: level }, (_, starIndex) => (
+                <Star key={starIndex} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+              ))}
+              {Array.from({ length: maxLevel - level }, (_, starIndex) => (
+                <Star key={`empty-${starIndex}`} className="w-4 h-4 text-gray-300" />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   };
 
   if (currentView === 'gradeSelect') {
@@ -222,14 +243,7 @@ const Index = () => {
                 <CardDescription className="text-center">4級評分制度</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  {[1, 2, 3, 4].map((level) => (
-                    <div key={level} className="flex justify-between items-center">
-                      <span className="text-sm">Level {level}</span>
-                      <Progress value={level * 25} className="w-20" />
-                    </div>
-                  ))}
-                </div>
+                {renderStars(4)}
                 <div className="text-xs text-gray-500 mt-4">
                   成就徽章 • 進度追蹤 • 互動元素
                 </div>
@@ -242,14 +256,7 @@ const Index = () => {
                 <CardDescription className="text-center">6級評分制度</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  {[1, 2, 3, 4, 5, 6].map((level) => (
-                    <div key={level} className="flex justify-between items-center">
-                      <span className="text-sm">Level {level}</span>
-                      <Progress value={level * 16.67} className="w-20" />
-                    </div>
-                  ))}
-                </div>
+                {renderStars(6)}
                 <div className="text-xs text-gray-500 mt-4">
                   專業分析 • 詳細報告 • 自主學習
                 </div>
@@ -273,7 +280,7 @@ const Index = () => {
             onClick={handleStartTest}
           >
             <Users className="w-5 h-5 mr-2" />
-            開始免費測試
+            開始測試
           </Button>
         </div>
       </section>
