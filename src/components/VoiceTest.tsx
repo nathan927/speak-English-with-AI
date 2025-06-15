@@ -66,7 +66,7 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
     };
   }, []);
 
-  // Auto-trigger LISTEN when question changes (except for Reading questions)
+  // Auto-trigger LISTEN when question changes (ONLY for non-Reading questions)
   useEffect(() => {
     if (currentQ && currentQ.section.toLowerCase() !== 'reading') {
       // Small delay to ensure UI is ready
@@ -89,7 +89,7 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
         questionReadTimeRef.current = Date.now();
         setIsSpeaking(false);
         console.log('Speech completed, question read time set');
-        // Auto-start recording after speech completes
+        // Auto-start recording after speech completes (NOT for reading questions)
         if (currentQ.section.toLowerCase() !== 'reading') {
           setTimeout(() => {
             startRecording();
