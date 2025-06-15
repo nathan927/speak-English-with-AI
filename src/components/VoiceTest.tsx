@@ -61,8 +61,16 @@ export const VoiceTest = ({ grade, speechRate, showQuestions, onComplete, onBack
   const speechTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const preparationTimerRef = useRef<NodeJS.Timeout | null>(null);
   const discussionTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const speechUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const speechRequestIdRef = useRef<number>(0);
   
   const { toast } = useToast();
+
+  // Detect if user is on PC (desktop) vs mobile
+  const isDesktop = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth >= 1024 && !('ontouchstart' in window);
+  }, []);
 
   // Check if current grade is senior secondary (S3-S6)
   const isSeniorSecondary = useMemo(() => ['S3', 'S4', 'S5', 'S6'].includes(grade), [grade]);
@@ -226,13 +234,15 @@ Parents and teachers often emphasize traditional "safe" careers like medicine, l
       isKindergarten,
       showQuestions,
       isSeniorSecondary,
-      randomSeed
+      randomSeed,
+      isDesktop
     }, 'VoiceTest', 'mount');
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (preparationTimerRef.current) clearInterval(preparationTimerRef.current);
       if (discussionTimerRef.current) clearInterval(discussionTimerRef.current);
+      if (speechTimeoutRef.current) clearTimeout(speechTimeoutRef.current);
       if ('speechSynthesis' in window) {
         speechSynthesis.cancel();
         logger.debug('Speech synthesis cancelled on unmount', {}, 'VoiceTest', 'cleanup');
@@ -327,7 +337,8 @@ Parents and teachers often emphasize traditional "safe" careers like medicine, l
       currentQuestion,
       questionText: currentQ?.text?.substring(0, 50),
       speechSynthesisAvailable: 'speechSynthesis' in window,
-      currentlySpeaking: speechSynthesis?.speaking
+      currentlySpeaking: speechSynthesis?.speaking,
+      isDesktop
     }, 'VoiceTest', 'listenClicked');
     
     if (currentQ) {
@@ -361,7 +372,8 @@ Parents and teachers often emphasize traditional "safe" careers like medicine, l
         textLength: speechText.length,
         hasSpokenTransition,
         currentQuestion,
-        isKindergarten
+        isKindergarten,
+        isDesktop
       }, 'VoiceTest', 'textPrepared');
       
       speakText(speechText, () => {
@@ -597,6 +609,9 @@ Parents and teachers often emphasize traditional "safe" careers like medicine, l
   };
 
   const speakText = (text: string, onEnd?: () => void) => {
+    // Generate unique request ID for this speech request
+    const requestId = ++speechRequestIdRef.current;
+    
     logger.speechLog('speakText_called', {
       text: text.substring(0, 100) + (text.length > 100 ? '...' : ''),
       textLength: text.length,
@@ -607,98 +622,51 @@ Parents and teachers often emphasize traditional "safe" careers like medicine, l
         speaking: speechSynthesis?.speaking,
         pending: speechSynthesis?.pending,
         paused: speechSynthesis?.paused
-      }
+      },
+      isDesktop,
+      requestId
     });
     
-    // Clear any existing timeout
+    // Clear any existing timeout and utterance
     if (speechTimeoutRef.current) {
       clearTimeout(speechTimeoutRef.current);
-      logger.debug('Cleared existing speech timeout', {}, 'VoiceTest', 'timeoutCleared');
+      speechTimeoutRef.current = null;
+      logger.debug('Cleared existing speech timeout', { requestId }, 'VoiceTest', 'timeoutCleared');
+    }
+    
+    if (speechUtteranceRef.current) {
+      speechUtteranceRef.current = null;
+      logger.debug('Cleared previous utterance reference', { requestId }, 'VoiceTest', 'utteranceCleared');
     }
     
     if ('speechSynthesis' in window) {
-      if (speechSynthesis.speaking) {
+      // Cancel any existing speech for PC to prevent conflicts
+      if (isDesktop && speechSynthesis.speaking) {
         speechSynthesis.cancel();
-        logger.warn('Cancelled existing speech synthesis', {}, 'VoiceTest', 'speechCancelled');
+        logger.info('Cancelled existing speech synthesis for PC', { requestId }, 'VoiceTest', 'speechCancelled');
+        
+        // Wait a bit for cancellation to complete on PC
+        setTimeout(() => {
+          startSpeechSynthesis(text, onEnd, requestId);
+        }, 200);
+      } else {
+        startSpeechSynthesis(text, onEnd, requestId);
       }
-      
-      const timeoutDuration = Math.max(5000, text.length * 200 / speechRate);
-      speechTimeoutRef.current = setTimeout(() => {
-        logger.warn('Speech timeout triggered - force completing', {
-          timeoutDuration,
-          textLength: text.length,
-          speechRate
-        }, 'VoiceTest', 'speechTimeout');
-        setIsSpeaking(false);
-        if (onEnd) {
-          onEnd();
-        }
-      }, timeoutDuration);
-      
-      setTimeout(() => {
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'en-US';
-        utterance.rate = speechRate;
-        utterance.volume = 1.0;
-        
-        utterance.onstart = () => {
-          logger.speechLog('speech_started', {
-            text: text.substring(0, 50) + '...',
-            rate: speechRate,
-            volume: utterance.volume,
-            lang: utterance.lang
-          });
-          setIsSpeaking(true);
-        };
-        
-        utterance.onend = () => {
-          logger.speechLog('speech_ended_normally', {
-            text: text.substring(0, 50) + '...',
-            duration: Date.now() - (speechTimeoutRef.current ? 0 : Date.now())
-          });
-          if (speechTimeoutRef.current) {
-            clearTimeout(speechTimeoutRef.current);
-          }
-          setIsSpeaking(false);
-          if (onEnd) {
-            onEnd();
-          }
-        };
-        
-        utterance.onerror = (event) => {
-          logger.speechLog('speech_error', {
-            error: event.error,
-            text: text.substring(0, 50) + '...',
-            errorEvent: event
-          });
-          if (speechTimeoutRef.current) {
-            clearTimeout(speechTimeoutRef.current);
-          }
-          setIsSpeaking(false);
-          if (onEnd) {
-            onEnd();
-          }
-        };
-        
-        logger.speechLog('speech_synthesis_speak_called', {
-          utteranceReady: true,
-          text: text.substring(0, 50) + '...'
-        });
-        
-        speechSynthesis.speak(utterance);
-      }, 150);
     } else {
       logger.error('Speech synthesis not supported, using fallback', {
         textLength: text.length,
-        fallbackDuration: Math.max(2000, text.length * 80)
+        fallbackDuration: Math.max(2000, text.length * 80),
+        requestId
       }, 'VoiceTest', 'speechNotSupported');
       
       // Fallback: call onEnd after estimated reading time
       const estimatedTime = Math.max(2000, text.length * 80);
       setTimeout(() => {
-        setIsSpeaking(false);
-        if (onEnd) {
-          onEnd();
+        if (speechRequestIdRef.current === requestId) {
+          setIsSpeaking(false);
+          if (onEnd) {
+            onEnd();
+          }
         }
       }, estimatedTime);
       
@@ -708,6 +676,118 @@ Parents and teachers often emphasize traditional "safe" careers like medicine, l
         variant: "default",
       });
     }
+  };
+
+  const startSpeechSynthesis = (text: string, onEnd?: () => void, requestId?: number) => {
+    // PC-optimized timeout calculation
+    const baseTimeout = isDesktop ? 8000 : 5000; // Longer timeout for PC
+    const timeoutDuration = Math.max(baseTimeout, text.length * (isDesktop ? 300 : 200) / speechRate);
+    
+    logger.debug('Starting speech synthesis', {
+      timeoutDuration,
+      textLength: text.length,
+      speechRate,
+      isDesktop,
+      requestId
+    }, 'VoiceTest', 'speechStart');
+    
+    speechTimeoutRef.current = setTimeout(() => {
+      if (speechRequestIdRef.current === requestId) {
+        logger.warn('Speech timeout triggered - force completing', {
+          timeoutDuration,
+          textLength: text.length,
+          speechRate,
+          isDesktop,
+          requestId
+        }, 'VoiceTest', 'speechTimeout');
+        setIsSpeaking(false);
+        if (onEnd) {
+          onEnd();
+        }
+      }
+    }, timeoutDuration);
+    
+    // Wait a bit before starting speech on PC to ensure clean state
+    const startDelay = isDesktop ? 300 : 150;
+    
+    setTimeout(() => {
+      // Check if this request is still valid
+      if (speechRequestIdRef.current !== requestId) {
+        logger.debug('Speech request cancelled before start', { requestId }, 'VoiceTest', 'requestCancelled');
+        return;
+      }
+      
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'en-US';
+      utterance.rate = speechRate;
+      utterance.volume = 1.0;
+      
+      // Store utterance reference
+      speechUtteranceRef.current = utterance;
+      
+      utterance.onstart = () => {
+        if (speechRequestIdRef.current === requestId) {
+          logger.speechLog('speech_started', {
+            text: text.substring(0, 50) + '...',
+            rate: speechRate,
+            volume: utterance.volume,
+            lang: utterance.lang,
+            isDesktop,
+            requestId
+          });
+          setIsSpeaking(true);
+        }
+      };
+      
+      utterance.onend = () => {
+        if (speechRequestIdRef.current === requestId) {
+          logger.speechLog('speech_ended_normally', {
+            text: text.substring(0, 50) + '...',
+            isDesktop,
+            requestId
+          });
+          if (speechTimeoutRef.current) {
+            clearTimeout(speechTimeoutRef.current);
+            speechTimeoutRef.current = null;
+          }
+          setIsSpeaking(false);
+          speechUtteranceRef.current = null;
+          if (onEnd) {
+            onEnd();
+          }
+        }
+      };
+      
+      utterance.onerror = (event) => {
+        if (speechRequestIdRef.current === requestId) {
+          logger.speechLog('speech_error', {
+            error: event.error,
+            text: text.substring(0, 50) + '...',
+            errorEvent: event,
+            isDesktop,
+            requestId
+          });
+          if (speechTimeoutRef.current) {
+            clearTimeout(speechTimeoutRef.current);
+            speechTimeoutRef.current = null;
+          }
+          setIsSpeaking(false);
+          speechUtteranceRef.current = null;
+          if (onEnd) {
+            onEnd();
+          }
+        }
+      };
+      
+      logger.speechLog('speech_synthesis_speak_called', {
+        utteranceReady: true,
+        text: text.substring(0, 50) + '...',
+        isDesktop,
+        requestId
+      });
+      
+      speechSynthesis.speak(utterance);
+    }, startDelay);
   };
 
   if (isAnalyzing) {
