@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -5,7 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ArrowLeft, Mic, MicOff, Play, Pause, RotateCcw, Volume2, Info } from 'lucide-react';
+import { ArrowLeft, Mic, MicOff, Play, Pause, RotateCcw, Volume2, Info, Clock, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { performAIEvaluation } from '@/services/aiEvaluationService';
 import { getRandomQuestionSet, type Question } from '@/data/questionBank';
@@ -46,19 +47,33 @@ export const VoiceTest = ({ grade, speechRate, showQuestions, onComplete, onBack
   const [hasSpokenTransition, setHasSpokenTransition] = useState(false);
   const [showBackConfirmDialog, setShowBackConfirmDialog] = useState(false);
   
+  // New states for senior secondary mode
+  const [currentPart, setCurrentPart] = useState<'A' | 'B'>('A');
+  const [preparationTime, setPreparationTime] = useState(0);
+  const [isPreparation, setIsPreparation] = useState(false);
+  const [discussionTime, setDiscussionTime] = useState(0);
+  const [isDiscussion, setIsDiscussion] = useState(false);
+  
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const questionReadTimeRef = useRef<number>(0);
   const speechTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const preparationTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const discussionTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   const { toast } = useToast();
+
+  // Check if current grade is senior secondary (S3-S6)
+  const isSeniorSecondary = useMemo(() => ['S3', 'S4', 'S5', 'S6'].includes(grade), [grade]);
 
   // Get questions from the comprehensive question bank
   const questions: Question[] = useMemo(() => getRandomQuestionSet(grade), [grade]);
   const currentQ = questions[currentQuestion];
-  const progress = ((currentQuestion + 1) / questions.length) * 100;
+  const progress = isSeniorSecondary 
+    ? (currentPart === 'A' ? 25 : (currentPart === 'B' ? 75 : 100))
+    : ((currentQuestion + 1) / questions.length) * 100;
 
   const isReadingQuestion = useMemo(() => 
     currentQ?.section.toLowerCase() === 'reading' || 
@@ -76,11 +91,14 @@ export const VoiceTest = ({ grade, speechRate, showQuestions, onComplete, onBack
       speechRate,
       questionsCount: questions.length,
       isKindergarten,
-      showQuestions
+      showQuestions,
+      isSeniorSecondary
     }, 'VoiceTest', 'mount');
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      if (preparationTimerRef.current) clearInterval(preparationTimerRef.current);
+      if (discussionTimerRef.current) clearInterval(discussionTimerRef.current);
       if ('speechSynthesis' in window) {
         speechSynthesis.cancel();
         logger.debug('Speech synthesis cancelled on unmount', {}, 'VoiceTest', 'cleanup');
@@ -95,8 +113,8 @@ export const VoiceTest = ({ grade, speechRate, showQuestions, onComplete, onBack
     // 重置過渡句標記
     setHasSpokenTransition(false);
     
-    // 對於非閱讀題目，自動開始監聽，但不自動說話
-    if (currentQ && !isReadingQuestion && !hasRecorded) {
+    // 對於非閱讀題目，自動開始監聽，但不自動說話 (only for non-senior secondary)
+    if (!isSeniorSecondary && currentQ && !isReadingQuestion && !hasRecorded) {
       const autoListenTimeout = setTimeout(() => {
         logger.debug('Auto-triggering listen for non-reading question', {
           currentQuestion,
@@ -106,10 +124,10 @@ export const VoiceTest = ({ grade, speechRate, showQuestions, onComplete, onBack
       }, 500);
       return () => clearTimeout(autoListenTimeout);
     }
-  }, [currentQuestion, hasRecorded]);
+  }, [currentQuestion, hasRecorded, isSeniorSecondary]);
 
   const handleBackClick = () => {
-    if (isRecording || recordings.length > 0) {
+    if (isRecording || recordings.length > 0 || isPreparation || isDiscussion) {
       setShowBackConfirmDialog(true);
     } else {
       onBack();
@@ -117,12 +135,57 @@ export const VoiceTest = ({ grade, speechRate, showQuestions, onComplete, onBack
   };
 
   const confirmBack = () => {
+    // Clean up timers
+    if (preparationTimerRef.current) clearInterval(preparationTimerRef.current);
+    if (discussionTimerRef.current) clearInterval(discussionTimerRef.current);
     setShowBackConfirmDialog(false);
     onBack();
   };
 
   const cancelBack = () => {
     setShowBackConfirmDialog(false);
+  };
+
+  // Senior Secondary specific functions
+  const startPreparation = () => {
+    setIsPreparation(true);
+    setPreparationTime(0);
+    
+    preparationTimerRef.current = setInterval(() => {
+      setPreparationTime(prev => {
+        if (prev >= 600) { // 10 minutes
+          clearInterval(preparationTimerRef.current!);
+          setIsPreparation(false);
+          toast({
+            title: "Preparation Complete",
+            description: "Ready to start group discussion",
+          });
+          return prev;
+        }
+        return prev + 1;
+      });
+    }, 1000);
+  };
+
+  const startDiscussion = () => {
+    setIsDiscussion(true);
+    setDiscussionTime(0);
+    
+    discussionTimerRef.current = setInterval(() => {
+      setDiscussionTime(prev => {
+        if (prev >= 480) { // 8 minutes
+          clearInterval(discussionTimerRef.current!);
+          setIsDiscussion(false);
+          toast({
+            title: "Discussion Complete",
+            description: "Moving to Individual Response",
+          });
+          setCurrentPart('B');
+          return prev;
+        }
+        return prev + 1;
+      });
+    }, 1000);
   };
 
   const handleListen = () => {
@@ -176,7 +239,7 @@ export const VoiceTest = ({ grade, speechRate, showQuestions, onComplete, onBack
         }, 'VoiceTest', 'speechCompleted');
         
         // Auto-start recording after speech completes with shorter delay (EXCLUDE Reading questions)
-        if (!isReadingQuestion) {
+        if (!isReadingQuestion && !isSeniorSecondary) {
           setTimeout(() => {
             logger.debug('Auto-starting recording after speech', {
               delay: 300,
@@ -329,12 +392,19 @@ export const VoiceTest = ({ grade, speechRate, showQuestions, onComplete, onBack
       totalRecordings: newRecordings.length
     }, 'VoiceTest', 'recordingSaved');
 
-    if (currentQuestion < questions.length - 1) {
-      // 直接切換題目，不說過渡句（過渡句會在新題目的 handleListen 中說）
+    if (isSeniorSecondary && currentPart === 'B') {
+      // Complete senior secondary test
+      logger.info('Senior secondary test completed, starting analysis', {
+        totalRecordings: newRecordings.length
+      }, 'VoiceTest', 'testCompleted');
+      completeTest(newRecordings);
+    } else if (!isSeniorSecondary && currentQuestion < questions.length - 1) {
+      // Continue with regular test
       setCurrentQuestion(prev => prev + 1);
       resetRecording();
       questionReadTimeRef.current = 0;
-    } else {
+    } else if (!isSeniorSecondary) {
+      // Complete regular test
       logger.info('Test completed, starting analysis', {
         totalRecordings: newRecordings.length
       }, 'VoiceTest', 'testCompleted');
@@ -531,6 +601,265 @@ export const VoiceTest = ({ grade, speechRate, showQuestions, onComplete, onBack
     );
   }
 
+  // Senior Secondary Mode Layout
+  if (isSeniorSecondary) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+        <div className="container mx-auto px-3 py-3 md:px-4 md:py-8">
+          {/* Header */}
+          <div className="mb-3 md:mb-8">
+            <div className="flex items-center justify-between mb-2 md:mb-4">
+              <Button 
+                variant="ghost" 
+                onClick={handleBackClick}
+                className="group relative overflow-hidden bg-gradient-to-r from-gray-100 to-gray-200 hover:from-blue-100 hover:to-purple-100 border border-gray-300 hover:border-blue-300 text-gray-700 hover:text-blue-700 font-medium px-3 py-2 md:px-6 md:py-3 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-105"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+                <ArrowLeft className="w-4 h-4 mr-1 md:mr-2 transition-transform duration-300 group-hover:-translate-x-1" />
+                <span className="relative z-10 text-sm md:text-base">Back</span>
+              </Button>
+              
+              <div className="flex items-center space-x-4">
+                <Badge variant="outline" className="bg-purple-50 text-purple-700 text-xs">
+                  Part {currentPart}
+                </Badge>
+                <Badge variant="outline" className="bg-blue-50 text-blue-700 text-xs">
+                  {Math.round(progress)}%
+                </Badge>
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between mb-2 md:mb-4">
+              <div>
+                <h1 className="text-lg md:text-2xl font-bold text-gray-900">
+                  {grade} English Speaking Test
+                </h1>
+                <p className="text-sm md:text-base text-gray-600">
+                  {currentPart === 'A' ? 'Part A: Group Interaction' : 'Part B: Individual Response'}
+                </p>
+              </div>
+            </div>
+            
+            <Progress value={progress} className="w-full h-2" />
+          </div>
+
+          <div className="max-w-4xl mx-auto">
+            {currentPart === 'A' ? (
+              /* Part A: Group Interaction */
+              <Card className="mb-6">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="w-5 h-5" />
+                    Part A: Group Interaction
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="bg-blue-50 rounded-lg p-4">
+                    <h3 className="font-semibold mb-2">Instructions:</h3>
+                    <ul className="text-sm space-y-1 text-gray-700">
+                      <li>• Preparation time: 10 minutes (make notes)</li>
+                      <li>• Discussion time: 8 minutes (group of 4)</li>
+                      <li>• You may refer to your notes during discussion</li>
+                    </ul>
+                  </div>
+
+                  {showQuestions && (
+                    <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6">
+                      <h3 className="text-lg font-bold mb-3">Discussion Topic:</h3>
+                      <p className="text-base leading-relaxed">
+                        {questions[0]?.text || "Sample group discussion topic will appear here"}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="text-center space-y-4">
+                    {!isPreparation && !isDiscussion && (
+                      <Button
+                        size="lg"
+                        onClick={startPreparation}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4"
+                      >
+                        <Clock className="w-5 h-5 mr-2" />
+                        Start Preparation (10 min)
+                      </Button>
+                    )}
+
+                    {isPreparation && (
+                      <div className="space-y-3">
+                        <div className="text-2xl font-mono text-blue-600">
+                          {formatTime(600 - preparationTime)}
+                        </div>
+                        <p className="text-sm text-gray-600">Preparation time remaining</p>
+                        <Button
+                          onClick={() => {
+                            if (preparationTimerRef.current) clearInterval(preparationTimerRef.current);
+                            setIsPreparation(false);
+                            startDiscussion();
+                          }}
+                          variant="outline"
+                        >
+                          Ready for Discussion
+                        </Button>
+                      </div>
+                    )}
+
+                    {isDiscussion && (
+                      <div className="space-y-3">
+                        <div className="text-2xl font-mono text-green-600">
+                          {formatTime(480 - discussionTime)}
+                        </div>
+                        <p className="text-sm text-gray-600">Discussion time remaining</p>
+                        <Button
+                          onClick={() => {
+                            if (discussionTimerRef.current) clearInterval(discussionTimerRef.current);
+                            setIsDiscussion(false);
+                            setCurrentPart('B');
+                          }}
+                          variant="outline"
+                        >
+                          Move to Individual Response
+                        </Button>
+                      </div>
+                    )}
+
+                    {!isPreparation && !isDiscussion && currentPart === 'A' && (
+                      <Button
+                        onClick={() => setCurrentPart('B')}
+                        className="bg-green-600 hover:bg-green-700 text-white px-8 py-4"
+                      >
+                        Continue to Part B
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              /* Part B: Individual Response */
+              <Card className="mb-6">
+                <CardHeader>
+                  <CardTitle>Part B: Individual Response</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="bg-green-50 rounded-lg p-4">
+                    <h3 className="font-semibold mb-2">Instructions:</h3>
+                    <p className="text-sm text-gray-700">
+                      Respond individually to the examiner's question based on the group discussion. 
+                      You have 1 minute to provide your response.
+                    </p>
+                  </div>
+
+                  {showQuestions && (
+                    <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-6">
+                      <p className="text-lg font-bold text-gray-900 leading-relaxed">
+                        Based on your group discussion, explain your personal position and justify your choice with specific reasons.
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="text-center space-y-4">
+                    {!hasRecorded ? (
+                      <div className="space-y-4">
+                        {!isRecording ? (
+                          <Button
+                            size="lg"
+                            onClick={startRecording}
+                            className="bg-red-500 hover:bg-red-600 text-white px-8 py-4"
+                          >
+                            <Mic className="w-6 h-6 mr-2" />
+                            Start Individual Response
+                          </Button>
+                        ) : (
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-center space-x-4">
+                              <div className="w-4 h-4 bg-red-500 rounded-full animate-pulse"></div>
+                              <span className="text-xl font-mono">
+                                {formatTime(recordingTime)}
+                              </span>
+                            </div>
+                            <Button
+                              onClick={stopRecording}
+                              variant="outline"
+                              className="px-8 py-4"
+                            >
+                              <MicOff className="w-6 h-6 mr-2" />
+                              Stop Recording
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="flex justify-center space-x-4">
+                          {!isPlaying ? (
+                            <Button
+                              onClick={playRecording}
+                              variant="outline"
+                              className="px-6 py-3"
+                            >
+                              <Play className="w-5 h-5 mr-2" />
+                              Play
+                            </Button>
+                          ) : (
+                            <Button
+                              onClick={stopPlaying}
+                              variant="outline"
+                              className="px-6 py-3"
+                            >
+                              <Pause className="w-5 h-5 mr-2" />
+                              Stop
+                            </Button>
+                          )}
+                          
+                          <Button
+                            onClick={resetRecording}
+                            variant="outline"
+                            className="px-6 py-3"
+                          >
+                            <RotateCcw className="w-5 h-5 mr-2" />
+                            Re-record
+                          </Button>
+                        </div>
+                        
+                        <Button
+                          size="lg"
+                          onClick={nextQuestion}
+                          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-16 py-5 text-xl"
+                        >
+                          Complete Assessment
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
+
+        {/* Back Confirmation Dialog */}
+        <Dialog open={showBackConfirmDialog} onOpenChange={setShowBackConfirmDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>確認離開測驗</DialogTitle>
+              <DialogDescription>
+                您正在進行測驗中，如果現在離開，您的進度將會遺失。確定要離開嗎？
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={cancelBack}>
+                繼續測驗
+              </Button>
+              <Button variant="destructive" onClick={confirmBack}>
+                確定離開
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
+  }
+
+  // Original layout for non-senior secondary grades
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <div className="container mx-auto px-3 py-3 md:px-4 md:py-8">
