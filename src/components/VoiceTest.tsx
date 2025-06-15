@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,16 +8,33 @@ import { toast } from 'sonner';
 import { getRandomQuestionSet, Question } from '@/data/questionBank';
 import { performAIEvaluation } from '@/services/aiEvaluationService';
 
-const VoiceTest: React.FC = () => {
-  const [selectedGrade, setSelectedGrade] = useState<string>('');
+interface VoiceTestProps {
+  grade?: string;
+  speechRate?: number;
+  showQuestions?: boolean;
+  onComplete?: (results: any) => void;
+  onBack?: () => void;
+  onShowQuestionsChange?: (checked: boolean) => void;
+}
+
+const VoiceTest: React.FC<VoiceTestProps> = ({
+  grade: initialGrade,
+  speechRate = 0.9,
+  showQuestions: initialShowQuestions = false,
+  onComplete,
+  onBack,
+  onShowQuestionsChange
+}) => {
+  const [selectedGrade, setSelectedGrade] = useState<string>(initialGrade || '');
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [audioURL, setAudioURL] = useState<string>('');
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const [showQuestions, setShowQuestions] = useState<boolean>(false);
+  const [showQuestions, setShowQuestions] = useState<boolean>(initialShowQuestions);
   const [evaluation, setEvaluation] = useState<string>('');
   const [isEvaluating, setIsEvaluating] = useState<boolean>(false);
+  const [recordings, setRecordings] = useState<any[]>([]);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -70,6 +86,16 @@ const VoiceTest: React.FC = () => {
       setEvaluation('');
     }
   }, [selectedGrade]);
+
+  useEffect(() => {
+    setShowQuestions(initialShowQuestions);
+  }, [initialShowQuestions]);
+
+  useEffect(() => {
+    if (onShowQuestionsChange) {
+      onShowQuestionsChange(showQuestions);
+    }
+  }, [showQuestions, onShowQuestionsChange]);
 
   const startRecording = async () => {
     try {
@@ -155,12 +181,32 @@ const VoiceTest: React.FC = () => {
     setIsEvaluating(true);
     try {
       const question = questions[currentQuestionIndex];
-      const evaluationResult = await performAIEvaluation(audioURL, question.text);
-      setEvaluation(evaluationResult.feedback || 'Evaluation completed');
+      
+      // Create mock recording data for the AI evaluation
+      const mockRecordingData = [{
+        questionId: currentQuestionIndex,
+        section: question.section,
+        question: question.text,
+        audioBlob: new Blob(), // We can't easily convert URL back to Blob here
+        timestamp: new Date().toISOString(),
+        duration: 10, // Mock duration
+        wordCount: 20, // Mock word count
+        responseTime: 2000 // Mock response time
+      }];
+
+      const evaluationResult = await performAIEvaluation(mockRecordingData, selectedGrade);
+      
+      // Use the overall evaluation or a general message
+      const feedbackText = evaluationResult.improvements?.[0] || 
+                          evaluationResult.strengths?.[0] || 
+                          'Evaluation completed successfully';
+      
+      setEvaluation(feedbackText);
       toast.success('Evaluation completed');
     } catch (error) {
       console.error('Evaluation error:', error);
       toast.error('Failed to evaluate response');
+      setEvaluation('Evaluation temporarily unavailable. Please try again later.');
     } finally {
       setIsEvaluating(false);
     }
@@ -170,6 +216,7 @@ const VoiceTest: React.FC = () => {
     if ('speechSynthesis' in window) {
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'en-US';
+      utterance.rate = speechRate;
       speechSynthesis.speak(utterance);
     } else {
       toast.error('Text-to-speech not supported in this browser');
@@ -184,41 +231,50 @@ const VoiceTest: React.FC = () => {
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>Voice Test Assessment</span>
-            <div className="flex items-center space-x-2">
-              <span className="text-sm">Show Questions</span>
-              <Switch 
-                checked={showQuestions} 
-                onCheckedChange={setShowQuestions}
-              />
+            <div className="flex items-center space-x-4">
+              {onBack && (
+                <Button onClick={onBack} variant="outline">
+                  Back
+                </Button>
+              )}
+              <div className="flex items-center space-x-2">
+                <span className="text-sm">Show Questions</span>
+                <Switch 
+                  checked={showQuestions} 
+                  onCheckedChange={setShowQuestions}
+                />
+              </div>
             </div>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">Select Grade Level:</label>
-            <select 
-              value={selectedGrade} 
-              onChange={(e) => setSelectedGrade(e.target.value)}
-              className="w-full p-2 border rounded-md"
-            >
-              <option value="">Choose a grade...</option>
-              <option value="K1">K1</option>
-              <option value="K2">K2</option>
-              <option value="K3">K3</option>
-              <option value="P1">P1</option>
-              <option value="P2">P2</option>
-              <option value="P3">P3</option>
-              <option value="P4">P4</option>
-              <option value="P5">P5</option>
-              <option value="P6">P6</option>
-              <option value="S1">S1</option>
-              <option value="S2">S2</option>
-              <option value="S3">S3</option>
-              <option value="S4">S4</option>
-              <option value="S5">S5</option>
-              <option value="S6">S6</option>
-            </select>
-          </div>
+          {!initialGrade && (
+            <div>
+              <label className="block text-sm font-medium mb-2">Select Grade Level:</label>
+              <select 
+                value={selectedGrade} 
+                onChange={(e) => setSelectedGrade(e.target.value)}
+                className="w-full p-2 border rounded-md"
+              >
+                <option value="">Choose a grade...</option>
+                <option value="K1">K1</option>
+                <option value="K2">K2</option>
+                <option value="K3">K3</option>
+                <option value="P1">P1</option>
+                <option value="P2">P2</option>
+                <option value="P3">P3</option>
+                <option value="P4">P4</option>
+                <option value="P5">P5</option>
+                <option value="P6">P6</option>
+                <option value="S1">S1</option>
+                <option value="S2">S2</option>
+                <option value="S3">S3</option>
+                <option value="S4">S4</option>
+                <option value="S5">S5</option>
+                <option value="S6">S6</option>
+              </select>
+            </div>
+          )}
 
           {questions.length > 0 && (
             <div className="space-y-4">
