@@ -20,6 +20,7 @@ interface RecordingData {
   timestamp: string;
   duration: number;
   wordCount: number;
+  responseTime: number; // Time taken to start responding after question is read
 }
 
 export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
@@ -31,20 +32,30 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [recordings, setRecordings] = useState<RecordingData[]>([]);
+  const [isReadingQuestion, setIsReadingQuestion] = useState(false);
+  const [responseStartTime, setResponseStartTime] = useState<number | null>(null);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const questionReadTimeRef = useRef<number>(0);
   
   const { toast } = useToast();
 
-  // Enhanced speech recognition with multiple fallbacks
+  // Enhanced speech recognition with response time evaluation
   const performAdvancedSpeechAnalysis = async (recordings: RecordingData[]): Promise<any> => {
     const analysisPromises = recordings.map(async (recording, index) => {
-      return new Promise<{ transcription: string; score: number; confidence: number }>((resolve) => {
+      return new Promise<{ transcription: string; score: number; confidence: number; responseTimeScore: number }>((resolve) => {
         console.log(`Analyzing recording ${index + 1}/${recordings.length}`);
+        
+        // Calculate response time score
+        let responseTimeScore = 100;
+        if (recording.responseTime > 3000) { // More than 3 seconds
+          responseTimeScore = Math.max(30, 100 - ((recording.responseTime - 3000) / 1000) * 15);
+        } else if (recording.responseTime < 1000) { // Less than 1 second (too fast, might be cutting off question)
+          responseTimeScore = Math.max(60, 100 - ((1000 - recording.responseTime) / 100) * 5);
+        }
         
         // Method 1: Try Web Speech API with better configuration
         if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -82,7 +93,8 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
                   resolve({
                     transcription: 'Speech timeout - using audio analysis',
                     score: Math.max(30, Math.min(85, 45 + (recording.duration * 2) + (recording.wordCount * 5))),
-                    confidence: 0.4
+                    confidence: 0.4,
+                    responseTimeScore
                   });
                 }
               }, 8000);
@@ -141,7 +153,8 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
                 resolve({
                   transcription: bestTranscript,
                   score: clampedScore,
-                  confidence: bestConfidence
+                  confidence: bestConfidence,
+                  responseTimeScore
                 });
               };
               
@@ -163,7 +176,8 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
                 resolve({
                   transcription: `Audio recorded (${recording.duration}s) - Recognition unavailable`,
                   score: Math.round(heuristicScore),
-                  confidence: 0.3
+                  confidence: 0.3,
+                  responseTimeScore
                 });
               };
               
@@ -177,7 +191,8 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
               resolve({
                 transcription: 'Audio processing failed',
                 score: Math.max(20, Math.min(60, 30 + (recording.duration * 2))),
-                confidence: 0.2
+                confidence: 0.2,
+                responseTimeScore
               });
             });
             
@@ -204,7 +219,8 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
           resolve({
             transcription: `Speech recorded (${duration}s, ~${estimatedWords} words)`,
             score: finalScore,
-            confidence: 0.5
+            confidence: 0.5,
+            responseTimeScore
           });
         }
       });
@@ -213,9 +229,13 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
     // Wait for all analyses to complete
     const results = await Promise.all(analysisPromises);
     
-    // Calculate comprehensive scores
+    // Calculate comprehensive scores with response time consideration
     const overallScore = results.reduce((sum, r) => sum + r.score, 0) / results.length;
     const avgConfidence = results.reduce((sum, r) => sum + r.confidence, 0) / results.length;
+    const avgResponseTimeScore = results.reduce((sum, r) => sum + r.responseTimeScore, 0) / results.length;
+    
+    // Enhanced confidence scoring that includes response time
+    const confidenceScore = Math.round((overallScore * 0.7) + (avgResponseTimeScore * 0.3));
     
     // Section-based scoring
     const sectionScores = {
@@ -237,28 +257,38 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
       }
     });
     
+    // Generate feedback about response times
+    const slowResponses = recordings.filter(r => r.responseTime > 3000).length;
+    const improvements = overallScore < 60 ? 
+      ['Practice pronunciation daily', 'Speak more clearly and slowly', 'Use more varied vocabulary'] : 
+      ['Continue practicing for fluency', 'Work on pronunciation accuracy'];
+    
+    if (slowResponses > recordings.length / 2) {
+      improvements.push('Improve response speed - try to respond more naturally in conversations');
+    }
+    
     return {
       overallScore: Math.round(overallScore),
       pronunciation: Math.round(overallScore * (0.85 + avgConfidence * 0.15)),
       vocabulary: Math.round(overallScore * (0.8 + (avgConfidence * 0.2))),
       fluency: Math.round(overallScore * (0.75 + (avgConfidence * 0.25))),
-      confidence: Math.round(overallScore * (0.8 + (avgConfidence * 0.2))),
+      confidence: confidenceScore,
       sectionScores,
       detailedAnalysis: results.map((result, index) => ({
         section: questions[index]?.section || '',
         question: questions[index]?.text || '',
         score: result.score,
         confidence: result.confidence,
-        feedback: result.transcription
+        feedback: result.transcription,
+        responseTime: recordings[index]?.responseTime || 0
       })),
       grade,
       questionsAttempted: recordings.length,
       strengths: overallScore >= 70 ? 
         ['Clear pronunciation', 'Good vocabulary usage', 'Confident delivery'] : 
         ['Completed all sections', 'Shows effort'],
-      improvements: overallScore < 60 ? 
-        ['Practice pronunciation daily', 'Speak more clearly and slowly', 'Use more varied vocabulary'] : 
-        ['Continue practicing for fluency', 'Work on pronunciation accuracy']
+      improvements,
+      avgResponseTime: recordings.reduce((sum, r) => sum + r.responseTime, 0) / recordings.length
     };
   };
 
@@ -311,6 +341,21 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
   const currentQ = questions[currentQuestion];
   const progress = ((currentQuestion + 1) / questions.length) * 100;
 
+  // Auto-read question and start recording when question changes
+  useEffect(() => {
+    if (currentQ && !hasRecorded) {
+      setIsReadingQuestion(true);
+      speakText(currentQ.text, () => {
+        setIsReadingQuestion(false);
+        questionReadTimeRef.current = Date.now();
+        // Auto start recording after question is read
+        setTimeout(() => {
+          startRecording();
+        }, 500);
+      });
+    }
+  }, [currentQuestion, currentQ]);
+
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -322,6 +367,11 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
 
   const startRecording = async () => {
     try {
+      // Record the time when recording starts (user starts responding)
+      if (questionReadTimeRef.current > 0 && !responseStartTime) {
+        setResponseStartTime(Date.now());
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
           echoCancellation: true,
@@ -415,11 +465,17 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
     setAudioBlob(null);
     setHasRecorded(false);
     setRecordingTime(0);
+    setResponseStartTime(null);
     stopPlaying();
   };
 
   const nextQuestion = () => {
     if (audioBlob) {
+      // Calculate response time
+      const responseTime = responseStartTime && questionReadTimeRef.current > 0 
+        ? responseStartTime - questionReadTimeRef.current 
+        : 0;
+
       // Save recording data without analysis
       const recordingData: RecordingData = {
         questionId: currentQ.id,
@@ -428,7 +484,8 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
         audioBlob,
         timestamp: new Date().toISOString(),
         duration: recordingTime,
-        wordCount: Math.max(1, Math.floor(recordingTime / 0.7))
+        wordCount: Math.max(1, Math.floor(recordingTime / 0.7)),
+        responseTime
       };
       
       const newRecordings = [...recordings, recordingData];
@@ -437,6 +494,7 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
       if (currentQuestion < questions.length - 1) {
         setCurrentQuestion(prev => prev + 1);
         resetRecording();
+        questionReadTimeRef.current = 0;
       } else {
         completeTest(newRecordings);
       }
@@ -486,12 +544,18 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const speakText = (text: string) => {
+  const speakText = (text: string, onEnd?: () => void) => {
     if ('speechSynthesis' in window) {
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'en-US';
       utterance.rate = 0.8;
+      if (onEnd) {
+        utterance.onend = onEnd;
+      }
       speechSynthesis.speak(utterance);
+    } else if (onEnd) {
+      // Fallback: call onEnd after estimated reading time
+      setTimeout(onEnd, text.length * 80);
     }
   };
 
@@ -561,15 +625,6 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
                     {currentQ.instruction}
                   </CardTitle>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => speakText(currentQ.text)}
-                  className="shrink-0"
-                >
-                  <Volume2 className="w-4 h-4 mr-1" />
-                  Listen
-                </Button>
               </div>
             </CardHeader>
             <CardContent>
@@ -577,30 +632,35 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
                 <p className="text-xl font-medium text-gray-900 mb-2">
                   {currentQ.text}
                 </p>
-                <div className="flex items-center space-x-2">
-                  <Badge variant="secondary" className="bg-green-100 text-green-800">
-                    Type: {currentQ.type}
-                  </Badge>
-                  {currentQ.section.includes('Reading') && (
-                    <Badge variant="secondary" className="bg-orange-100 text-orange-800">
-                      Reading Passage
-                    </Badge>
-                  )}
-                </div>
+                {isReadingQuestion && (
+                  <div className="flex items-center space-x-2 mt-4">
+                    <Volume2 className="w-4 h-4 text-blue-600 animate-pulse" />
+                    <span className="text-sm text-blue-600">Reading question...</span>
+                  </div>
+                )}
               </div>
               
               <div className="text-center space-y-4">
                 {!hasRecorded ? (
                   <div>
                     {!isRecording ? (
-                      <Button
-                        size="lg"
-                        onClick={startRecording}
-                        className="bg-red-500 hover:bg-red-600 text-white px-8 py-4 text-lg"
-                      >
-                        <Mic className="w-6 h-6 mr-2" />
-                        Start Recording
-                      </Button>
+                      <div className="space-y-4">
+                        {isReadingQuestion && (
+                          <div className="text-gray-600">
+                            <p>請仔細聽題目，題目讀完後會自動開始錄音</p>
+                          </div>
+                        )}
+                        {!isReadingQuestion && !hasRecorded && (
+                          <Button
+                            size="lg"
+                            onClick={startRecording}
+                            className="bg-red-500 hover:bg-red-600 text-white px-8 py-4 text-lg"
+                          >
+                            <Mic className="w-6 h-6 mr-2" />
+                            Start Recording
+                          </Button>
+                        )}
+                      </div>
                     ) : (
                       <div className="space-y-4">
                         <div className="flex items-center justify-center space-x-4">
@@ -674,12 +734,13 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
             <CardContent className="p-4">
               <h4 className="font-semibold text-blue-800 mb-2">📋 Assessment Instructions:</h4>
               <ul className="text-sm text-blue-700 space-y-1">
-                <li>• <strong>Section A</strong>: Respond naturally to basic questions</li>
-                <li>• <strong>Section B</strong>: Read the passage clearly with proper pronunciation</li>
-                <li>• <strong>Section C</strong>: Express your personal experiences in detail</li>
-                <li>• Speak clearly and at a natural pace</li>
-                <li>• You may re-record if needed</li>
-                <li>• <strong>All recordings will be analyzed together at the end</strong></li>
+                <li>• <strong>真實對話模式</strong>: 題目會自動朗讀，然後自動開始錄音</li>
+                <li>• <strong>反應速度</strong>: 請盡快開始回應以獲得更好的自信分數</li>
+                <li>• <strong>Section A</strong>: 自然回應基本問題</li>
+                <li>• <strong>Section B</strong>: 清晰朗讀文章，注意發音</li>
+                <li>• <strong>Section C</strong>: 詳細表達個人經驗</li>
+                <li>• 如需要可以重新錄音</li>
+                <li>• <strong>所有錄音將在最後統一進行AI分析</strong></li>
               </ul>
             </CardContent>
           </Card>
