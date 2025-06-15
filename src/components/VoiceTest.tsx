@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -71,140 +70,138 @@ export const VoiceTest = ({ grade, speechRate, showQuestions, onComplete, onBack
   // Get questions from the comprehensive question bank
   const questions: Question[] = useMemo(() => getRandomQuestionSet(grade), [grade]);
   
-  // Generate a TRULY random seed that changes every time the component mounts
+  // Generate a truly random seed that changes every component mount
   const [randomSeed] = useState(() => {
-    const seed = Math.random() * 1000000;
-    console.log(`🎲 Generated new random seed: ${seed}`);
+    const seed = Date.now() + Math.random() * 1000000;
+    console.log(`🎲 Generated TRULY random seed: ${seed}`);
     return seed;
   });
   
-  // For senior secondary, generate DSE content from the questions with PROPER randomization
-  const randomDseContent = useMemo(() => {
-    if (!isSeniorSecondary) return null;
-    
-    const questionList = getRandomQuestionSet(grade);
-    console.log(`📚 Total questions for grade ${grade}:`, questionList.length);
-    
-    if (questionList.length === 0) return null;
-    
-    // Find Part A and Part B questions from the question list
-    const partAQuestions = questionList.filter(q => q.section === 'A. Group Interaction');
-    const partBQuestions = questionList.filter(q => q.section === 'B. Individual Response');
-    
-    console.log(`📝 Part A questions found: ${partAQuestions.length}`);
-    console.log(`📝 Part B questions found: ${partBQuestions.length}`);
-    
-    // Log all Part A questions for debugging
-    partAQuestions.forEach((q, index) => {
-      console.log(`Part A Question ${index}: ${q.text.substring(0, 100)}...`);
-    });
-    
-    if (partAQuestions.length === 0 || partBQuestions.length === 0) {
-      console.log('⚠️ No proper DSE structure found, using fallback content');
-      // Fallback to default content if no proper DSE structure found
-      return {
-        partA: {
-          title: "Group Interaction",
-          article: {
-            title: "Redevelopment in Western District leaves residents without a good night's sleep",
-            quote: "\"Redevelopment of old areas gives opportunities for developers to earn money. But local people do not have any say in the redevelopment and are forced to leave.\"",
-            content: `If you took a walk around Western District just a couple of years ago, you would see mostly stationery shops, bakeries, grocers and university students eating in cha chaan tengs. For years, even with its proximity to Central, the old neighbourhood remained largely untouched, retaining its traditional characteristics and flavour.
+  // Pre-defined DSE content pool for true randomization
+  const dseContentPool = useMemo(() => [
+    {
+      partA: {
+        title: "Group Interaction",
+        article: {
+          title: "Redevelopment in Western District leaves residents without a good night's sleep",
+          quote: "\"Redevelopment of old areas gives opportunities for developers to earn money. But local people do not have any say in the redevelopment and are forced to leave.\"",
+          content: `If you took a walk around Western District just a couple of years ago, you would see mostly stationery shops, bakeries, grocers and university students eating in cha chaan tengs. For years, even with its proximity to Central, the old neighbourhood remained largely untouched, retaining its traditional characteristics and flavour.
 
 But when three new MTR stations — Sai Ying Pun, HKU and Kennedy Town — opened in the area in late 2014, they brought with them a whole range of bars and expensive restaurants that drew in young rich hipsters. Today, Western District is the new, trendy neighbourhood, with young professionals increasingly turning older buildings into expensive trendy flats, forcing many long-term residents to leave the area that has been their home all their lives.
 
 Traditional shops are forced to leave because of high rents: 250 of the 700 shops in the Sai Ying Pun area either changed tenants or closed down from 2015 to 2017.
 
 There have been multiple complaints from residents about noise from bars and restaurants. \"For families and the elderly in this area, they are disturbed by the noise every day and can't afford to shop,\" one netizen said. \"We can't stop the world from developing, but there has to be a balance.\"`
-          },
-          discussionPoints: [
-            "why old districts are redeveloped",
-            "what problems redevelopments cause", 
-            "what the government should do to reduce the problems residents face",
-            "anything else you think is important"
-          ]
         },
-        partB: {
-          title: "Individual Response",
-          questions: [
-            "What do you like about the area you live in?",
-            "What is the biggest advantage of redevelopment?",
-            "What types of shops are typical of old neighbourhoods?",
-            "Why do older people like to live in traditional districts?",
-            "What would you like to change about your district?",
-            "Would you prefer to live in an old neighbourhood or a redeveloped area?",
-            "Is the redevelopment of old areas too slow in Hong Kong?",
-            "Who benefits most from redevelopment?"
-          ]
-        }
-      };
-    }
-    
-    // Use a better random selection method that actually uses current time + seed
-    const timeBasedSeed = randomSeed + Date.now();
-    const seededRandom = (seed: number, min: number = 0, max: number = 1) => {
-      const x = Math.sin(seed) * 10000;
-      const normalized = x - Math.floor(x);
-      return min + normalized * (max - min);
-    };
-    
-    // Extract article content and discussion points from a TRULY RANDOM Part A question
-    const randomIndex = Math.floor(seededRandom(timeBasedSeed, 0, partAQuestions.length));
-    const partAQuestion = partAQuestions[randomIndex];
-    
-    console.log(`🎲 FINAL random selection - Index: ${randomIndex} out of ${partAQuestions.length} questions`);
-    console.log(`📝 Selected question ID: ${partAQuestion.id}`);
-    console.log(`📝 Selected question text preview: ${partAQuestion.text.substring(0, 100)}...`);
-    
-    const articleMatch = partAQuestion.text.match(/Article:\s*(.+?)(?:\n\nDiscussion:|$)/s);
-    const discussionMatch = partAQuestion.text.match(/Discussion:\s*(.+)$/s);
-    
-    let article = {
-      title: "Current Affairs Discussion",
-      quote: "",
-      content: articleMatch ? articleMatch[1].trim() : partAQuestion.text
-    };
-    
-    // Try to extract quote if it exists
-    const quoteMatch = article.content.match(/"([^"]+)"/);
-    if (quoteMatch) {
-      article.quote = `"${quoteMatch[1]}"`;
-    }
-    
-    let discussionPoints = [
-      "the main issues mentioned in the article",
-      "possible solutions to the problems",
-      "how this affects people in Hong Kong",
-      "anything else you think is important"
-    ];
-    
-    if (discussionMatch) {
-      const points = discussionMatch[1].split('\n').filter(p => p.trim());
-      if (points.length > 0) {
-        discussionPoints = points.map(p => p.replace(/^[-•]\s*/, '').trim());
-      }
-    }
-    
-    // Randomize Part B questions selection using different seed
-    const shuffledPartBQuestions = [...partBQuestions];
-    for (let i = shuffledPartBQuestions.length - 1; i > 0; i--) {
-      const j = Math.floor(seededRandom(timeBasedSeed + i + 100, 0, i + 1));
-      [shuffledPartBQuestions[i], shuffledPartBQuestions[j]] = [shuffledPartBQuestions[j], shuffledPartBQuestions[i]];
-    }
-    
-    console.log(`✅ DSE content generated successfully with random seed: ${timeBasedSeed}`);
-    
-    return {
-      partA: {
-        title: "Group Interaction",
-        article: article,
-        discussionPoints: discussionPoints
+        discussionPoints: [
+          "why old districts are redeveloped",
+          "what problems redevelopments cause", 
+          "what the government should do to reduce the problems residents face",
+          "anything else you think is important"
+        ]
       },
       partB: {
         title: "Individual Response",
-        questions: shuffledPartBQuestions.slice(0, 8).map(q => q.text)
+        questions: [
+          "What do you like about the area you live in?",
+          "What is the biggest advantage of redevelopment?",
+          "What types of shops are typical of old neighbourhoods?",
+          "Why do older people like to live in traditional districts?",
+          "What would you like to change about your district?",
+          "Would you prefer to live in an old neighbourhood or a redeveloped area?",
+          "Is the redevelopment of old areas too slow in Hong Kong?",
+          "Who benefits most from redevelopment?"
+        ]
       }
-    };
-  }, [isSeniorSecondary, grade, randomSeed]);
+    },
+    {
+      partA: {
+        title: "Group Interaction",
+        article: {
+          title: "Hong Kong students struggle with online learning during pandemic",
+          quote: "\"Many students don't have proper equipment or quiet spaces to study at home, which makes online learning very challenging.\"",
+          content: `The COVID-19 pandemic has forced Hong Kong schools to switch to online learning multiple times since 2020. While this transition was necessary for public health, it has created significant challenges for students, teachers, and parents alike.
+
+Many students from lower-income families lack access to reliable internet connections or suitable devices for online learning. Some families have only one computer or tablet that must be shared among multiple children and working parents. This digital divide has widened educational inequalities in Hong Kong.
+
+Teachers have also struggled to adapt their teaching methods for online platforms. Traditional classroom activities like group discussions and hands-on experiments are difficult to conduct virtually. Many teachers report that student engagement and participation have decreased significantly during online lessons.
+
+Parents, especially those working from home, have found it challenging to supervise their children's online learning while managing their own work responsibilities. The lack of social interaction with peers has also affected students' mental health and motivation to learn.`
+        },
+        discussionPoints: [
+          "the main challenges of online learning",
+          "how to improve online education quality",
+          "what support schools should provide to students",
+          "the long-term effects on education"
+        ]
+      },
+      partB: {
+        title: "Individual Response",
+        questions: [
+          "Do you prefer online learning or face-to-face classes? Why?",
+          "What equipment do you need for effective online learning?",
+          "How can teachers make online lessons more interesting?",
+          "What are the advantages of studying from home?",
+          "How has technology changed the way we learn?",
+          "What skills are important for successful online learning?",
+          "Should schools continue using online learning after the pandemic?",
+          "How can students stay motivated during online classes?"
+        ]
+      }
+    },
+    {
+      partA: {
+        title: "Group Interaction",
+        article: {
+          title: "Young people in Hong Kong face pressure to choose career paths early",
+          quote: "\"Students feel they must decide their future career by age 16, but many are not ready to make such important decisions.\"",
+          content: `Hong Kong's education system requires students to choose their subjects and career paths at a relatively young age. By Form 4, students must select their elective subjects, which often determines what they can study at university and their future career options.
+
+This early specialization creates significant pressure on teenagers who may not yet know their interests or strengths. Many students choose subjects based on parental expectations or perceived job prospects rather than their own passions and abilities.
+
+Career counseling in schools is often limited, and students may not have enough exposure to different professions to make informed decisions. Some students later discover that their chosen path doesn't suit them, leading to dissatisfaction and the need to change direction at a higher cost.
+
+Parents and teachers often emphasize traditional "safe" careers like medicine, law, and finance, while creative industries and emerging fields receive less recognition. This narrow focus may limit students' potential and contribute to skills shortages in certain sectors.`
+        },
+        discussionPoints: [
+          "why students face pressure to choose careers early",
+          "what support students need for career planning",
+          "how schools can improve career guidance",
+          "the role of parents in career decisions"
+        ]
+      },
+      partB: {
+        title: "Individual Response",
+        questions: [
+          "When did you first think about your future career?",
+          "What factors influence young people's career choices?",
+          "Should students be allowed to change their subjects later?",
+          "How important are parents' opinions in career planning?",
+          "What careers are popular among young people today?",
+          "Do you think it's necessary to choose a career path early?",
+          "What advice would you give to someone choosing their career?",
+          "How can schools help students explore different careers?"
+        ]
+      }
+    }
+  ], []);
+  
+  // For senior secondary, select random DSE content from the pool
+  const randomDseContent = useMemo(() => {
+    if (!isSeniorSecondary) return null;
+    
+    // Use the random seed to select content from the pool
+    const contentIndex = Math.floor((randomSeed % 1000) / 1000 * dseContentPool.length);
+    const selectedContent = dseContentPool[contentIndex];
+    
+    console.log(`🎯 DSE Content Selection:
+    - Random seed: ${randomSeed}
+    - Pool size: ${dseContentPool.length}
+    - Selected index: ${contentIndex}
+    - Article title: ${selectedContent.partA.article.title}`);
+    
+    return selectedContent;
+  }, [isSeniorSecondary, randomSeed, dseContentPool]);
 
   const currentQ = questions[currentQuestion];
   const progress = isSeniorSecondary 
