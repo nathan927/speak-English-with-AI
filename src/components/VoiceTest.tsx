@@ -65,6 +65,18 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
     };
   }, []);
 
+  // Auto-trigger LISTEN when question changes (except for Reading questions)
+  useEffect(() => {
+    if (currentQ && currentQ.section.toLowerCase() !== 'reading') {
+      // Small delay to ensure UI is ready
+      const timer = setTimeout(() => {
+        handleListen();
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [currentQuestion]);
+
   const handleListen = () => {
     console.log('Listen button clicked');
     console.log('Current question:', currentQ);
@@ -433,15 +445,18 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
                   <div>
                     {!isRecording ? (
                       <div className="space-y-4">
-                        <Button
-                          size="lg"
-                          onClick={handleListen}
-                          disabled={isSpeaking}
-                          className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg mr-4 disabled:opacity-50"
-                        >
-                          <Volume2 className="w-6 h-6 mr-2" />
-                          {isSpeaking ? '播放中...' : 'Listen'}
-                        </Button>
+                        {/* Only show Listen button for non-Reading questions */}
+                        {currentQ.section.toLowerCase() !== 'reading' && (
+                          <Button
+                            size="lg"
+                            onClick={handleListen}
+                            disabled={isSpeaking}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg mr-4 disabled:opacity-50"
+                          >
+                            <Volume2 className="w-6 h-6 mr-2" />
+                            {isSpeaking ? '播放中...' : 'Listen'}
+                          </Button>
+                        )}
                         <Button
                           size="lg"
                           onClick={startRecording}
