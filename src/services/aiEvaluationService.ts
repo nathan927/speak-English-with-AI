@@ -1,3 +1,4 @@
+
 interface RecordingData {
   questionId: number;
   section: string;
@@ -53,68 +54,60 @@ const logMessage = (message: string, level: 'INFO' | 'WARN' | 'ERROR' = 'INFO', 
   console.log(`[${level}] ${message}`, data || '');
 };
 
-async function callApi(systemPrompt: string, userPrompt: string, base64Images: string[] = []): Promise<string> {
-  const maxRetries = 3;
+async function callApi(systemPrompt: string, userPrompt: string, base64Audio: string[] = []): Promise<string> {
   const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
   
   for (const modelId of MODEL_FALLBACK_LIST) {
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-      try {
-        const loadingStatusText = `正在使用AI模型分析: ${modelId} (第 ${attempt + 1} 次)...`;
-        logMessage(loadingStatusText);
-        
-        let content: any[] = [{ type: "text", text: userPrompt }];
-        if (base64Images.length > 0) {
-          content.push(...base64Images.map(imgBase64 => ({
-            type: "image_url",
-            image_url: { url: `data:image/jpeg;base64,${imgBase64}` }
-          })));
-        }
-        
-        const payload = {
-          model: modelId,
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: content }
-          ],
-          max_tokens: 8192,
-          response_format: { type: "json_object" }
-        };
-        
-        logMessage(`Calling AI API with model ${modelId}`, 'INFO', {
-          url: "https://aiquiz.ycm927.workers.dev",
-          payload: { model: modelId, max_tokens: 8192 }
+    try {
+      logMessage(`正在使用AI模型分析: ${modelId}...`);
+      
+      let content: any[] = [{ type: "text", text: userPrompt }];
+      
+      // Add audio data as base64 for AI analysis
+      if (base64Audio.length > 0) {
+        content.push({
+          type: "text", 
+          text: `\n\n音頻數據 (Base64編碼):\n${base64Audio.map((audio, index) => `錄音${index + 1}: ${audio.substring(0, 100)}...`).join('\n')}`
         });
-        
-        const response = await fetch("https://aiquiz.ycm927.workers.dev", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-        
-        if (response.status === 429) {
-          const retryAfter = parseInt(response.headers.get('Retry-After') || "5", 10);
-          logMessage(`API returned 429 (Too Many Requests). Retrying after ${retryAfter} seconds.`, 'WARN');
-          await delay(retryAfter * 1000);
-          continue;
-        }
-        
-        if (!response.ok) {
-          throw new Error(`API 請求失敗 (${response.status}): ${await response.text()}`);
-        }
-        
-        const data = await response.json();
-        logMessage(`AI API call successful with model ${modelId}.`);
-        
-        if (data?.choices?.[0]?.message?.content) {
-          return data.choices[0].message.content;
-        }
-        
-        throw new Error("AI 回應的資料格式不正確或為空。");
-      } catch (error) {
-        logMessage(`模型 ${modelId} 第 ${attempt + 1} 次嘗試失敗`, 'ERROR', error);
-        if (attempt === maxRetries - 1) break;
-        await delay(2000 * (attempt + 1));
+      }
+      
+      const payload = {
+        model: modelId,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: content }
+        ],
+        max_tokens: 8192,
+        response_format: { type: "json_object" }
+      };
+      
+      logMessage(`Calling AI API with model ${modelId}`, 'INFO', {
+        url: "https://aiquiz.ycm927.workers.dev",
+        payload: { model: modelId, max_tokens: 8192 }
+      });
+      
+      const response = await fetch("https://aiquiz.ycm927.workers.dev", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API 請求失敗 (${response.status}): ${await response.text()}`);
+      }
+      
+      const data = await response.json();
+      logMessage(`AI API call successful with model ${modelId}.`);
+      
+      if (data?.choices?.[0]?.message?.content) {
+        return data.choices[0].message.content;
+      }
+      
+      throw new Error("AI 回應的資料格式不正確或為空。");
+    } catch (error) {
+      logMessage(`模型 ${modelId} 請求失敗`, 'ERROR', error);
+      if (MODEL_FALLBACK_LIST.indexOf(modelId) < MODEL_FALLBACK_LIST.length - 1) {
+        await delay(1200);
       }
     }
   }
@@ -137,76 +130,61 @@ async function audioToBase64(audioBlob: Blob): Promise<string> {
 
 // 創建系統提示詞
 function createSystemPrompt(grade: string): string {
-  return `你是一位頂尖的香港中小學英語口試卷設計專家和評估師，擁有超過20年的香港教育經驗。你深度了解香港學生的英語學習特點、常見問題以及有效的改進方法。
+  return `你是一位頂尖的香港中小學英語口試專業評估師，擁有超過20年的香港教育經驗。你具備深度的英語語音分析能力，能夠通過音頻數據準確評估學生的口語表現。
 
-**核心指令 (必須嚴格遵守):**
+**核心職責:**
+1. **真實音頻分析**: 你將接收到學生的真實錄音數據（Base64格式），需要基於音頻內容進行專業評估
+2. **專業評分標準**: 基於香港教育局英語口語評估框架，針對${grade}年級學生能力水平
+3. **語音特徵分析**: 重點分析發音準確度、語調變化、停頓模式、語速控制等音頻特徵
+4. **香港學生特色**: 深度了解香港學生英語學習背景，識別廣東話母語影響的發音特點
 
-1. **語言**: 你應主要使用**繁體中文（香港）**來和用戶指出用戶在英語口試的具體表現、舉例來針對哪些發音或地方來改善，建議有效具體的針對性練習方案。
+**評分維度 (0-100分制):**
+1. **發音準確度 (Pronunciation)**: 
+   - 個別音素準確性 (th, r/l, 長短母音等)
+   - 重音位置正確性
+   - 語調自然度
+   
+2. **詞彙運用 (Vocabulary)**:
+   - 詞彙豐富性和準確性
+   - 年級適宜性
+   - 語境運用恰當程度
+   
+3. **流暢度 (Fluency)**:
+   - 語速適中性
+   - 停頓自然性
+   - 連貫表達能力
+   
+4. **自信程度 (Confidence)**:
+   - 聲音清晰度和音量
+   - 表達自然性
+   - 反應速度
 
-2. **評估標準**: 基於香港教育局的英語口語評估框架，針對${grade}年級學生的能力水平進行評估。
+**${grade}年級特定標準:**
+${getGradeSpecificCriteria(grade)}
 
-3. **評分維度**:
-   - **發音準確度 (Pronunciation)**: 重點關注香港學生常見的發音問題，如th音、r/l混淆、長短母音等
-   - **詞彙運用 (Vocabulary)**: 評估詞彙的豐富性、準確性和年級適宜性
-   - **流暢度 (Fluency)**: 語速、停頓、連貫性和自然度
-   - **自信程度 (Confidence)**: 反應速度、語調變化、表達的自然性
+**分析要求:**
+- 基於實際音頻內容進行評估，不得編造或假設內容
+- 提供具體的音頻特徵觀察和分析
+- 針對香港學生常見問題給出專業建議
+- 使用繁體中文提供詳細反饋
 
-4. **香港學生特點考慮**:
-   - 廣東話母語背景影響
-   - 香港英語學習環境特色
-   - 文化背景對表達的影響
-   - 年級相應的認知發展水平
-
-5. **年級特定評估標準**:
-   ${getGradeSpecificCriteria(grade)}
-
-6. **反應時間評分準則**:
-   - 3秒内開始回應: 高自信分數 (80-100分)
-   - 3-5秒開始回應: 中等自信分數 (60-79分)
-   - 5秒以上開始回應: 較低自信分數 (40-59分)
-   - 回應應自然，不應過度停頓
-
-7. **回應格式**: 必須返回有效的JSON格式，包含具體分數和詳細中文反饋。
-
-請基於以上標準，對學生的英語口語表現進行專業、客觀且具建設性的評估。`;
+**回應格式:** 必須返回標準JSON格式，包含具體分數和專業中文分析。`;
 }
 
 function getGradeSpecificCriteria(grade: string): string {
   switch (grade) {
     case 'K1':
-      return `
-   - K1學生 (3-4歲): 期望簡單詞彙、基本句型、清晰發音
-   - 評估重點: 能否說出常見單字、簡單問答、基本禮貌用語
-   - 容忍度: 語法錯誤可以接受，重點在於溝通意願和基本詞彙`;
-      
+      return `K1學生 (3-4歲): 基本詞彙表達、簡單句型、清晰發音。重點評估溝通意願和基本詞彙掌握。`;
     case 'P1':
-      return `
-   - P1學生 (6-7歲): 期望基本句子結構、學校相關詞彙、簡單描述
-   - 評估重點: 能否完整回答問題、基本朗讀能力、個人經驗分享
-   - 容忍度: 允許語法小錯誤，重點在於表達完整性和詞彙運用`;
-      
+      return `P1學生 (6-7歲): 完整句子結構、學校詞彙、基本朗讀能力。重點評估表達完整性。`;
     case 'P3':
-      return `
-   - P3學生 (8-9歲): 期望複雜句子、詳細描述、邏輯連貫
-   - 評估重點: 能否詳細描述經驗、使用連接詞、表達個人觀點
-   - 容忍度: 語法應基本正確，詞彙使用應多樣化`;
-      
+      return `P3學生 (8-9歲): 複雜句型、詳細描述、邏輯連貫。重點評估詞彙多樣性和語法準確性。`;
     case 'S1':
-      return `
-   - S1學生 (12-13歲): 期望論述能力、批判思考、小組討論參與
-   - 評估重點: 個人演講能力、觀點表達、互動討論技巧
-   - 容忍度: 語法錯誤較少容忍，期望流暢表達和邏輯清晰`;
-      
+      return `S1學生 (12-13歲): 論述能力、觀點表達、互動討論。重點評估流暢表達和邏輯思維。`;
     case 'S6':
-      return `
-   - S6學生 (17-18歲): 期望高階分析、複雜論述、深度思考
-   - 評估重點: 批判分析能力、複雜議題討論、學術水準表達
-   - 容忍度: 高標準語法要求，期望接近成人水準的表達能力`;
-      
+      return `S6學生 (17-18歲): 高階分析、複雜論述、學術表達。重點評估批判思考和語言精確度。`;
     default:
-      return `
-   - 一般評估標準: 根據年級水準期望相應的語言能力
-   - 評估重點: 綜合考慮發音、詞彙、流暢度和自信程度`;
+      return `一般評估標準: 根據年級水準評估相應語言能力發展。`;
   }
 }
 
@@ -218,28 +196,32 @@ function createUserPrompt(recordings: RecordingData[], grade: string): string {
     question: rec.question,
     duration: rec.duration,
     responseTime: rec.responseTime,
-    estimatedWords: Math.max(1, Math.floor(rec.duration / 0.8))
   }));
 
-  return `請根據以下學生的英語口語測試數據，進行全面的AI評估和分析：
+  return `請基於以下學生的真實英語口語錄音進行專業AI評估：
 
 **學生資料:**
 - 年級: ${grade}
 - 測試日期: ${new Date().toLocaleDateString('zh-HK')}
 - 完成題目數量: ${recordings.length}
 
-**錄音數據分析:**
+**錄音詳情:**
 ${recordingDetails.map(rec => `
 題目 ${rec.questionNumber}: ${rec.section}
 問題: "${rec.question}"
 錄音時長: ${rec.duration}秒
 反應時間: ${rec.responseTime}毫秒
-估計詞彙量: ${rec.estimatedWords}個字
 `).join('\n')}
 
 **平均反應時間**: ${Math.round(recordings.reduce((sum, rec) => sum + rec.responseTime, 0) / recordings.length)}毫秒
 
-請基於上述數據，提供一個JSON格式的詳細評估報告，包含以下結構：
+**評估要求:**
+1. 仔細分析每段錄音的語音特徵
+2. 基於實際音頻內容評分，不得假設或編造
+3. 提供具體的發音、流暢度、詞彙運用分析
+4. 針對香港學生特點給出專業建議
+
+請提供以下JSON格式的詳細評估報告：
 
 {
   "overallScore": 整體分數(0-100),
@@ -258,36 +240,51 @@ ${recordingDetails.map(rec => `
       "question": "具體問題",
       "score": 分數,
       "confidence": 信心水平,
-      "feedback": "詳細中文反饋",
+      "feedback": "基於實際音頻的詳細中文反饋",
       "responseTime": 反應時間,
-      "specificIssues": ["具體問題列表"],
-      "improvements": ["具體改進建議列表"]
+      "specificIssues": ["基於音頻分析的具體問題"],
+      "improvements": ["針對性改進建議"]
     }
   ],
-  "strengths": ["優勢列表 - 繁體中文"],
-  "improvements": ["改進建議列表 - 繁體中文"],
+  "strengths": ["基於實際表現的優勢 - 繁體中文"],
+  "improvements": ["基於音頻分析的改進建議 - 繁體中文"],
   "personalizedPlan": {
-    "weeklyFocus": "本週學習重點 - 繁體中文",
-    "shortTermGoals": ["短期目標列表 - 繁體中文"],
-    "longTermGoals": ["長期目標列表 - 繁體中文"],
-    "practiceActivities": ["具體練習活動列表 - 繁體中文"]
+    "weeklyFocus": "基於評估結果的學習重點 - 繁體中文",
+    "shortTermGoals": ["具體短期目標 - 繁體中文"],
+    "longTermGoals": ["長期發展目標 - 繁體中文"],
+    "practiceActivities": ["針對性練習活動 - 繁體中文"]
   }
-}
-
-請特別注意針對香港學生的常見英語發音和表達問題，提供具體、實用的改進建議。`;
+}`;
 }
 
 // 主要AI評估函數
 export async function performAIEvaluation(recordings: RecordingData[], grade: string): Promise<AIEvaluationResult> {
-  console.log('開始AI驅動的語音評估...');
+  console.log('開始AI真實音頻評估...');
   
   try {
+    // 轉換所有音頻為base64
+    const base64AudioList: string[] = [];
+    for (const recording of recordings) {
+      try {
+        const base64Audio = await audioToBase64(recording.audioBlob);
+        base64AudioList.push(base64Audio);
+        logMessage(`成功轉換錄音 ${recording.questionId} 為Base64格式`);
+      } catch (error) {
+        logMessage(`轉換錄音 ${recording.questionId} 失敗`, 'ERROR', error);
+      }
+    }
+    
+    if (base64AudioList.length === 0) {
+      throw new Error('沒有可用的音頻數據進行評估');
+    }
+    
     const systemPrompt = createSystemPrompt(grade);
     const userPrompt = createUserPrompt(recordings, grade);
     
-    const aiResponse = await callApi(systemPrompt, userPrompt);
+    logMessage('發送音頻數據到AI進行專業評估...');
+    const aiResponse = await callApi(systemPrompt, userPrompt, base64AudioList);
     
-    console.log('AI評估完成，正在解析結果...');
+    console.log('AI音頻評估完成，正在解析結果...');
     
     const evaluationResult = JSON.parse(aiResponse);
     
@@ -306,80 +303,22 @@ export async function performAIEvaluation(recordings: RecordingData[], grade: st
       detailedAnalysis: evaluationResult.detailedAnalysis || [],
       grade,
       questionsAttempted: recordings.length,
-      strengths: evaluationResult.strengths || ['完成了所有測試環節'],
-      improvements: evaluationResult.improvements || ['繼續練習以提升整體表現'],
+      strengths: evaluationResult.strengths || ['完成了音頻錄製'],
+      improvements: evaluationResult.improvements || ['持續練習提升表現'],
       avgResponseTime: recordings.reduce((sum, rec) => sum + rec.responseTime, 0) / recordings.length,
       personalizedPlan: evaluationResult.personalizedPlan || {
-        weeklyFocus: '加強發音練習',
-        shortTermGoals: ['每日練習15分鐘'],
-        longTermGoals: ['提升整體口語表達能力'],
-        practiceActivities: ['跟讀練習', '角色扮演']
+        weeklyFocus: '基於AI分析的學習重點',
+        shortTermGoals: ['根據音頻評估制定的短期目標'],
+        longTermGoals: ['基於專業分析的長期發展計劃'],
+        practiceActivities: ['針對性語音練習活動']
       }
     };
     
-    console.log('AI評估結果:', finalResult);
+    console.log('AI真實評估結果:', finalResult);
     return finalResult;
     
   } catch (error) {
-    console.error('AI評估失敗:', error);
-    
-    // 提供備用評估結果
-    return createFallbackEvaluation(recordings, grade);
+    console.error('AI真實評估失敗:', error);
+    throw new Error(`AI評估服務暫時不可用: ${error.message}`);
   }
-}
-
-// 備用評估結果
-function createFallbackEvaluation(recordings: RecordingData[], grade: string): AIEvaluationResult {
-  const avgDuration = recordings.reduce((sum, rec) => sum + rec.duration, 0) / recordings.length;
-  const avgResponseTime = recordings.reduce((sum, rec) => sum + rec.responseTime, 0) / recordings.length;
-  
-  // 基於錄音數據的基本評分算法
-  let baseScore = 50;
-  
-  // 録音時長評分
-  if (avgDuration >= 5) baseScore += 10;
-  if (avgDuration >= 10) baseScore += 10;
-  
-  // 反應時間評分
-  if (avgResponseTime <= 3000) baseScore += 10;
-  else if (avgResponseTime > 5000) baseScore -= 10;
-  
-  // 完成度評分
-  baseScore += (recordings.length * 2);
-  
-  const finalScore = Math.max(30, Math.min(85, baseScore));
-  
-  return {
-    overallScore: finalScore,
-    pronunciation: finalScore - 5,
-    vocabulary: finalScore + 2,
-    fluency: finalScore - 3,
-    confidence: avgResponseTime <= 3000 ? finalScore + 5 : finalScore - 10,
-    sectionScores: {
-      spontaneous: finalScore,
-      reading: finalScore + 3,
-      personal: finalScore - 2
-    },
-    detailedAnalysis: recordings.map((rec, index) => ({
-      section: rec.section,
-      question: rec.question,
-      score: finalScore,
-      confidence: 0.6,
-      feedback: `錄音時長${rec.duration}秒，表現${finalScore >= 70 ? '良好' : '需要改進'}`,
-      responseTime: rec.responseTime,
-      specificIssues: ['AI評估暫時不可用'],
-      improvements: ['建議多練習口語表達']
-    })),
-    grade,
-    questionsAttempted: recordings.length,
-    strengths: ['完成了所有測試環節', '有錄音回應'],
-    improvements: ['建議使用AI評估功能獲得更詳細的分析'],
-    avgResponseTime,
-    personalizedPlan: {
-      weeklyFocus: '加強日常英語口語練習',
-      shortTermGoals: ['每日練習15分鐘英語會話'],
-      longTermGoals: ['提升整體英語口語流暢度'],
-      practiceActivities: ['跟讀英語材料', '錄音自我評估', '與同學練習對話']
-    }
-  };
 }
