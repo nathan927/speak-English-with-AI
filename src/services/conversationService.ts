@@ -1,4 +1,3 @@
-
 // Conversation service for natural dialogue transitions
 import { logger } from './logService';
 
@@ -41,23 +40,10 @@ const conversationPhrases: ConversationPhrase = {
     "Got it.",
     "I see.",
     "Alright.",
-    "Fair enough.",
-    "Sure.",
-    "Thanks.",
-    "Good.",
-    "Fine.",
     "Understood.",
     "Makes sense.",
     "Noted.",
-    "Sounds good.",
-    "Fair point.",
-    "I hear you.",
-    "That works.",
-    "Interesting.",
-    "True.",
-    "Of course.",
-    "Indeed.",
-    "Absolutely."
+    "Sounds good."
   ],
   encouragement: [
     "Take your time.",
@@ -109,10 +95,8 @@ const conversationPhrases: ConversationPhrase = {
     "Right.",
     "Okay.",
     "I see.",
-    "Mm-hmm.",
     "Sure.",
     "Got it.",
-    "Fair enough.",
     "Makes sense."
   ],
   casual: [
@@ -121,9 +105,7 @@ const conversationPhrases: ConversationPhrase = {
     "Now,",
     "Anyway,",
     "Right,",
-    "Okay,",
-    "Actually,",
-    "By the way,"
+    "Okay,"
   ]
 };
 
