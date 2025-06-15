@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -70,14 +69,10 @@ const Index = () => {
                 <Mic className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">SpeakSmart HK</h1>
-                <p className="text-sm text-gray-600">AI英語口語評測系統</p>
+                <h1 className="text-xl font-bold text-gray-900">SpeakCheck HK</h1>
+                <p className="text-sm text-gray-600">AI英語口語評測</p>
               </div>
             </div>
-            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-              <Globe className="w-3 h-3 mr-1" />
-              香港教育局認證
-            </Badge>
           </div>
         </div>
       </header>
@@ -286,15 +281,13 @@ const Index = () => {
             <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
               <Mic className="w-4 h-4 text-white" />
             </div>
-            <span className="text-xl font-bold">SpeakSmart HK</span>
+            <span className="text-xl font-bold">SpeakCheck HK</span>
           </div>
           <p className="text-gray-400 mb-4">
-            © 2024 SpeakSmart HK. 專為香港學生設計的AI英語口語評測系統
+            © 2025 SpeakCheck HK. 專為香港學生設計的AI英語口語評測系統
           </p>
-          <div className="flex justify-center space-x-6 text-sm text-gray-400">
-            <a href="#" className="hover:text-white transition-colors">隱私政策</a>
-            <a href="#" className="hover:text-white transition-colors">服務條款</a>
-            <a href="#" className="hover:text-white transition-colors">聯絡我們</a>
+          <div className="text-sm text-gray-400">
+            Powered by Nathan Yuen
           </div>
         </div>
       </footer>
