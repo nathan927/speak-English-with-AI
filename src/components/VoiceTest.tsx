@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ArrowLeft, Mic, MicOff, Play, Pause, RotateCcw, Volume2, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -14,8 +15,10 @@ import { logger } from '@/services/logService';
 interface VoiceTestProps {
   grade: string;
   speechRate: number;
+  showQuestions: boolean;
   onComplete: (results: any) => void;
   onBack: () => void;
+  onShowQuestionsChange: (checked: boolean) => void;
 }
 
 interface RecordingData {
@@ -29,7 +32,7 @@ interface RecordingData {
   responseTime: number;
 }
 
-export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestProps) => {
+export const VoiceTest = ({ grade, speechRate, showQuestions, onComplete, onBack, onShowQuestionsChange }: VoiceTestProps) => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -42,6 +45,7 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [hasSpokenTransition, setHasSpokenTransition] = useState(false);
   const [showBackConfirmDialog, setShowBackConfirmDialog] = useState(false);
+  const [hasUsedPardon, setHasUsedPardon] = useState(false);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -72,7 +76,8 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
       grade,
       speechRate,
       questionsCount: questions.length,
-      isKindergarten
+      isKindergarten,
+      showQuestions
     }, 'VoiceTest', 'mount');
 
     return () => {
@@ -84,9 +89,12 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
     };
   }, []);
 
-  // 簮化 useEffect，處理題目切換和過渡句
+  // Reset pardon usage when moving to next question
   useEffect(() => {
     logger.questionLog(currentQuestion, currentQ, 'changed');
+    
+    // Reset pardon usage for new question
+    setHasUsedPardon(false);
     
     // 重置過渡句標記
     setHasSpokenTransition(false);
@@ -183,6 +191,11 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
         }
       });
     }
+  };
+
+  const handlePardon = () => {
+    setHasUsedPardon(true);
+    handleListen();
   };
 
   const startRecording = async () => {
@@ -542,6 +555,21 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
               <ArrowLeft className="w-4 h-4 mr-1 md:mr-2 transition-transform duration-300 group-hover:-translate-x-1" />
               <span className="relative z-10 text-sm md:text-base">Back</span>
             </Button>
+            
+            {/* Show Questions Checkbox */}
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="show-questions"
+                checked={showQuestions}
+                onCheckedChange={onShowQuestionsChange}
+              />
+              <label 
+                htmlFor="show-questions" 
+                className="text-sm font-medium text-gray-700 cursor-pointer"
+              >
+                Show The Questions
+              </label>
+            </div>
           </div>
           
           <div className="flex items-center justify-between mb-2 md:mb-4">
@@ -594,34 +622,66 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
               </div>
             </CardHeader>
             <CardContent className="pt-0">
-              <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 md:p-10 mb-4 md:mb-6">
-                <p className="text-lg md:text-2xl font-bold text-gray-900 mb-3 leading-relaxed">
-                  {currentQ.text}
-                </p>
-                {isSpeaking && (
-                  <div className="flex items-center space-x-2 mt-3">
-                    <Volume2 className="w-4 h-4 text-blue-600 animate-pulse" />
-                    <span className="text-xs md:text-sm text-blue-600">Playing question...</span>
+              {/* Conditional question display based on showQuestions */}
+              {showQuestions ? (
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 md:p-10 mb-4 md:mb-6">
+                  <p className="text-lg md:text-2xl font-bold text-gray-900 mb-3 leading-relaxed">
+                    {currentQ.text}
+                  </p>
+                  {isSpeaking && (
+                    <div className="flex items-center space-x-2 mt-3">
+                      <Volume2 className="w-4 h-4 text-blue-600 animate-pulse" />
+                      <span className="text-xs md:text-sm text-blue-600">Playing question...</span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg p-6 md:p-10 mb-4 md:mb-6 text-center">
+                  <div className="text-gray-500 mb-3">
+                    <Volume2 className="w-8 h-8 mx-auto mb-2" />
+                    <p className="text-sm">Listen carefully to the question</p>
                   </div>
-                )}
-              </div>
+                  {isSpeaking && (
+                    <div className="flex items-center justify-center space-x-2 mt-3">
+                      <Volume2 className="w-4 h-4 text-blue-600 animate-pulse" />
+                      <span className="text-xs md:text-sm text-blue-600">Playing question...</span>
+                    </div>
+                  )}
+                </div>
+              )}
               
               <div className="text-center space-y-5 md:space-y-6">
                 {!hasRecorded ? (
                   <div>
                     {!isRecording ? (
                       <div className="space-y-3 md:space-y-4">
-                        {/* Only show Listen button for non-Reading questions */}
-                        {!isReadingQuestion && (
-                          <Button
-                            size="sm"
-                            onClick={handleListen}
-                            disabled={isSpeaking}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 md:px-8 md:py-4 text-sm md:text-lg mr-2 md:mr-4 disabled:opacity-50"
-                          >
-                            <Volume2 className="w-4 h-4 md:w-6 md:h-6 mr-1 md:mr-2" />
-                            {isSpeaking ? 'Playing...' : 'Listen Again'}
-                          </Button>
+                        {/* Conditional button display based on showQuestions */}
+                        {showQuestions ? (
+                          // Show Questions mode - original "Listen Again" button for non-reading questions
+                          !isReadingQuestion && (
+                            <Button
+                              size="sm"
+                              onClick={handleListen}
+                              disabled={isSpeaking}
+                              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 md:px-8 md:py-4 text-sm md:text-lg mr-2 md:mr-4 disabled:opacity-50"
+                            >
+                              <Volume2 className="w-4 h-4 md:w-6 md:h-6 mr-1 md:mr-2" />
+                              {isSpeaking ? 'Playing...' : 'Listen Again'}
+                            </Button>
+                          )
+                        ) : (
+                          // Hidden Questions mode - "Sorry, pardon please" button (one-time use)
+                          !hasUsedPardon && !isReadingQuestion && (
+                            <Button
+                              size="sm"
+                              onClick={handlePardon}
+                              disabled={isSpeaking}
+                              className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 md:px-8 md:py-4 text-sm md:text-lg mr-2 md:mr-4 disabled:opacity-50"
+                            >
+                              <Volume2 className="w-4 h-4 md:w-6 md:h-6 mr-1 md:mr-2" />
+                              {isSpeaking ? 'Playing...' : 'Sorry, pardon please'}
+                            </Button>
+                          )
                         )}
                         <Button
                           size="sm"
@@ -691,7 +751,7 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
                     <Button
                       size="lg"
                       onClick={nextQuestion}
-                      className="mt-8 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 md:px-16 md:py-5 text-lg md:text-xl"
+                      className="mt-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 md:px-16 md:py-5 text-lg md:text-xl"
                     >
                       {currentQuestion === questions.length - 1 ? 'Complete Assessment' : 'Next Question'}
                     </Button>
