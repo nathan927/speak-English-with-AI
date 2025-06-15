@@ -369,7 +369,7 @@ export const S6_QUESTIONS: QuestionSet[] = [
     name: "植物性肉類 (Plant-based meats)",
     dsePartA: {
       title: "Plant-based meats",
-      article: `Impossible Foods and OmniFoods are two of the best-known names in Hong Kong offering plant-based fake meat. While you’re more likely to have seen them on the menus of Western restaurants, both brands have taken a step into traditional Chinese cooking, creating plant-based tasting menus at Chinese fine dining restaurants.\n\nChef Tsang is a restaurant industry veteran who works at Ming Court, a Michelin-starred restaurant on Hong Kong Island. “Meat is indispensable in Chinese cuisine and fresh pork is the soul of Cantonese cuisine. But the arrival of plant-based meat offers vegetarian options to diners and encourages them to make diet changes.”\n\nThe rise of vegetarianism, increasing concerns about health and the very real threat of climate change have inspired the chefs in the restaurant to provide more vegetarian options to diners. They would also like to demonstrate how plant-based meat can be used in Cantonese cuisine – including Cantonese fine-dining – and make it just as delicious.\n\nChef Tsang has started experimenting with the new OmniSeafood series. “The Omni Classic Fillet from the OmniSeafood series can be used in most of the traditional dishes in Cantonese cuisine. One of our popular dishes is Fried Omni Classic Fillet, Kung Po style.”`,
+      article: `Impossible Foods and OmniFoods are two of the best-known names in Hong Kong offering plant-based fake meat. While you're more likely to have seen them on the menus of Western restaurants, both brands have taken a step into traditional Chinese cooking, creating plant-based tasting menus at Chinese fine dining restaurants.\n\nChef Tsang is a restaurant industry veteran who works at Ming Court, a Michelin-starred restaurant on Hong Kong Island. "Meat is indispensable in Chinese cuisine and fresh pork is the soul of Cantonese cuisine. But the arrival of plant-based meat offers vegetarian options to diners and encourages them to make diet changes."\n\nThe rise of vegetarianism, increasing concerns about health and the very real threat of climate change have inspired the chefs in the restaurant to provide more vegetarian options to diners. They would also like to demonstrate how plant-based meat can be used in Cantonese cuisine – including Cantonese fine-dining – and make it just as delicious.\n\nChef Tsang has started experimenting with the new OmniSeafood series. "The Omni Classic Fillet from the OmniSeafood series can be used in most of the traditional dishes in Cantonese cuisine. One of our popular dishes is Fried Omni Classic Fillet, Kung Po style."`,
       discussionPoints: [
         "why plant-based meats are gaining popularity",
         "whether your school should encourage students to take up a vegetarian diet",
@@ -393,7 +393,7 @@ export const S6_QUESTIONS: QuestionSet[] = [
     name: "夜貓子 (Night Owls)",
     dsePartA: {
       title: "Night Owls",
-      article: `‘Night owls’ are people who are naturally more awake and active at night and tend to go to bed late. Research has found that night owls face higher rates of poor health, including having a 10 percent higher risk of dying younger than ‘early birds’ or people who get up early and feel more energetic first thing in the day. Night owls often suffer from long-term lack of sleep, and this can increase the chance of diabetes, heart disease and obesity. Not having enough sleep even for just one night can make us moody; when it happens every single night for an extended period, depression can develop.\n\nAssociate professor Kristen Knutson at Northwestern University said: “This is a public health issue that cannot be ignored. We need to recognise that people have different body clocks which regulate the time we feel sleepy and wakeful throughout the day. Some people naturally wake up early while others feel more awake at night. All of this comes down to a combination of genes and the person’s environment.”\n\nEmployers can benefit from adjusting start times to suit individual employees’ needs. Another study found that when companies let night owls start work later in the day or allowed them to work from home, there was an estimated US$277m gain in productivity. It argues that people who are more awake at night should be allowed to start and finish work later. Not everyone is suited to get up for an 8am start.`,
+      article: `‘Night owls’ are people who are naturally more awake and active at night and tend to go to bed late. Research has found that night owls face higher rates of poor health, including having a 10 percent higher risk of dying younger than ‘early birds’ or people who get up early and feel more energetic first thing in the day. Night owls often suffer from long-term lack of sleep, and this can increase the chance of diabetes, heart disease and obesity. Not having enough sleep even for just one night can make us moody; when it happens every single night for an extended period, depression can develop.\n\nAssociate professor Kristen Knutson at Northwestern University said: "This is a public health issue that cannot be ignored. We need to recognise that people have different body clocks which regulate the time we feel sleepy and wakeful throughout the day. Some people naturally wake up early while others feel more awake at night. All of this comes down to a combination of genes and the person's environment."\n\nEmployers can benefit from adjusting start times to suit individual employees' needs. Another study found that when companies let night owls start work later in the day or allowed them to work from home, there was an estimated US$277m gain in productivity. It argues that people who are more awake at night should be allowed to start and finish work later. Not everyone is suited to get up for an 8am start.`,
       discussionPoints: [
         "the advantages of being a night owl",
         "the advantages of getting up early",
@@ -431,9 +431,129 @@ export const S6_QUESTIONS: QuestionSet[] = [
       { id: 60, section: 'B. Individual Response', type: 'question', text: 'Do you think many Hong Kong teachers are active on social media?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
       { id: 61, section: 'B. Individual Response', type: 'question', text: 'Why do you think Instagram is so popular?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
       { id: 62, section: 'B. Individual Response', type: 'question', text: 'Should schools teach students how to use social media safely?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
-      { id: 63, section: 'B. Individual Response', type: 'question', text: 'Should parents monitor their children’s friends on social media?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 63, section: 'B. Individual Response', type: 'question', text: 'Should parents monitor their children's friends on social media?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
       { id: 64, section: 'B. Individual Response', type: 'question', text: 'Does social media negatively affect your learning?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
-      { id: 65, section: 'B. Individual Response', type: 'question', text: 'Should schools monitor their students’ social media activities?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 65, section: 'B. Individual Response', type: 'question', text: 'Should schools monitor their students' social media activities?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+    ]
+  },
+  {
+    setId: 11,
+    name: "畢業慶祝活動 (Graduation ideas)",
+    dsePartA: {
+      title: "Graduation ideas",
+      article: "This advertisement for local entertainment appeared on a webpage:\n\n**Helicopter ride**\nScenic flights take off from the roof of the iconic Peninsula Hotel, allowing guests to take in the unbeatable aerial view of the world famous Victoria Harbour, marvel at the rock formations of the Geopark and cruise over the beaches and bays of Hong Kong Island. As night falls, catch Hong Kong's famous laser light show, Symphony of Lights, on your return.\n\n**Cooking lessons with a celebrity chef**\nTake your cooking skills to the next level with a local celebrity chef. Join a Michelin-starred chef in a Hong Kong restaurant to learn the techniques that have brought them fame and fortune. The chef will teach you everything from buying the freshest ingredients to creating unforgettable dishes. Then enjoy seriously good food at the ultimate dinner party.\n\n**Zip line across Hong Kong**\nIf hanging off rocks and flying over the water is your style, nothing beats a day of zip-lining with Hong Kong's spectacular scenery as a backdrop. Your journey begins with a trek through rocks, historical relics, and lush greenery to reach the site. Don't worry: experienced local zip-lining guides will brief you on the safety instructions before you make the leap. And once you do, well, keep your eyes open – it's a fun ride to the other side!",
+      discussionPoints: [
+        "what to consider when planning a graduation celebration",
+        "whether any of the above activities are suitable",
+        "how else you might celebrate your graduation",
+        "anything else you think is important",
+      ]
+    },
+    questions: [
+      { id: 66, section: 'B. Individual Response', type: 'question', text: 'Would you like to go on a helicopter ride?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 67, section: 'B. Individual Response', type: 'question', text: 'Would you like your teachers to attend your graduation celebration?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 68, section: 'B. Individual Response', type: 'question', text: 'What is the best way to celebrate something?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 69, section: 'B. Individual Response', type: 'question', text: 'How do students usually celebrate graduation in Hong Kong?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 70, section: 'B. Individual Response', type: 'question', text: 'Would you like your graduation celebration to be held outdoors?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 71, section: 'B. Individual Response', type: 'question', text: 'Which do you prefer: a big celebration or a small one?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 72, section: 'B. Individual Response', type: 'question', text: 'Would you like to be on the school graduation organising committee?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 73, section: 'B. Individual Response', type: 'question', text: 'Is a graduation celebration meaningful to you?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+    ]
+  },
+  {
+    setId: 12,
+    name: "疫情與時裝業 (Pandemic & Fashion Industry)",
+    dsePartA: {
+      title: "How the pandemic has redefined the fashion industry",
+      article: "This article appeared in a fashion blog:\n\nCOVID-19 has upended many norms and one of its top victims has been the fashion industry.\n\nA survey queried 1,843 Americans on how the pandemic has impacted their relationship with fashion trends and clothing. While one-third of Americans did not buy any new clothing during the COVID-19 lockdown, retail clothing businesses have actually seen an increase in sales since March 2020.\n\nShoppers are shopping for various reasons but a universal trend is that Americans are mostly shopping for more comfortable clothes to fit the remote work lifestyle.\n\nThe survey found that more than half of people (61%) are reaching for sweats, yoga pants and more casual clothing. Not only that, but nearly 40% have lowered their standards of what's 'acceptable' to wear since lockdown began.\n\nSocial media has also played a big role in revolutionizing fashion since early 2020. Tiktok, Instagram, and YouTube have influenced fashion choices. One-third of respondents said they have purchased clothing seen on social media during the last year.\n\nSince people have been working from home, offices no longer require workers to wear a 'professional outfit'. More than 20% of survey respondents said they won't return to how they dressed before the pandemic. Spending more time at home for work and entertainment has given more people the freedom to express themselves and get more experimental with fashion.",
+      discussionPoints: [
+        "how the pandemic has changed the way people dress",
+        "how the pandemic has changed the way people shop for clothes",
+        "how the fashion industry can cater for these changes",
+        "anything else you think is important",
+      ]
+    },
+    questions: [
+      { id: 74, section: 'B. Individual Response', type: 'question', text: 'Do you like fashion?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 75, section: 'B. Individual Response', type: 'question', text: 'Do you like shopping for clothes?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 76, section: 'B. Individual Response', type: 'question', text: 'Do you dress differently at home when compared to going out?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 77, section: 'B. Individual Response', type: 'question', text: 'Do you prefer shopping for clothes in stores or online?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 78, section: 'B. Individual Response', type: 'question', text: 'Do Hong Kong teens like to follow fashion trends?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 79, section: 'B. Individual Response', type: 'question', text: 'Where do people get their inspiration for fashion?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 80, section: 'B. Individual Response', type: 'question', text: 'Which is more important to you when you buy clothes: comfort or how they look?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 81, section: 'B. Individual Response', type: 'question', text: 'Do you think keeping up with fashion trends is a waste of money?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+    ]
+  },
+  {
+    setId: 13,
+    name: "做家務的價值 (The value of doing chores)",
+    dsePartA: {
+      title: "The value of doing chores",
+      article: "This article appeared in a local newspaper:\n\nOne of the traditions of Japanese education is that students do soji (cleaning). Soji starts after lunch and lasts for about 20 minutes. This happens four times a week and, on the last day of each semester, there is a longer cleaning session called o-soji (big cleaning).\n\nDuring the entire cleaning time, the public announcement system blasts cheerful marching music. Every class is responsible for cleaning its own classroom and two other places in the school.\n\nThrough cleaning, children develop values such as responsibility, cooperation and discipline.\n\nSimilarly, research shows that when children help out with home duties or chores, they actually do better in school, and are more thoughtful and considerate. Even if they are asked to be responsible for only a certain area, like their own bedroom, they show more consideration to other family members and are less likely to mess up other areas.\n\nChildren who participate in everyday responsibilities are also found to be more positive and have a stronger sense of self-worth. Interestingly, the effects are comparable to those of playing with friends.\n\nWhen children are contributing, they feel needed and bonded to the family. They see that they have an important role to play, and consideration and helpfulness become second nature to them.",
+      discussionPoints: [
+        "benefits of adding cleaning sessions to the timetable",
+        "possible problems of requiring students to clean the school",
+        "cleaning tasks that are suitable for different forms",
+        "anything else you think is important",
+      ]
+    },
+    questions: [
+      { id: 82, section: 'B. Individual Response', type: 'question', text: 'Do you like doing housework?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 83, section: 'B. Individual Response', type: 'question', text: 'Do you help out with housework?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 84, section: 'B. Individual Response', type: 'question', text: 'What can be done to make cleaning less boring?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 85, section: 'B. Individual Response', type: 'question', text: 'How can parents motivate their children to do housework?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 86, section: 'B. Individual Response', type: 'question', text: 'Do you agree that teenagers are messier than adults?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 87, section: 'B. Individual Response', type: 'question', text: 'Do you agree that housework can bring family members closer?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 88, section: 'B. Individual Response', type: 'question', text: 'Should cleaning staff receive more respect in society?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 89, section: 'B. Individual Response', type: 'question', text: 'Will technology change housework in the future?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+    ]
+  },
+  {
+    setId: 14,
+    name: "園藝治療 (Gardening as healing)",
+    dsePartA: {
+      title: "Gardening becomes a way of healing",
+      article: "This article appeared in a newspaper:\n\nHorticultural therapy is a professional practice that uses plants and gardening to improve mental and physical health. A horticultural therapist works with any group that can benefit from interaction with plants, including children, the elderly and those dealing with addiction and mental health problems.\n\n"I was suffering from depression which seriously affected my life," Mary Wright, a patient at a mental health centre, said. "One day, I was asked, 'Can you do flower arranging? Can you water and take care of plants?' I said, 'Well, I'll try it.'"\n\n"It was exactly the help I needed," she said. "When I'm touching a plant, it's a very calming experience. It helped me get better."\n\nMany studies have found that just being in nature – such as taking a walk through a garden, a park or a forest – can improve not only your state of mind but your blood pressure, your heart rate and your stress levels and, over time, can lead to a longer life.\n\nStudies have also found that horticultural therapy supports recovery and improves mood, resulting in shorter stays for patients at hospitals and mental health facilities.",
+      discussionPoints: [
+        "what benefits growing plants can bring to students and the school",
+        "whether growing plants will be popular among students",
+        "what other activities can help promote students' well-being",
+        "anything else you think is important",
+      ]
+    },
+    questions: [
+      { id: 90, section: 'B. Individual Response', type: 'question', text: 'Do you like going to country parks?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 91, section: 'B. Individual Response', type: 'question', text: 'Do you like gardening?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 92, section: 'B. Individual Response', type: 'question', text: 'Do more young people or older people enjoy caring for plants?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 93, section: 'B. Individual Response', type: 'question', text: 'Are there enough green spaces in Hong Kong?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 94, section: 'B. Individual Response', type: 'question', text: 'Is gardening a popular hobby in Hong Kong?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 95, section: 'B. Individual Response', type: 'question', text: 'Do you prefer caring for plants or keeping a pet?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 96, section: 'B. Individual Response', type: 'question', text: 'Should there be plants in the work environment?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 97, section: 'B. Individual Response', type: 'question', text: 'Which do you prefer: real or artificial plants?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+    ]
+  },
+  {
+    setId: 15,
+    name: "穿戴式智能裝置 (Wearable smart devices)",
+    dsePartA: {
+      title: "Wearable smart devices are here!",
+      article: "This article appeared on a business website:\n\nWearable smart devices, commonly known as wearables, have become popular over the last ten years. Smartwatches like the Apple Watch are likely the best-known ones. But there are many other kinds of new smart devices you can wear on your body now, including clothing and jewellery. Let's take a look at two of them.\n\nSmart Ring. The most common kind of smart jewellery might be the smart ring. Smart rings are worn on the finger like regular rings. But they can collect health-tracking data for the users and allow them to review it on a smartphone later. Compared to a smartwatch, the smart ring is less distracting since it cannot receive messages and can only track the user's health. And if you don't like rings, there are also smart bracelets created by well-known fashion brands.\n\nSmart Clothing. By covering a large amount of a user's body, smart clothing can provide more information than other wearable devices. It allows for better medical care and lifestyle improvement. For example, there are smart shirts capable of diagnosing respiratory diseases, smart shoes that monitor running performance, smart yoga pants that vibrate to improve form during exercises, and smart swimsuits that alert the user to apply sunscreen. A luxury brand also added location-tracking to its jeans to track how frequently the customer wore them, so that the brand can reward frequent wearers with more of its products.",
+      discussionPoints: [
+        "why wearable smart devices are becoming popular",
+        "the disadvantages of wearable smart devices",
+        "whether wearable smart devices should be allowed at school",
+        "anything else you think is important",
+      ]
+    },
+    questions: [
+      { id: 98, section: 'B. Individual Response', type: 'question', text: 'Do you or your friends have a wearable smart device?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 99, section: 'B. Individual Response', type: 'question', text: 'Would you buy a wearable smart device?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 100, section: 'B. Individual Response', type: 'question', text: 'Do you prefer a smart watch or a smart ring?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 101, section: 'B. Individual Response', type: 'question', text: 'Do you think wearable smart devices are a waste of money?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 102, section: 'B. Individual Response', type: 'question', text: 'Do you think there are too many smart devices in our lives?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 103, section: 'B. Individual Response', type: 'question', text: 'Are wearable smart devices fashionable?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 104, section: 'B. Individual Response', type: 'question', text: 'Can using wearable smart devices help us become healthier?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 105, section: 'B. Individual Response', type: 'question', text: 'Would you be concerned about privacy if you wore a wearable smart device?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
     ]
   }
 ];
