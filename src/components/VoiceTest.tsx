@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -68,7 +69,7 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
 
   // Auto-trigger LISTEN when question changes (EXCLUDE Reading questions completely)
   useEffect(() => {
-    if (currentQ && currentQ.section.toLowerCase() !== 'reading' && !currentQ.instruction.toLowerCase().includes('read')) {
+    if (currentQ && currentQ.section.toLowerCase() !== 'reading' && !currentQ.instruction.toLowerCase().includes('read') && currentQ.section !== 'B. 朗讀') {
       // Small delay to ensure UI is ready
       const timer = setTimeout(() => {
         handleListen();
@@ -96,7 +97,7 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
         setIsSpeaking(false);
         console.log('Speech completed, question read time set');
         // Auto-start recording after speech completes (EXCLUDE Reading questions)
-        if (currentQ.section.toLowerCase() !== 'reading' && !currentQ.instruction.toLowerCase().includes('read')) {
+        if (currentQ.section.toLowerCase() !== 'reading' && !currentQ.instruction.toLowerCase().includes('read') && currentQ.section !== 'B. 朗讀') {
           setTimeout(() => {
             startRecording();
           }, 1000); // Small delay before starting recording
@@ -210,28 +211,11 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
 
   const nextQuestion = () => {
     if (audioBlob) {
-      // Play completion phrase before moving to next question
-      if (currentQuestion < questions.length - 1) {
-        const completionPhrase = getCompletionPhrase();
-        speakText(completionPhrase, () => {
-          // Continue with normal flow after completion phrase
-          proceedToNextQuestion();
-        });
-      } else {
-        // Last question - proceed directly
-        proceedToNextQuestion();
-      }
-    }
-  };
-
-  const proceedToNextQuestion = () => {
-    if (audioBlob) {
-      // Calculate response time
+      // Save recording data first
       const responseTime = responseStartTime && questionReadTimeRef.current > 0 
         ? responseStartTime - questionReadTimeRef.current 
         : 0;
 
-      // Save recording data without analysis
       const recordingData: RecordingData = {
         questionId: currentQ.id,
         section: currentQ.section,
@@ -242,14 +226,21 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
         wordCount: Math.max(1, Math.floor(recordingTime / 0.7)),
         responseTime
       };
-      
+
       const newRecordings = [...recordings, recordingData];
       setRecordings(newRecordings);
-      
+
       if (currentQuestion < questions.length - 1) {
+        // Change screen first, then speak completion phrase
         setCurrentQuestion(prev => prev + 1);
         resetRecording();
         questionReadTimeRef.current = 0;
+        
+        // Speak completion phrase after screen change
+        setTimeout(() => {
+          const completionPhrase = getCompletionPhrase();
+          speakText(completionPhrase);
+        }, 300); // Small delay to ensure screen has changed
       } else {
         completeTest(newRecordings);
       }
@@ -413,7 +404,9 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
   }
 
   // Check if current question is a reading question
-  const isReadingQuestion = currentQ?.section.toLowerCase() === 'reading' || currentQ?.instruction.toLowerCase().includes('read');
+  const isReadingQuestion = currentQ?.section.toLowerCase() === 'reading' || 
+                           currentQ?.instruction.toLowerCase().includes('read') || 
+                           currentQ?.section === 'B. 朗讀';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -453,10 +446,17 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg">
-                  {currentQ.instruction}
+                  {/* Show English instruction or section name */}
+                  {currentQ.section === 'B. 朗讀' ? 'Please read the following text aloud' : 
+                   currentQ.instruction.includes('朗讀') ? 'Please read the following text aloud' :
+                   currentQ.instruction}
                 </CardTitle>
                 <Badge variant="secondary" className="text-xs">
-                  {currentQ.section}
+                  {/* Convert section names to English */}
+                  {currentQ.section === 'A. 自發表達' ? 'Speaking' :
+                   currentQ.section === 'B. 朗讀' ? 'Reading' :
+                   currentQ.section === 'C. 個人資料' ? 'Personal' :
+                   currentQ.section}
                 </Badge>
               </div>
             </CardHeader>
