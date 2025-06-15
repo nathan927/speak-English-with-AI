@@ -307,13 +307,15 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Question Text */}
-            <div className="text-lg font-medium text-gray-900">
-              {currentQuestion.text}
-            </div>
+            {/* Question Text - Show only if showQuestions is true */}
+            {showQuestions && (
+              <div className="text-lg font-medium text-gray-900">
+                {currentQuestion.text}
+              </div>
+            )}
 
-            {/* Reading Passage - Show only for reading type questions */}
-            {currentQuestion.type === 'reading' && currentQuestion.readingPassage && (
+            {/* Reading Passage - Show only for reading type questions and if showQuestions is true */}
+            {showQuestions && currentQuestion.type === 'reading' && currentQuestion.readingPassage && (
               <div className="bg-gray-50 p-4 rounded-lg border">
                 <h4 className="font-semibold text-gray-900 mb-3">Reading Passage:</h4>
                 <div className="text-gray-800 leading-relaxed whitespace-pre-line">
