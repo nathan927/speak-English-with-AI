@@ -53,6 +53,9 @@ export const VoiceTest = ({ grade, speechRate, showQuestions, onComplete, onBack
   const [discussionTime, setDiscussionTime] = useState(0);
   const [isDiscussion, setIsDiscussion] = useState(false);
   
+  // Add PC-specific speech initialization state
+  const [speechInitialized, setSpeechInitialized] = useState(false);
+  
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -249,6 +252,55 @@ Parents and teachers often emphasize traditional "safe" careers like medicine, l
       }
     };
   }, []);
+
+  // Initialize speech synthesis for PC on component mount
+  useEffect(() => {
+    if (isDesktop && 'speechSynthesis' in window) {
+      // Pre-initialize speech synthesis for PC
+      const initSpeech = async () => {
+        try {
+          // Create a silent utterance to warm up the speech engine
+          const testUtterance = new SpeechSynthesisUtterance('');
+          testUtterance.volume = 0;
+          testUtterance.rate = speechRate;
+          
+          // Wait for voices to load if needed
+          if (speechSynthesis.getVoices().length === 0) {
+            await new Promise<void>((resolve) => {
+              const voicesChanged = () => {
+                speechSynthesis.removeEventListener('voiceschanged', voicesChanged);
+                resolve();
+              };
+              speechSynthesis.addEventListener('voiceschanged', voicesChanged);
+              
+              // Fallback timeout in case voiceschanged never fires
+              setTimeout(resolve, 1000);
+            });
+          }
+          
+          // Warm up the speech synthesis engine
+          speechSynthesis.speak(testUtterance);
+          
+          // Wait a bit for the engine to be ready
+          setTimeout(() => {
+            setSpeechInitialized(true);
+            logger.info('PC speech synthesis initialized successfully', {
+              voicesCount: speechSynthesis.getVoices().length,
+              isDesktop
+            }, 'VoiceTest', 'speechInit');
+          }, 500);
+          
+        } catch (error) {
+          logger.error('Speech synthesis initialization failed', { error }, 'VoiceTest', 'speechInitError');
+          setSpeechInitialized(true); // Still allow operation
+        }
+      };
+      
+      initSpeech();
+    } else {
+      setSpeechInitialized(true); // Non-PC or no speech support
+    }
+  }, [isDesktop, speechRate]);
 
   // Reset pardon usage when moving to next question
   useEffect(() => {
@@ -624,6 +676,7 @@ Parents and teachers often emphasize traditional "safe" careers like medicine, l
         paused: speechSynthesis?.paused
       },
       isDesktop,
+      speechInitialized,
       requestId
     });
     
@@ -640,15 +693,31 @@ Parents and teachers often emphasize traditional "safe" careers like medicine, l
     }
     
     if ('speechSynthesis' in window) {
+      // For PC, wait for speech initialization on first use
+      if (isDesktop && !speechInitialized) {
+        logger.info('PC speech not initialized yet, waiting...', { requestId }, 'VoiceTest', 'waitingForInit');
+        
+        const checkInit = () => {
+          if (speechInitialized) {
+            startSpeechSynthesis(text, onEnd, requestId);
+          } else {
+            setTimeout(checkInit, 100);
+          }
+        };
+        checkInit();
+        return;
+      }
+      
       // Cancel any existing speech for PC to prevent conflicts
       if (isDesktop && speechSynthesis.speaking) {
         speechSynthesis.cancel();
         logger.info('Cancelled existing speech synthesis for PC', { requestId }, 'VoiceTest', 'speechCancelled');
         
-        // Wait a bit for cancellation to complete on PC
+        // Wait longer for cancellation to complete on PC, especially for first use
+        const waitTime = speechInitialized ? 200 : 800;
         setTimeout(() => {
           startSpeechSynthesis(text, onEnd, requestId);
-        }, 200);
+        }, waitTime);
       } else {
         startSpeechSynthesis(text, onEnd, requestId);
       }
@@ -679,8 +748,8 @@ Parents and teachers often emphasize traditional "safe" careers like medicine, l
   };
 
   const startSpeechSynthesis = (text: string, onEnd?: () => void, requestId?: number) => {
-    // PC-optimized timeout calculation
-    const baseTimeout = isDesktop ? 8000 : 5000; // Longer timeout for PC
+    // PC-optimized timeout calculation with extra time for first use
+    const baseTimeout = isDesktop ? (speechInitialized ? 8000 : 15000) : 5000;
     const timeoutDuration = Math.max(baseTimeout, text.length * (isDesktop ? 300 : 200) / speechRate);
     
     logger.debug('Starting speech synthesis', {
@@ -688,6 +757,7 @@ Parents and teachers often emphasize traditional "safe" careers like medicine, l
       textLength: text.length,
       speechRate,
       isDesktop,
+      speechInitialized,
       requestId
     }, 'VoiceTest', 'speechStart');
     
@@ -698,6 +768,7 @@ Parents and teachers often emphasize traditional "safe" careers like medicine, l
           textLength: text.length,
           speechRate,
           isDesktop,
+          speechInitialized,
           requestId
         }, 'VoiceTest', 'speechTimeout');
         setIsSpeaking(false);
@@ -707,8 +778,8 @@ Parents and teachers often emphasize traditional "safe" careers like medicine, l
       }
     }, timeoutDuration);
     
-    // Wait a bit before starting speech on PC to ensure clean state
-    const startDelay = isDesktop ? 300 : 150;
+    // Wait longer before starting speech on PC, especially for first use
+    const startDelay = isDesktop ? (speechInitialized ? 300 : 1000) : 150;
     
     setTimeout(() => {
       // Check if this request is still valid
@@ -722,6 +793,23 @@ Parents and teachers often emphasize traditional "safe" careers like medicine, l
       utterance.rate = speechRate;
       utterance.volume = 1.0;
       
+      // For PC, try to use a specific voice for better reliability
+      if (isDesktop) {
+        const voices = speechSynthesis.getVoices();
+        const preferredVoice = voices.find(voice => 
+          voice.lang.startsWith('en') && voice.default
+        ) || voices.find(voice => voice.lang.startsWith('en'));
+        
+        if (preferredVoice) {
+          utterance.voice = preferredVoice;
+          logger.debug('Using preferred voice for PC', {
+            voiceName: preferredVoice.name,
+            voiceLang: preferredVoice.lang,
+            requestId
+          }, 'VoiceTest', 'voiceSelected');
+        }
+      }
+      
       // Store utterance reference
       speechUtteranceRef.current = utterance;
       
@@ -732,7 +820,9 @@ Parents and teachers often emphasize traditional "safe" careers like medicine, l
             rate: speechRate,
             volume: utterance.volume,
             lang: utterance.lang,
+            voiceName: utterance.voice?.name,
             isDesktop,
+            speechInitialized,
             requestId
           });
           setIsSpeaking(true);
@@ -744,6 +834,7 @@ Parents and teachers often emphasize traditional "safe" careers like medicine, l
           logger.speechLog('speech_ended_normally', {
             text: text.substring(0, 50) + '...',
             isDesktop,
+            speechInitialized,
             requestId
           });
           if (speechTimeoutRef.current) {
@@ -765,6 +856,7 @@ Parents and teachers often emphasize traditional "safe" careers like medicine, l
             text: text.substring(0, 50) + '...',
             errorEvent: event,
             isDesktop,
+            speechInitialized,
             requestId
           });
           if (speechTimeoutRef.current) {
@@ -782,7 +874,9 @@ Parents and teachers often emphasize traditional "safe" careers like medicine, l
       logger.speechLog('speech_synthesis_speak_called', {
         utteranceReady: true,
         text: text.substring(0, 50) + '...',
+        voiceName: utterance.voice?.name,
         isDesktop,
+        speechInitialized,
         requestId
       });
       
