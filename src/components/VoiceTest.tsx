@@ -39,6 +39,7 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
   const [recordings, setRecordings] = useState<RecordingData[]>([]);
   const [responseStartTime, setResponseStartTime] = useState<number | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [hasSpokenTransition, setHasSpokenTransition] = useState(false);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -77,9 +78,12 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
     };
   }, []);
 
-  // 簡化 useEffect，避免重複說話
+  // 簡化 useEffect，處理題目切換和過渡句
   useEffect(() => {
     logger.questionLog(currentQuestion, currentQ, 'changed');
+    
+    // 重置過渡句標記
+    setHasSpokenTransition(false);
     
     // 對於非閱讀題目，自動開始監聽，但不自動說話
     if (currentQ && !isReadingQuestion && !hasRecorded) {
@@ -105,21 +109,37 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
     if (currentQ) {
       setIsSpeaking(true);
       
-      // Build natural conversation text with grade context
-      const isFirst = currentQuestion === 0;
-      const isLast = currentQuestion === questions.length - 1;
-      const naturalText = buildNaturalQuestion(currentQ.text, isFirst, isLast, grade);
+      let speechText: string;
       
-      logger.info('Natural text built for speech', {
-        originalText: currentQ.text,
-        naturalText,
-        textLength: naturalText.length,
-        isFirst,
-        isLast,
-        grade
-      }, 'VoiceTest', 'textBuilt');
+      // 針對誦讀題，只說指示句
+      if (isReadingQuestion) {
+        speechText = "Please read the following text aloud.";
+        logger.info('Using simplified reading instruction', {
+          speechText,
+          isReadingQuestion: true
+        }, 'VoiceTest', 'readingInstruction');
+      } else {
+        // 對於非誦讀題，如果是切換後第一次說話且還沒說過過渡句，先說過渡句
+        if (currentQuestion > 0 && !hasSpokenTransition) {
+          const completionPhrase = getCompletionPhrase();
+          speechText = completionPhrase + ' ' + buildNaturalQuestion(currentQ.text, false, currentQuestion === questions.length - 1, grade);
+          setHasSpokenTransition(true);
+        } else {
+          // Build natural conversation text with grade context
+          const isFirst = currentQuestion === 0;
+          const isLast = currentQuestion === questions.length - 1;
+          speechText = buildNaturalQuestion(currentQ.text, isFirst, isLast, grade);
+        }
+      }
       
-      speakText(naturalText, () => {
+      logger.info('Speech text prepared', {
+        speechText,
+        textLength: speechText.length,
+        hasSpokenTransition,
+        currentQuestion
+      }, 'VoiceTest', 'textPrepared');
+      
+      speakText(speechText, () => {
         questionReadTimeRef.current = Date.now();
         setIsSpeaking(false);
         logger.info('Speech completed, question read time set', {
@@ -128,7 +148,7 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
         }, 'VoiceTest', 'speechCompleted');
         
         // Auto-start recording after speech completes (EXCLUDE Reading questions)
-        if (currentQ.section.toLowerCase() !== 'reading' && !currentQ.instruction.toLowerCase().includes('read') && currentQ.section !== 'B. 朗讀') {
+        if (!isReadingQuestion) {
           setTimeout(() => {
             logger.debug('Auto-starting recording after speech', {
               delay: 1000,
@@ -282,19 +302,10 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
     }, 'VoiceTest', 'recordingSaved');
 
     if (currentQuestion < questions.length - 1) {
-      // 先說完成語句，然後切換題目
-      const completionPhrase = getCompletionPhrase();
-      logger.info('Speaking completion phrase before next question', {
-        completionPhrase,
-        nextQuestion: currentQuestion + 1
-      }, 'VoiceTest', 'completionPhrase');
-      
-      speakText(completionPhrase, () => {
-        // 完成說話後才切換題目
-        setCurrentQuestion(prev => prev + 1);
-        resetRecording();
-        questionReadTimeRef.current = 0;
-      });
+      // 直接切換題目，不說過渡句（過渡句會在新題目的 handleListen 中說）
+      setCurrentQuestion(prev => prev + 1);
+      resetRecording();
+      questionReadTimeRef.current = 0;
     } else {
       logger.info('Test completed, starting analysis', {
         totalRecordings: newRecordings.length
