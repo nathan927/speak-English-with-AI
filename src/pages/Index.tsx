@@ -1,9 +1,9 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Mic, BookOpen, Award, TrendingUp, Users, Globe } from 'lucide-react';
+import { Mic, BookOpen, Award, TrendingUp, Users, Globe, Star } from 'lucide-react';
 import { GradeSelector } from '@/components/GradeSelector';
 import { VoiceTest } from '@/components/VoiceTest';
 import { ResultsAnalysis } from '@/components/ResultsAnalysis';
@@ -104,7 +104,7 @@ const Index = () => {
               className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-16 py-8 text-3xl font-semibold rounded-2xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
               onClick={handleStartTest}
             >
-              <Mic className="w-12 h-12 mr-6" strokeWidth={3} />
+              <Mic className="w-16 h-16 mr-6" strokeWidth={2.5} />
               開始測驗
             </Button>
           </div>
@@ -120,58 +120,58 @@ const Index = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:grid-cols-4">
           <Card className="text-center hover:shadow-lg transition-shadow duration-300">
-            <CardHeader className="p-4">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-2">
-                <Mic className="w-5 h-5 text-blue-600" />
+            <CardHeader className="p-3 sm:p-4">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                <Mic className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
               </div>
-              <CardTitle className="text-base">發音準確度</CardTitle>
+              <CardTitle className="text-sm sm:text-base">發音準確度</CardTitle>
             </CardHeader>
-            <CardContent className="p-4 pt-0">
-              <CardDescription>
+            <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
+              <CardDescription className="text-xs sm:text-sm">
                 基於音素匹配和置信度分析，提供精確的發音評估與改進建議
               </CardDescription>
             </CardContent>
           </Card>
 
           <Card className="text-center hover:shadow-lg transition-shadow duration-300">
-            <CardHeader className="p-4">
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-2">
-                <BookOpen className="w-5 h-5 text-green-600" />
+            <CardHeader className="p-3 sm:p-4">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
               </div>
-              <CardTitle className="text-base">詞彙運用</CardTitle>
+              <CardTitle className="text-sm sm:text-base">詞彙運用</CardTitle>
             </CardHeader>
-            <CardContent className="p-4 pt-0">
-              <CardDescription>
+            <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
+              <CardDescription className="text-xs sm:text-sm">
                 智能識別關鍵詞彙使用情況，評估語言豐富度和表達能力
               </CardDescription>
             </CardContent>
           </Card>
 
           <Card className="text-center hover:shadow-lg transition-shadow duration-300">
-            <CardHeader className="p-4">
-              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-2">
-                <TrendingUp className="w-5 h-5 text-purple-600" />
+            <CardHeader className="p-3 sm:p-4">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
               </div>
-              <CardTitle className="text-base">流暢度分析</CardTitle>
+              <CardTitle className="text-sm sm:text-base">流暢度分析</CardTitle>
             </CardHeader>
-            <CardContent className="p-4 pt-0">
-              <CardDescription>
+            <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
+              <CardDescription className="text-xs sm:text-sm">
                 分析語速、停頓模式和連貫性，提供流暢度提升指導
               </CardDescription>
             </CardContent>
           </Card>
 
           <Card className="text-center hover:shadow-lg transition-shadow duration-300">
-            <CardHeader className="p-4">
-              <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center mx-auto mb-2">
-                <Award className="w-5 h-5 text-orange-600" />
+            <CardHeader className="p-3 sm:p-4">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                <Award className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
               </div>
-              <CardTitle className="text-base">自信程度</CardTitle>
+              <CardTitle className="text-sm sm:text-base">自信程度</CardTitle>
             </CardHeader>
-            <CardContent className="p-4 pt-0">
-              <CardDescription>
+            <CardContent className="p-3 pt-0 sm:p-4 sm:pt-0">
+              <CardDescription className="text-xs sm:text-sm">
                 評估音量、音質和表達清晰度，培養自信的口語表達能力
               </CardDescription>
             </CardContent>
@@ -199,15 +199,28 @@ const Index = () => {
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="text-sm">表現良好</span>
-                    <Badge className="bg-green-100 text-green-800">Good</Badge>
+                    <div className="flex">
+                      {[1, 2, 3].map((i) => (
+                        <Star key={i} className="w-4 h-4 text-green-500 fill-current" />
+                      ))}
+                    </div>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm">發展中</span>
-                    <Badge className="bg-yellow-100 text-yellow-800">Developing</Badge>
+                    <div className="flex">
+                      {[1, 2].map((i) => (
+                        <Star key={i} className="w-4 h-4 text-yellow-500 fill-current" />
+                      ))}
+                      <Star className="w-4 h-4 text-gray-300" />
+                    </div>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm">需要支援</span>
-                    <Badge className="bg-red-100 text-red-800">Support</Badge>
+                    <div className="flex">
+                      <Star className="w-4 h-4 text-red-500 fill-current" />
+                      <Star className="w-4 h-4 text-gray-300" />
+                      <Star className="w-4 h-4 text-gray-300" />
+                    </div>
                   </div>
                 </div>
                 <div className="text-xs text-gray-500 mt-4">
@@ -223,10 +236,21 @@ const Index = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  {[1, 2, 3, 4].map((level) => (
+                  {[4, 3, 2, 1].map((level) => (
                     <div key={level} className="flex justify-between items-center">
                       <span className="text-sm">Level {level}</span>
-                      <Progress value={level * 25} className="w-20" />
+                      <div className="flex">
+                        {Array.from({ length: 4 }, (_, i) => (
+                          <Star 
+                            key={i} 
+                            className={`w-4 h-4 ${
+                              i < level 
+                                ? 'text-blue-500 fill-current' 
+                                : 'text-gray-300'
+                            }`} 
+                          />
+                        ))}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -243,10 +267,21 @@ const Index = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  {[1, 2, 3, 4, 5, 6].map((level) => (
+                  {[6, 5, 4, 3, 2, 1].map((level) => (
                     <div key={level} className="flex justify-between items-center">
                       <span className="text-sm">Level {level}</span>
-                      <Progress value={level * 16.67} className="w-20" />
+                      <div className="flex">
+                        {Array.from({ length: 6 }, (_, i) => (
+                          <Star 
+                            key={i} 
+                            className={`w-3 h-3 ${
+                              i < level 
+                                ? 'text-purple-500 fill-current' 
+                                : 'text-gray-300'
+                            }`} 
+                          />
+                        ))}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -273,7 +308,7 @@ const Index = () => {
             onClick={handleStartTest}
           >
             <Users className="w-5 h-5 mr-2" />
-            開始免費測試
+            開始測試
           </Button>
         </div>
       </section>
