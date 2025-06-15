@@ -120,8 +120,9 @@ There have been multiple complaints from residents about noise from bars and res
       };
     }
     
-    // Extract article content and discussion points from Part A question
-    const partAQuestion = partAQuestions[0];
+    // Extract article content and discussion points from a RANDOM Part A question
+    const randomIndex = Math.floor(Math.random() * partAQuestions.length);
+    const partAQuestion = partAQuestions[randomIndex];
     const articleMatch = partAQuestion.text.match(/Article:\s*(.+?)(?:\n\nDiscussion:|$)/s);
     const discussionMatch = partAQuestion.text.match(/Discussion:\s*(.+)$/s);
     
