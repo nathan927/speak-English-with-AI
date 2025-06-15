@@ -39,7 +39,6 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
   const [recordings, setRecordings] = useState<RecordingData[]>([]);
   const [responseStartTime, setResponseStartTime] = useState<number | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [pendingCompletionPhrase, setPendingCompletionPhrase] = useState('');
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -78,39 +77,22 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
     };
   }, []);
 
+  // 簡化 useEffect，避免重複說話
   useEffect(() => {
     logger.questionLog(currentQuestion, currentQ, 'changed');
     
-    if (pendingCompletionPhrase) {
-      logger.debug('Processing pending completion phrase', {
-        phrase: pendingCompletionPhrase,
-        currentQuestion,
-        isReadingQuestion
-      }, 'VoiceTest', 'pendingPhrase');
-      
-      const timer = setTimeout(() => {
-        speakText(pendingCompletionPhrase, () => {
-          if (currentQ && !isReadingQuestion) {
-            setTimeout(() => handleListen(), 250);
-          }
-        });
-        setPendingCompletionPhrase('');
+    // 對於非閱讀題目，自動開始監聽，但不自動說話
+    if (currentQ && !isReadingQuestion && !hasRecorded) {
+      const autoListenTimeout = setTimeout(() => {
+        logger.debug('Auto-triggering listen for non-reading question', {
+          currentQuestion,
+          hasRecorded
+        }, 'VoiceTest', 'autoListen');
+        handleListen();
       }, 500);
-      return () => clearTimeout(timer);
+      return () => clearTimeout(autoListenTimeout);
     }
-    else if (currentQ && !isReadingQuestion) {
-      const initialListenTimeout = setTimeout(() => {
-        if (!hasRecorded) {
-          logger.debug('Auto-triggering listen for non-reading question', {
-            currentQuestion,
-            hasRecorded
-          }, 'VoiceTest', 'autoListen');
-          handleListen();
-        }
-      }, 500);
-      return () => clearTimeout(initialListenTimeout);
-    }
-  }, [currentQuestion]);
+  }, [currentQuestion, hasRecorded]);
 
   const handleListen = () => {
     logger.info('Listen button clicked', {
@@ -262,7 +244,6 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
     stopPlaying();
   };
 
-  // 1. 在 nextQuestion 只變更畫面和 reset，不直接 speak
   const nextQuestion = () => {
     if (!audioBlob) return;
     
@@ -301,17 +282,19 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
     }, 'VoiceTest', 'recordingSaved');
 
     if (currentQuestion < questions.length - 1) {
-      setCurrentQuestion(prev => prev + 1);
-      resetRecording();
-      questionReadTimeRef.current = 0;
-      // 避免在畫面切換前就 speak，pendingPhrase 等下 useEffect 處理
+      // 先說完成語句，然後切換題目
       const completionPhrase = getCompletionPhrase();
-      setPendingCompletionPhrase(completionPhrase);
-      
-      logger.info('Set completion phrase for next question', {
+      logger.info('Speaking completion phrase before next question', {
         completionPhrase,
         nextQuestion: currentQuestion + 1
-      }, 'VoiceTest', 'completionPhraseSet');
+      }, 'VoiceTest', 'completionPhrase');
+      
+      speakText(completionPhrase, () => {
+        // 完成說話後才切換題目
+        setCurrentQuestion(prev => prev + 1);
+        resetRecording();
+        questionReadTimeRef.current = 0;
+      });
     } else {
       logger.info('Test completed, starting analysis', {
         totalRecordings: newRecordings.length
@@ -319,17 +302,6 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
       completeTest(newRecordings);
     }
   };
-
-  // 1.1 新增 useEffect，當 currentQuestion 或 pendingCompletionPhrase 變時才 speak
-  useEffect(() => {
-    if (pendingCompletionPhrase) {
-      const timeout = setTimeout(() => {
-        speakText(pendingCompletionPhrase);
-        setPendingCompletionPhrase('');
-      }, 350); // 確保畫面已切換
-      return () => clearTimeout(timeout);
-    }
-  }, [currentQuestion, pendingCompletionPhrase]);
 
   const completeTest = async (finalRecordings: RecordingData[]) => {
     setIsAnalyzing(true);
