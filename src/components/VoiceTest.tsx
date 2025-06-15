@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -47,7 +48,7 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
   const { toast } = useToast();
 
   // Get questions from the comprehensive question bank
-  const questions: Question[] = getRandomQuestionSet(grade);
+  const questions: Question[] = useMemo(() => getRandomQuestionSet(grade), [grade]);
   const currentQ = questions[currentQuestion];
   const progress = ((currentQuestion + 1) / questions.length) * 100;
 
@@ -454,7 +455,7 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
                             className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg mr-4 disabled:opacity-50"
                           >
                             <Volume2 className="w-6 h-6 mr-2" />
-                            {isSpeaking ? '播放中...' : 'Listen'}
+                            {isSpeaking ? '播放中...' : 'Listen Again'}
                           </Button>
                         )}
                         <Button
