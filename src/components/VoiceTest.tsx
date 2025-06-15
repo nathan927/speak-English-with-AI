@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,6 +42,7 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
   const streamRef = useRef<MediaStream | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const questionReadTimeRef = useRef<number>(0);
+  const speechTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const { toast } = useToast();
 
@@ -54,6 +54,7 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      if (speechTimeoutRef.current) clearTimeout(speechTimeoutRef.current);
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
       }
@@ -267,9 +268,23 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
   const speakText = (text: string, onEnd?: () => void) => {
     console.log('speakText called with:', text);
     
+    // Clear any existing timeout
+    if (speechTimeoutRef.current) {
+      clearTimeout(speechTimeoutRef.current);
+    }
+    
     if ('speechSynthesis' in window) {
       // Cancel any ongoing speech
       speechSynthesis.cancel();
+      
+      // Set a safety timeout to prevent getting stuck
+      speechTimeoutRef.current = setTimeout(() => {
+        console.log('Speech timeout triggered, force completing');
+        setIsSpeaking(false);
+        if (onEnd) {
+          onEnd();
+        }
+      }, Math.max(3000, text.length * 100)); // At least 3 seconds, or 100ms per character
       
       // Wait a bit for cancel to complete
       setTimeout(() => {
@@ -283,7 +298,11 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
         };
         
         utterance.onend = () => {
-          console.log('Speech ended');
+          console.log('Speech ended normally');
+          if (speechTimeoutRef.current) {
+            clearTimeout(speechTimeoutRef.current);
+          }
+          setIsSpeaking(false);
           if (onEnd) {
             onEnd();
           }
@@ -291,13 +310,17 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
         
         utterance.onerror = (event) => {
           console.error('Speech error:', event);
+          if (speechTimeoutRef.current) {
+            clearTimeout(speechTimeoutRef.current);
+          }
+          setIsSpeaking(false);
           if (onEnd) {
             onEnd();
           }
           toast({
             title: "語音播放失敗",
-            description: "請檢查瀏覽器設置或嘗試重新整理頁面",
-            variant: "destructive",
+            description: "已跳過語音播放，可以直接開始錄音",
+            variant: "default",
           });
         };
         
@@ -306,15 +329,20 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
       }, 100);
     } else {
       console.log('Speech synthesis not supported, using fallback');
+      // Fallback: call onEnd after estimated reading time
+      const estimatedTime = Math.max(2000, text.length * 80);
+      setTimeout(() => {
+        setIsSpeaking(false);
+        if (onEnd) {
+          onEnd();
+        }
+      }, estimatedTime);
+      
       toast({
         title: "語音不支援",
-        description: "您的瀏覽器不支援語音播放功能",
-        variant: "destructive",
+        description: "您的瀏覽器不支援語音播放功能，已跳過語音播放",
+        variant: "default",
       });
-      if (onEnd) {
-        // Fallback: call onEnd after estimated reading time
-        setTimeout(onEnd, text.length * 80);
-      }
     }
   };
 
