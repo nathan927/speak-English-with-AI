@@ -208,12 +208,12 @@ Parents and teachers often emphasize traditional "safe" careers like medicine, l
     ? (currentPart === 'A' ? 25 : (currentPart === 'B' ? 75 : 100))
     : ((currentQuestion + 1) / questions.length) * 100;
 
-  const isReadingQuestion = useMemo(() => 
-    currentQ?.section.toLowerCase() === 'reading' || 
-    currentQ?.instruction.toLowerCase().includes('read') || 
-    currentQ?.section === 'B. 朗讀',
-    [currentQ]
-  );
+  const isReadingQuestion = useMemo(() => {
+    if (!currentQ) return false;
+    return currentQ.section?.toLowerCase() === 'reading' || 
+           currentQ.instruction?.toLowerCase().includes('read') || 
+           currentQ.section === 'B. 朗讀';
+  }, [currentQ]);
 
   // Check if current grade is kindergarten (K1, K2, K3) - disable transitions for these
   const isKindergarten = useMemo(() => ['K1', 'K2', 'K3'].includes(grade), [grade]);
@@ -1116,16 +1116,16 @@ Parents and teachers often emphasize traditional "safe" careers like medicine, l
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base md:text-lg">
                   {/* Show question number or reading instruction */}
-                  {(currentQ.section === 'B. 朗讀' || (currentQ.instruction && currentQ.instruction.includes('朗讀')))
+                  {(currentQ?.section === 'B. 朗讀' || (currentQ?.instruction && currentQ.instruction.includes('朗讀')))
                     ? 'Please read the following text aloud'
                     : `Question ${currentQuestion + 1}`}
                 </CardTitle>
                 <Badge variant="secondary" className="text-xs">
                   {/* Convert section names to English */}
-                  {currentQ.section === 'A. 自發表達' ? 'Speaking' :
-                   currentQ.section === 'B. 朗讀' ? 'Reading' :
-                   currentQ.section === 'C. 個人資料' ? 'Personal' :
-                   currentQ.section}
+                  {currentQ?.section === 'A. 自發表達' ? 'Speaking' :
+                   currentQ?.section === 'B. 朗讀' ? 'Reading' :
+                   currentQ?.section === 'C. 個人資料' ? 'Personal' :
+                   currentQ?.section}
                 </Badge>
               </div>
             </CardHeader>
@@ -1134,7 +1134,7 @@ Parents and teachers often emphasize traditional "safe" careers like medicine, l
               {showQuestions ? (
                 <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 md:p-10 mb-4 md:mb-6">
                   <p className="text-lg md:text-2xl font-bold text-gray-900 mb-3 leading-relaxed">
-                    {currentQ.text}
+                    {currentQ?.text}
                   </p>
                   {isSpeaking && (
                     <div className="flex items-center space-x-2 mt-3">
