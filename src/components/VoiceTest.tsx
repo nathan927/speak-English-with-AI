@@ -70,7 +70,10 @@ export const VoiceTest = ({ grade, speechRate, showQuestions, onComplete, onBack
   // Get questions from the comprehensive question bank
   const questions: Question[] = useMemo(() => getRandomQuestionSet(grade), [grade]);
   
-  // For senior secondary, generate DSE content from the questions
+  // Generate a random seed for DSE content to ensure different content each time
+  const [randomSeed] = useState(() => Math.random());
+  
+  // For senior secondary, generate DSE content from the questions with randomization
   const randomDseContent = useMemo(() => {
     if (!isSeniorSecondary) return null;
     
@@ -120,9 +123,19 @@ There have been multiple complaints from residents about noise from bars and res
       };
     }
     
-    // Extract article content and discussion points from a RANDOM Part A question
-    const randomIndex = Math.floor(Math.random() * partAQuestions.length);
+    // Use the random seed to ensure consistent but randomized selection within this component instance
+    const seededRandom = (seed: number, index: number) => {
+      const x = Math.sin(seed * index) * 10000;
+      return x - Math.floor(x);
+    };
+    
+    // Extract article content and discussion points from a RANDOM Part A question using seeded random
+    const randomIndex = Math.floor(seededRandom(randomSeed, 1) * partAQuestions.length);
     const partAQuestion = partAQuestions[randomIndex];
+    
+    console.log(`🎲 Randomly selected Part A question index: ${randomIndex} out of ${partAQuestions.length} questions`);
+    console.log(`📝 Selected question text preview: ${partAQuestion.text.substring(0, 100)}...`);
+    
     const articleMatch = partAQuestion.text.match(/Article:\s*(.+?)(?:\n\nDiscussion:|$)/s);
     const discussionMatch = partAQuestion.text.match(/Discussion:\s*(.+)$/s);
     
@@ -152,6 +165,13 @@ There have been multiple complaints from residents about noise from bars and res
       }
     }
     
+    // Randomize Part B questions selection using seeded random
+    const shuffledPartBQuestions = [...partBQuestions];
+    for (let i = shuffledPartBQuestions.length - 1; i > 0; i--) {
+      const j = Math.floor(seededRandom(randomSeed, i + 10) * (i + 1));
+      [shuffledPartBQuestions[i], shuffledPartBQuestions[j]] = [shuffledPartBQuestions[j], shuffledPartBQuestions[i]];
+    }
+    
     return {
       partA: {
         title: "Group Interaction",
@@ -160,10 +180,10 @@ There have been multiple complaints from residents about noise from bars and res
       },
       partB: {
         title: "Individual Response",
-        questions: partBQuestions.slice(0, 8).map(q => q.text)
+        questions: shuffledPartBQuestions.slice(0, 8).map(q => q.text)
       }
     };
-  }, [isSeniorSecondary, grade]);
+  }, [isSeniorSecondary, grade, randomSeed]);
 
   const currentQ = questions[currentQuestion];
   const progress = isSeniorSecondary 
@@ -187,7 +207,8 @@ There have been multiple complaints from residents about noise from bars and res
       questionsCount: questions.length,
       isKindergarten,
       showQuestions,
-      isSeniorSecondary
+      isSeniorSecondary,
+      randomSeed
     }, 'VoiceTest', 'mount');
 
     return () => {
