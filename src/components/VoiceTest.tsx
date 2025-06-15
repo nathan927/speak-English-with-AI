@@ -303,21 +303,6 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
           </p>
         </div>
 
-        {/* Instructions */}
-        <Card className="mb-6 border-blue-200 bg-blue-50">
-          <CardContent className="p-4">
-            <div className="flex items-start space-x-3">
-              <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="text-blue-800 font-medium mb-1">語音提示：</p>
-                <p className="text-blue-700 text-sm">
-                  系統會自動按下「Start Recording」，請聽實人對話，請當然回答
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Question Card */}
         <Card className="mb-6">
           <CardHeader>
