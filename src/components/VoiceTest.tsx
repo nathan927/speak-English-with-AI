@@ -89,6 +89,12 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
         questionReadTimeRef.current = Date.now();
         setIsSpeaking(false);
         console.log('Speech completed, question read time set');
+        // Auto-start recording after speech completes
+        if (currentQ.section.toLowerCase() !== 'reading') {
+          setTimeout(() => {
+            startRecording();
+          }, 1000); // Small delay before starting recording
+        }
       });
     }
   };
@@ -142,8 +148,8 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
     } catch (error) {
       console.error('Recording failed:', error);
       toast({
-        title: "錄音失敗",
-        description: "請確保已授予麥克風權限",
+        title: "Recording Failed",
+        description: "Please ensure microphone permission is granted",
         variant: "destructive",
       });
     }
@@ -232,23 +238,23 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
     setIsAnalyzing(true);
     
     try {
-      console.log('開始AI驅動的語音分析...');
+      console.log('Starting AI-powered speech analysis...');
       const results = await performAIEvaluation(finalRecordings, grade);
       
-      console.log('AI分析完成:', results);
+      console.log('AI analysis completed:', results);
       setIsAnalyzing(false);
       onComplete(results);
     } catch (error) {
-      console.error('AI分析失敗:', error);
+      console.error('AI analysis failed:', error);
       setIsAnalyzing(false);
       
       toast({
-        title: "評估完成",
-        description: "使用了備用評估方法，建議稍後重試以獲得更詳細的AI分析",
+        title: "Assessment Complete",
+        description: "Used fallback evaluation method, recommend retrying for detailed AI analysis",
         variant: "default",
       });
       
-      // 提供基本的備用結果
+      // Provide basic fallback results
       const fallbackResults = {
         overallScore: 50,
         pronunciation: 45,
@@ -258,13 +264,13 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
         sectionScores: { spontaneous: 50, reading: 55, personal: 45 },
         grade,
         questionsAttempted: finalRecordings.length,
-        strengths: ['完成了所有測試環節'],
-        improvements: ['建議重新測試以獲得AI詳細分析'],
+        strengths: ['Completed all test sections'],
+        improvements: ['Recommend retesting for detailed AI analysis'],
         detailedAnalysis: finalRecordings.map(rec => ({
           section: rec.section,
           question: rec.question,
           score: 50,
-          feedback: `錄音完成 (${rec.duration}秒) - 請重新測試獲得AI分析`
+          feedback: `Recording completed (${rec.duration}s) - Please retest for AI analysis`
         }))
       };
       
@@ -331,8 +337,8 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
             onEnd();
           }
           toast({
-            title: "語音播放失敗",
-            description: "已跳過語音播放，可以直接開始錄音",
+            title: "Speech playback failed",
+            description: "Skipped speech playback, you can start recording directly",
             variant: "default",
           });
         };
@@ -352,8 +358,8 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
       }, estimatedTime);
       
       toast({
-        title: "語音不支援",
-        description: "您的瀏覽器不支援語音播放功能，已跳過語音播放",
+        title: "Speech not supported",
+        description: "Your browser doesn't support speech playback, skipped speech playback",
         variant: "default",
       });
     }
@@ -367,16 +373,16 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
             <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
               <Mic className="w-8 h-8 text-white" />
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-4">🤖 AI正在進行深度語音分析...</h3>
+            <h3 className="text-xl font-bold text-gray-900 mb-4">🤖 AI is performing deep voice analysis...</h3>
             <p className="text-gray-600 mb-6">
-              我們的AI專家正在評估您的發音、詞彙、流暢度和自信程度，
-              並為您生成個人化的學習建議
+              Our AI expert is evaluating your pronunciation, vocabulary, fluency and confidence,
+              and generating personalized learning recommendations for you
             </p>
             <div className="space-y-2">
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div className="bg-gradient-to-r from-blue-600 to-purple-600 h-2 rounded-full animate-pulse" style={{width: '85%'}}></div>
               </div>
-              <p className="text-sm text-gray-500">正在分析 {recordings.length} 段錄音，請稍候...</p>
+              <p className="text-sm text-gray-500">Analyzing {recordings.length} recordings, please wait...</p>
             </div>
           </CardContent>
         </Card>
@@ -392,10 +398,11 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
             <Button 
               variant="ghost" 
               onClick={onBack}
-              className="hover:bg-white/80"
+              className="group relative overflow-hidden bg-gradient-to-r from-gray-100 to-gray-200 hover:from-blue-100 hover:to-purple-100 border border-gray-300 hover:border-blue-300 text-gray-700 hover:text-blue-700 font-medium px-6 py-3 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-105"
             >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Selection
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+              <ArrowLeft className="w-4 h-4 mr-2 transition-transform duration-300 group-hover:-translate-x-1" />
+              <span className="relative z-10">Back to Selection</span>
             </Button>
           </div>
           
@@ -436,7 +443,7 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
                 {isSpeaking && (
                   <div className="flex items-center space-x-2 mt-4">
                     <Volume2 className="w-4 h-4 text-blue-600 animate-pulse" />
-                    <span className="text-sm text-blue-600">正在播放問題...</span>
+                    <span className="text-sm text-blue-600">Playing question...</span>
                   </div>
                 )}
               </div>
@@ -455,7 +462,7 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
                             className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg mr-4 disabled:opacity-50"
                           >
                             <Volume2 className="w-6 h-6 mr-2" />
-                            {isSpeaking ? '播放中...' : 'Listen Again'}
+                            {isSpeaking ? 'Playing...' : 'Listen Again'}
                           </Button>
                         )}
                         <Button
