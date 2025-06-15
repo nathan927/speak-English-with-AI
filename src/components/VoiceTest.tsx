@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { performAIEvaluation } from '@/services/aiEvaluationService';
 import { getRandomQuestionSet, type Question } from '@/data/questionBank';
 import { buildNaturalQuestion, getCompletionPhrase } from '@/services/conversationService';
+import { logger } from '@/services/logService';
 
 interface VoiceTestProps {
   grade: string;
@@ -62,16 +63,31 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
   );
 
   useEffect(() => {
+    logger.info('VoiceTest component mounted', {
+      grade,
+      speechRate,
+      questionsCount: questions.length
+    }, 'VoiceTest', 'mount');
+
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if ('speechSynthesis' in window) {
         speechSynthesis.cancel();
+        logger.debug('Speech synthesis cancelled on unmount', {}, 'VoiceTest', 'cleanup');
       }
     };
   }, []);
 
   useEffect(() => {
+    logger.questionLog(currentQuestion, currentQ, 'changed');
+    
     if (pendingCompletionPhrase) {
+      logger.debug('Processing pending completion phrase', {
+        phrase: pendingCompletionPhrase,
+        currentQuestion,
+        isReadingQuestion
+      }, 'VoiceTest', 'pendingPhrase');
+      
       const timer = setTimeout(() => {
         speakText(pendingCompletionPhrase, () => {
           if (currentQ && !isReadingQuestion) {
@@ -85,6 +101,10 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
     else if (currentQ && !isReadingQuestion) {
       const initialListenTimeout = setTimeout(() => {
         if (!hasRecorded) {
+          logger.debug('Auto-triggering listen for non-reading question', {
+            currentQuestion,
+            hasRecorded
+          }, 'VoiceTest', 'autoListen');
           handleListen();
         }
       }, 500);
@@ -93,9 +113,12 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
   }, [currentQuestion]);
 
   const handleListen = () => {
-    console.log('Listen button clicked');
-    console.log('Current question:', currentQ);
-    console.log('Speech synthesis available:', 'speechSynthesis' in window);
+    logger.info('Listen button clicked', {
+      currentQuestion,
+      questionText: currentQ?.text?.substring(0, 50),
+      speechSynthesisAvailable: 'speechSynthesis' in window,
+      currentlySpeaking: speechSynthesis?.speaking
+    }, 'VoiceTest', 'listenClicked');
     
     if (currentQ) {
       setIsSpeaking(true);
@@ -105,13 +128,30 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
       const isLast = currentQuestion === questions.length - 1;
       const naturalText = buildNaturalQuestion(currentQ.text, isFirst, isLast, grade);
       
+      logger.info('Natural text built for speech', {
+        originalText: currentQ.text,
+        naturalText,
+        textLength: naturalText.length,
+        isFirst,
+        isLast,
+        grade
+      }, 'VoiceTest', 'textBuilt');
+      
       speakText(naturalText, () => {
         questionReadTimeRef.current = Date.now();
         setIsSpeaking(false);
-        console.log('Speech completed, question read time set');
+        logger.info('Speech completed, question read time set', {
+          questionReadTime: questionReadTimeRef.current,
+          currentQuestion
+        }, 'VoiceTest', 'speechCompleted');
+        
         // Auto-start recording after speech completes (EXCLUDE Reading questions)
         if (currentQ.section.toLowerCase() !== 'reading' && !currentQ.instruction.toLowerCase().includes('read') && currentQ.section !== 'B. 朗讀') {
           setTimeout(() => {
+            logger.debug('Auto-starting recording after speech', {
+              delay: 1000,
+              currentQuestion
+            }, 'VoiceTest', 'autoRecord');
             startRecording();
           }, 1000); // Small delay before starting recording
         }
@@ -225,6 +265,14 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
   // 1. 在 nextQuestion 只變更畫面和 reset，不直接 speak
   const nextQuestion = () => {
     if (!audioBlob) return;
+    
+    logger.info('Moving to next question', {
+      currentQuestion,
+      totalQuestions: questions.length,
+      hasAudioBlob: !!audioBlob,
+      recordingTime
+    }, 'VoiceTest', 'nextQuestion');
+    
     // 保存錄音資料
     const responseTime = responseStartTime && questionReadTimeRef.current > 0
       ? responseStartTime - questionReadTimeRef.current
@@ -244,13 +292,30 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
     const newRecordings = [...recordings, recordingData];
     setRecordings(newRecordings);
 
+    logger.debug('Recording data saved', {
+      questionId: recordingData.questionId,
+      section: recordingData.section,
+      duration: recordingData.duration,
+      responseTime: recordingData.responseTime,
+      totalRecordings: newRecordings.length
+    }, 'VoiceTest', 'recordingSaved');
+
     if (currentQuestion < questions.length - 1) {
       setCurrentQuestion(prev => prev + 1);
       resetRecording();
       questionReadTimeRef.current = 0;
       // 避免在畫面切換前就 speak，pendingPhrase 等下 useEffect 處理
-      setPendingCompletionPhrase(getCompletionPhrase());
+      const completionPhrase = getCompletionPhrase();
+      setPendingCompletionPhrase(completionPhrase);
+      
+      logger.info('Set completion phrase for next question', {
+        completionPhrase,
+        nextQuestion: currentQuestion + 1
+      }, 'VoiceTest', 'completionPhraseSet');
     } else {
+      logger.info('Test completed, starting analysis', {
+        totalRecordings: newRecordings.length
+      }, 'VoiceTest', 'testCompleted');
       completeTest(newRecordings);
     }
   };
@@ -317,25 +382,43 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
   };
 
   const speakText = (text: string, onEnd?: () => void) => {
-    console.log('speakText called with:', text);
+    logger.speechLog('speakText_called', {
+      text: text.substring(0, 100) + (text.length > 100 ? '...' : ''),
+      textLength: text.length,
+      speechRate,
+      hasOnEndCallback: !!onEnd,
+      currentlySpeaking: speechSynthesis?.speaking,
+      speechSynthesisState: {
+        speaking: speechSynthesis?.speaking,
+        pending: speechSynthesis?.pending,
+        paused: speechSynthesis?.paused
+      }
+    });
     
     // Clear any existing timeout
     if (speechTimeoutRef.current) {
       clearTimeout(speechTimeoutRef.current);
+      logger.debug('Cleared existing speech timeout', {}, 'VoiceTest', 'timeoutCleared');
     }
     
     if ('speechSynthesis' in window) {
       if (speechSynthesis.speaking) {
         speechSynthesis.cancel();
+        logger.warn('Cancelled existing speech synthesis', {}, 'VoiceTest', 'speechCancelled');
       }
       
+      const timeoutDuration = Math.max(5000, text.length * 200 / speechRate);
       speechTimeoutRef.current = setTimeout(() => {
-        console.log('Speech timeout triggered, force completing');
+        logger.warn('Speech timeout triggered - force completing', {
+          timeoutDuration,
+          textLength: text.length,
+          speechRate
+        }, 'VoiceTest', 'speechTimeout');
         setIsSpeaking(false);
         if (onEnd) {
           onEnd();
         }
-      }, Math.max(5000, text.length * 200 / speechRate));
+      }, timeoutDuration);
       
       setTimeout(() => {
         const utterance = new SpeechSynthesisUtterance(text);
@@ -344,12 +427,20 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
         utterance.volume = 1.0;
         
         utterance.onstart = () => {
-          console.log('Speech started');
+          logger.speechLog('speech_started', {
+            text: text.substring(0, 50) + '...',
+            rate: speechRate,
+            volume: utterance.volume,
+            lang: utterance.lang
+          });
           setIsSpeaking(true);
         };
         
         utterance.onend = () => {
-          console.log('Speech ended normally');
+          logger.speechLog('speech_ended_normally', {
+            text: text.substring(0, 50) + '...',
+            duration: Date.now() - (speechTimeoutRef.current ? 0 : Date.now())
+          });
           if (speechTimeoutRef.current) {
             clearTimeout(speechTimeoutRef.current);
           }
@@ -360,7 +451,11 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
         };
         
         utterance.onerror = (event) => {
-          console.error('Speech error:', event);
+          logger.speechLog('speech_error', {
+            error: event.error,
+            text: text.substring(0, 50) + '...',
+            errorEvent: event
+          });
           if (speechTimeoutRef.current) {
             clearTimeout(speechTimeoutRef.current);
           }
@@ -370,10 +465,19 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
           }
         };
         
+        logger.speechLog('speech_synthesis_speak_called', {
+          utteranceReady: true,
+          text: text.substring(0, 50) + '...'
+        });
+        
         speechSynthesis.speak(utterance);
       }, 150);
     } else {
-      console.log('Speech synthesis not supported, using fallback');
+      logger.error('Speech synthesis not supported, using fallback', {
+        textLength: text.length,
+        fallbackDuration: Math.max(2000, text.length * 80)
+      }, 'VoiceTest', 'speechNotSupported');
+      
       // Fallback: call onEnd after estimated reading time
       const estimatedTime = Math.max(2000, text.length * 80);
       setTimeout(() => {

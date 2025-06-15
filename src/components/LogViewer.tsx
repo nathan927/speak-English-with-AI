@@ -59,7 +59,13 @@ const LogViewer = () => {
   };
 
   const formatTime = (timestamp: string) => {
-    return new Date(timestamp).toLocaleTimeString('zh-HK');
+    return new Date(timestamp).toLocaleTimeString('zh-HK', {
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      fractionalSecondDigits: 3
+    });
   };
 
   return (
@@ -73,11 +79,11 @@ const LogViewer = () => {
         </Button>
       </DialogTrigger>
       
-      <DialogContent className="max-w-4xl max-h-[80vh] p-0">
+      <DialogContent className="max-w-6xl max-h-[85vh] p-0">
         <DialogHeader className="p-6 pb-2">
           <DialogTitle className="flex items-center gap-2">
             <Bug className="w-5 h-5" />
-            應用日志查看器
+            詳細調試日志查看器
           </DialogTitle>
         </DialogHeader>
         
@@ -112,6 +118,13 @@ const LogViewer = () => {
             >
               信息 ({logs.filter(l => l.level === 'info').length})
             </Button>
+            <Button
+              variant={filterLevel === 'debug' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setFilterLevel('debug')}
+            >
+              調試 ({logs.filter(l => l.level === 'debug').length})
+            </Button>
             
             <div className="ml-auto flex gap-2">
               <Button size="sm" variant="outline" onClick={refreshLogs}>
@@ -130,7 +143,7 @@ const LogViewer = () => {
           </div>
 
           {/* 日志列表 */}
-          <Card className="h-96">
+          <Card className="h-[500px]">
             <ScrollArea className="h-full">
               <CardContent className="p-4">
                 {filteredLogs.length === 0 ? (
@@ -138,34 +151,64 @@ const LogViewer = () => {
                     沒有找到日志記錄
                   </div>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {filteredLogs.map((log, index) => (
                       <div
                         key={index}
-                        className="border rounded-lg p-3 text-sm hover:bg-gray-50"
+                        className="border rounded-lg p-4 text-sm hover:bg-gray-50"
                       >
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2 mb-2">
                           <Badge className={getLevelColor(log.level)}>
                             {log.level.toUpperCase()}
                           </Badge>
-                          <span className="text-gray-500 text-xs">
+                          <span className="text-gray-500 text-xs font-mono">
                             {formatTime(log.timestamp)}
                           </span>
+                          {log.component && (
+                            <Badge variant="outline" className="text-xs">
+                              {log.component}
+                            </Badge>
+                          )}
+                          {log.action && (
+                            <Badge variant="secondary" className="text-xs">
+                              {log.action}
+                            </Badge>
+                          )}
                         </div>
-                        <div className="text-gray-900 mb-1">
+                        
+                        <div className="text-gray-900 mb-2 font-medium">
                           {log.message}
                         </div>
-                        {log.data && (
+                        
+                        {(log.data || log.details) && (
                           <details className="text-xs text-gray-600">
-                            <summary className="cursor-pointer hover:text-gray-800">
-                              查看詳細數據
+                            <summary className="cursor-pointer hover:text-gray-800 font-medium mb-2">
+                              查看詳細數據 {log.data && log.details ? '(數據 + 詳情)' : log.data ? '(數據)' : '(詳情)'}
                             </summary>
-                            <pre className="mt-2 p-2 bg-gray-100 rounded text-xs overflow-x-auto">
-                              {typeof log.data === 'string' 
-                                ? log.data 
-                                : JSON.stringify(log.data, null, 2)
-                              }
-                            </pre>
+                            <div className="space-y-2">
+                              {log.data && (
+                                <div>
+                                  <div className="font-semibold text-blue-600 mb-1">主要數據:</div>
+                                  <pre className="p-3 bg-blue-50 rounded text-xs overflow-x-auto border">
+                                    {typeof log.data === 'string' 
+                                      ? log.data 
+                                      : JSON.stringify(log.data, null, 2)
+                                    }
+                                  </pre>
+                                </div>
+                              )}
+                              {log.details && (
+                                <div>
+                                  <div className="font-semibold text-green-600 mb-1">詳細信息:</div>
+                                  <pre className="p-3 bg-green-50 rounded text-xs overflow-x-auto border">
+                                    {typeof log.details === 'string' 
+                                      ? log.details 
+                                      : JSON.stringify(log.details, null, 2)
+                                    }
+                                  </pre>
+                                </div>
+                              )}
+                            </div>
                           </details>
                         )}
                       </div>
@@ -176,8 +219,8 @@ const LogViewer = () => {
             </ScrollArea>
           </Card>
 
-          <div className="text-xs text-gray-500 mt-2 text-center">
-            日志自動每秒刷新 • 最多保存1000條記錄
+          <div className="text-xs text-gray-500 mt-3 text-center">
+            詳細調試日志 • 自動每秒刷新 • 最多保存1000條記錄 • 包含組件、動作和詳細數據追蹤
           </div>
         </div>
       </DialogContent>

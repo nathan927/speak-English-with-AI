@@ -1,4 +1,7 @@
+
 // Conversation service for natural dialogue transitions
+import { logger } from './logService';
+
 export interface ConversationPhrase {
   opening: string[];
   closing: string[];
@@ -131,46 +134,103 @@ export const getRandomPhrase = (type: keyof ConversationPhrase): string => {
   const phrases = conversationPhrases[type];
   let selectedPhrase: string;
   
+  logger.debug(`Getting random phrase for type: ${type}`, {
+    totalPhrases: phrases.length,
+    lastUsed: lastUsedPhrases[type]
+  }, 'ConversationService', 'getRandomPhrase');
+  
   // Filter out the last used phrase for this type
   const availablePhrases = phrases.filter(phrase => phrase !== lastUsedPhrases[type]);
+  
+  logger.debug(`Filtered phrases for ${type}`, {
+    available: availablePhrases.length,
+    filtered: phrases.length - availablePhrases.length,
+    lastUsedPhrase: lastUsedPhrases[type]
+  }, 'ConversationService', 'filterPhrases');
   
   // If all phrases have been used, reset and use all phrases
   if (availablePhrases.length === 0) {
     selectedPhrase = phrases[Math.floor(Math.random() * phrases.length)];
+    logger.warn(`All ${type} phrases used, resetting selection`, {
+      selectedPhrase,
+      totalPhrases: phrases.length
+    }, 'ConversationService', 'resetPhrases');
   } else {
     selectedPhrase = availablePhrases[Math.floor(Math.random() * availablePhrases.length)];
   }
   
+  // Log the detailed selection process using the specialized method
+  logger.conversationLog(type, selectedPhrase, availablePhrases, lastUsedPhrases[type]);
+  
   // Store the selected phrase to avoid repetition
+  const previousPhrase = lastUsedPhrases[type];
   lastUsedPhrases[type] = selectedPhrase;
+  
+  logger.debug(`Phrase selection completed for ${type}`, {
+    selected: selectedPhrase,
+    previous: previousPhrase,
+    updated: lastUsedPhrases[type]
+  }, 'ConversationService', 'phraseSelected');
   
   return selectedPhrase;
 };
 
 export const buildNaturalQuestion = (questionText: string, isFirst: boolean = false, isLast: boolean = false, grade?: string): string => {
+  logger.info(`Building natural question`, {
+    isFirst,
+    isLast,
+    grade,
+    questionLength: questionText.length,
+    questionPreview: questionText.substring(0, 30) + '...'
+  }, 'ConversationService', 'buildQuestion');
+
   let naturalText = '';
+  const buildSteps: string[] = [];
   
   // Determine if this is a kindergarten or primary grade
   const isKindergarten = grade?.startsWith('K') || false;
   const isPrimary = grade?.startsWith('P') || false;
   
+  logger.debug(`Grade analysis`, {
+    isKindergarten,
+    isPrimary,
+    grade
+  }, 'ConversationService', 'gradeAnalysis');
+  
   // Add greeting for first question
   if (isFirst) {
     if (Math.random() < 0.7) { // 70% chance
-      naturalText += getRandomPhrase('greeting') + ' ';
+      const greeting = getRandomPhrase('greeting');
+      naturalText += greeting + ' ';
+      buildSteps.push(`Added greeting: "${greeting}"`);
     }
   } else if (!isKindergarten) { // Skip transition phrases for kindergarten
     // Reduce opening phrases for primary students (50% instead of 80%)
     const openingChance = isPrimary ? 0.5 : 0.8;
+    const random = Math.random();
     
-    if (Math.random() < openingChance) {
-      naturalText += getRandomPhrase('opening') + ' ';
+    logger.debug(`Opening phrase decision`, {
+      openingChance,
+      randomValue: random,
+      willUseOpening: random < openingChance,
+      isPrimary,
+      isKindergarten
+    }, 'ConversationService', 'openingDecision');
+    
+    if (random < openingChance) {
+      const opening = getRandomPhrase('opening');
+      naturalText += opening + ' ';
+      buildSteps.push(`Added opening: "${opening}"`);
     } else if (!isPrimary) { // Only use transition/casual for secondary students
       // Sometimes use transition or casual phrases instead
       if (Math.random() < 0.5) {
-        naturalText += getRandomPhrase('transition') + ' ';
+        const transition = getRandomPhrase('transition');
+        naturalText += transition + ' ';
+        buildSteps.push(`Added transition: "${transition}"`);
       } else {
-        naturalText += getRandomPhrase('casual') + ' ';
+        const casual = getRandomPhrase('casual');
+        naturalText += casual + ' ';
+        buildSteps.push(`Added casual: "${casual}"`);
       }
     }
   }
@@ -184,7 +244,9 @@ export const buildNaturalQuestion = (questionText: string, isFirst: boolean = fa
   }
   
   if (Math.random() < encouragementChance) {
-    naturalText += getRandomPhrase('encouragement') + ' ';
+    const encouragement = getRandomPhrase('encouragement');
+    naturalText += encouragement + ' ';
+    buildSteps.push(`Added encouragement: "${encouragement}"`);
   }
   
   // Skip thinking phrases for kindergarten, reduce for primary
@@ -196,11 +258,14 @@ export const buildNaturalQuestion = (questionText: string, isFirst: boolean = fa
   }
   
   if (Math.random() < thinkingChance) {
-    naturalText += getRandomPhrase('thinking') + ' ';
+    const thinking = getRandomPhrase('thinking');
+    naturalText += thinking + ' ';
+    buildSteps.push(`Added thinking: "${thinking}"`);
   }
   
   // Add the actual question
   naturalText += questionText;
+  buildSteps.push(`Added main question: "${questionText.substring(0, 30)}..."`);
   
   // Add closing encouragement for last question (simplified for younger students)
   if (isLast) {
@@ -219,8 +284,23 @@ export const buildNaturalQuestion = (questionText: string, isFirst: boolean = fa
       ' This is the last one, so feel free to take your time.',
       ' Alright, this is our final question together.'
     ];
-    naturalText += lastQuestionPhrases[Math.floor(Math.random() * lastQuestionPhrases.length)];
+    const lastPhrase = lastQuestionPhrases[Math.floor(Math.random() * lastQuestionPhrases.length)];
+    naturalText += lastPhrase;
+    buildSteps.push(`Added last question phrase: "${lastPhrase}"`);
   }
+  
+  logger.info(`Natural question built`, {
+    finalText: naturalText,
+    textLength: naturalText.length,
+    buildSteps,
+    components: {
+      isFirst,
+      isLast,
+      grade,
+      isKindergarten,
+      isPrimary
+    }
+  }, 'ConversationService', 'questionBuilt');
   
   return naturalText;
 };
