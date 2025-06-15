@@ -1305,7 +1305,7 @@ Parents and teachers often emphasize traditional "safe" careers like medicine, l
             </CardHeader>
             <CardContent className="pt-0">
               {/* Conditional question display based on showQuestions */}
-              {showQuestions ? (
+              {(showQuestions || isReadingQuestion) ? (
                 <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 md:p-10 mb-4 md:mb-6">
                   <p className="text-lg md:text-2xl font-bold text-gray-900 mb-3 leading-relaxed">
                     {currentQ?.text}
