@@ -379,7 +379,6 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
                           <Volume2 className="w-6 h-6 mr-2" />
                           Listen
                         </Button>
-                        <p className="text-gray-600">點擊 "Listen" 聆聽題目，或等待自動播放</p>
                       </div>
                     ) : !isRecording && !isReadingQuestion ? (
                       <div className="space-y-4">
@@ -391,7 +390,6 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
                           <Mic className="w-6 h-6 mr-2" />
                           Start Recording
                         </Button>
-                        <p className="text-gray-600">點擊開始錄音，或等待自動開始</p>
                       </div>
                     ) : isRecording ? (
                       <div className="space-y-4">
@@ -410,10 +408,6 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
                           <MicOff className="w-6 h-6 mr-2" />
                           Stop Recording
                         </Button>
-                      </div>
-                    ) : isReadingQuestion ? (
-                      <div className="text-gray-600">
-                        <p>請仔細聽題目，題目讀完後會自動開始錄音</p>
                       </div>
                     ) : null}
                   </div>
