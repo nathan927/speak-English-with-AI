@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -153,10 +152,7 @@ export const GradeSelector = ({ onGradeSelect, onBack }: GradeSelectorProps) => 
                       onClick={() => handleGradeSelect(grade)}
                       className="h-12 md:h-16 text-base md:text-lg font-semibold bg-white hover:bg-gradient-to-r hover:from-blue-600 hover:to-purple-600 text-gray-900 hover:text-white border-2 border-gray-200 hover:border-transparent transition-all duration-300 transform hover:scale-105 shadow-sm hover:shadow-md"
                     >
-                      <div className="flex flex-col items-center">
-                        <Mic className="w-5 h-5 md:w-8 md:h-8 mb-0 md:mb-1" strokeWidth={2.5} />
-                        <span className="text-gray-900 hover:text-white">{grade}</span>
-                      </div>
+                      {grade}
                     </Button>
                   ))}
                 </div>
