@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -154,8 +155,8 @@ const VoiceTest: React.FC = () => {
     setIsEvaluating(true);
     try {
       const question = questions[currentQuestionIndex];
-      const evaluation = await performAIEvaluation(audioURL, question.text, selectedGrade);
-      setEvaluation(evaluation);
+      const evaluationResult = await performAIEvaluation(audioURL, question.text);
+      setEvaluation(evaluationResult.feedback || 'Evaluation completed');
       toast.success('Evaluation completed');
     } catch (error) {
       console.error('Evaluation error:', error);
