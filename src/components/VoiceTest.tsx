@@ -70,19 +70,16 @@ export const VoiceTest = ({ grade, speechRate, showQuestions, onComplete, onBack
   // Get questions from the comprehensive question bank
   const questions: Question[] = useMemo(() => getRandomQuestionSet(grade), [grade]);
   
-  // For senior secondary, get a random question set for DSE content
+  // For senior secondary, generate DSE content from the questions
   const randomDseContent = useMemo(() => {
     if (!isSeniorSecondary) return null;
     
-    const questionSets = getRandomQuestionSet(grade);
-    if (questionSets.length === 0) return null;
+    const questionList = getRandomQuestionSet(grade);
+    if (questionList.length === 0) return null;
     
-    // Get the first question set (already randomized by getRandomQuestionSet)
-    const selectedSet = questionSets[0];
-    
-    // Extract DSE Part A content from the selected set
-    const partAQuestions = selectedSet.questions.filter(q => q.section === 'A. Group Interaction');
-    const partBQuestions = selectedSet.questions.filter(q => q.section === 'B. Individual Response');
+    // Find Part A and Part B questions from the question list
+    const partAQuestions = questionList.filter(q => q.section === 'A. Group Interaction');
+    const partBQuestions = questionList.filter(q => q.section === 'B. Individual Response');
     
     if (partAQuestions.length === 0 || partBQuestions.length === 0) {
       // Fallback to default content if no proper DSE structure found
@@ -129,7 +126,7 @@ There have been multiple complaints from residents about noise from bars and res
     const discussionMatch = partAQuestion.text.match(/Discussion:\s*(.+)$/s);
     
     let article = {
-      title: selectedSet.name || "Current Affairs Discussion",
+      title: "Current Affairs Discussion",
       quote: "",
       content: articleMatch ? articleMatch[1].trim() : partAQuestion.text
     };
