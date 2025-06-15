@@ -595,7 +595,7 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
               </div>
             </CardHeader>
             <CardContent className="pt-0">
-              <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-3 md:p-6 mb-3 md:mb-4">
+              <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-5 md:p-8 mb-3 md:mb-4">
                 <p className="text-base md:text-xl font-medium text-gray-900 mb-2">
                   {currentQ.text}
                 </p>
@@ -607,7 +607,7 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
                 )}
               </div>
               
-              <div className="text-center space-y-2 md:space-y-4">
+              <div className="text-center space-y-4 md:space-y-6">
                 {!hasRecorded ? (
                   <div>
                     {!isRecording ? (
