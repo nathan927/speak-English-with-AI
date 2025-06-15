@@ -5,6 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Mic, MicOff, Play, Pause, RotateCcw, Volume2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { performAIEvaluation } from '@/services/aiEvaluationService';
 
 interface VoiceTestProps {
   grade: string;
@@ -20,7 +21,7 @@ interface RecordingData {
   timestamp: string;
   duration: number;
   wordCount: number;
-  responseTime: number; // Time taken to start responding after question is read
+  responseTime: number;
 }
 
 export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
@@ -42,255 +43,6 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
   const questionReadTimeRef = useRef<number>(0);
   
   const { toast } = useToast();
-
-  // Enhanced speech recognition with response time evaluation
-  const performAdvancedSpeechAnalysis = async (recordings: RecordingData[]): Promise<any> => {
-    const analysisPromises = recordings.map(async (recording, index) => {
-      return new Promise<{ transcription: string; score: number; confidence: number; responseTimeScore: number }>((resolve) => {
-        console.log(`Analyzing recording ${index + 1}/${recordings.length}`);
-        
-        // Calculate response time score
-        let responseTimeScore = 100;
-        if (recording.responseTime > 3000) { // More than 3 seconds
-          responseTimeScore = Math.max(30, 100 - ((recording.responseTime - 3000) / 1000) * 15);
-        } else if (recording.responseTime < 1000) { // Less than 1 second (too fast, might be cutting off question)
-          responseTimeScore = Math.max(60, 100 - ((1000 - recording.responseTime) / 100) * 5);
-        }
-        
-        // Method 1: Try Web Speech API with better configuration
-        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-          const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-          const recognition = new SpeechRecognition();
-          
-          // Enhanced configuration for better recognition
-          recognition.continuous = true;
-          recognition.interimResults = false;
-          recognition.lang = 'en-US';
-          recognition.maxAlternatives = 3;
-          recognition.grammars = null;
-          
-          let timeoutId: NodeJS.Timeout;
-          let hasResult = false;
-          
-          // Create audio context for better processing
-          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-          const audioUrl = URL.createObjectURL(recording.audioBlob);
-          
-          fetch(audioUrl)
-            .then(response => response.arrayBuffer())
-            .then(buffer => audioContext.decodeAudioData(buffer))
-            .then(audioBuffer => {
-              // Play the audio for speech recognition
-              const source = audioContext.createBufferSource();
-              source.buffer = audioBuffer;
-              source.connect(audioContext.destination);
-              
-              // Start recognition just before playing audio
-              timeoutId = setTimeout(() => {
-                if (!hasResult) {
-                  hasResult = true;
-                  recognition.stop();
-                  resolve({
-                    transcription: 'Speech timeout - using audio analysis',
-                    score: Math.max(30, Math.min(85, 45 + (recording.duration * 2) + (recording.wordCount * 5))),
-                    confidence: 0.4,
-                    responseTimeScore
-                  });
-                }
-              }, 8000);
-              
-              recognition.onresult = (event: any) => {
-                clearTimeout(timeoutId);
-                if (hasResult) return;
-                hasResult = true;
-                
-                let bestTranscript = '';
-                let bestConfidence = 0;
-                
-                // Check all alternatives for best result
-                for (let i = 0; i < event.results.length; i++) {
-                  for (let j = 0; j < event.results[i].length; j++) {
-                    const transcript = event.results[i][j].transcript;
-                    const confidence = event.results[i][j].confidence;
-                    
-                    if (confidence > bestConfidence) {
-                      bestConfidence = confidence;
-                      bestTranscript = transcript;
-                    }
-                  }
-                }
-                
-                console.log('Best recognition result:', bestTranscript, 'Confidence:', bestConfidence);
-                
-                // Enhanced scoring algorithm
-                const targetWords = getQuestionsForGrade(grade)[index]?.targetWords || [];
-                let wordMatchScore = 0;
-                let grammarScore = 0;
-                
-                const words = bestTranscript.toLowerCase().split(' ');
-                
-                // Word matching bonus
-                targetWords.forEach(word => {
-                  if (bestTranscript.toLowerCase().includes(word.toLowerCase())) {
-                    wordMatchScore += 8;
-                  }
-                });
-                
-                // Grammar and structure scoring
-                if (words.length >= 3) grammarScore += 10;
-                if (words.length >= 6) grammarScore += 10;
-                if (bestTranscript.includes('.') || bestTranscript.includes('!') || bestTranscript.includes('?')) grammarScore += 5;
-                
-                // Pronunciation confidence scoring
-                const pronunciationScore = bestConfidence * 60;
-                
-                // Fluency scoring based on recording metrics
-                const fluencyScore = Math.min(20, (recording.duration * 3) + (words.length * 2));
-                
-                const finalScore = Math.round(pronunciationScore + wordMatchScore + grammarScore + fluencyScore);
-                const clampedScore = Math.max(20, Math.min(100, finalScore));
-                
-                resolve({
-                  transcription: bestTranscript,
-                  score: clampedScore,
-                  confidence: bestConfidence,
-                  responseTimeScore
-                });
-              };
-              
-              recognition.onerror = (event: any) => {
-                clearTimeout(timeoutId);
-                if (hasResult) return;
-                hasResult = true;
-                
-                console.log('Speech recognition error:', event.error);
-                
-                // Fallback with enhanced heuristic scoring
-                const heuristicScore = Math.max(25, Math.min(75, 
-                  35 + 
-                  (recording.duration * 3) + 
-                  (recording.wordCount * 8) + 
-                  (Math.random() * 10)
-                ));
-                
-                resolve({
-                  transcription: `Audio recorded (${recording.duration}s) - Recognition unavailable`,
-                  score: Math.round(heuristicScore),
-                  confidence: 0.3,
-                  responseTimeScore
-                });
-              };
-              
-              // Start recognition and play audio
-              recognition.start();
-              source.start(0);
-              
-            })
-            .catch(error => {
-              console.error('Audio processing error:', error);
-              resolve({
-                transcription: 'Audio processing failed',
-                score: Math.max(20, Math.min(60, 30 + (recording.duration * 2))),
-                confidence: 0.2,
-                responseTimeScore
-              });
-            });
-            
-        } else {
-          // Fallback: Enhanced heuristic analysis
-          const duration = recording.duration;
-          const estimatedWords = Math.max(1, Math.floor(duration / 0.8)); // Estimate words per second
-          
-          let heuristicScore = 40; // Base score
-          
-          // Duration scoring
-          if (duration >= 2) heuristicScore += 10;
-          if (duration >= 5) heuristicScore += 10;
-          if (duration >= 10) heuristicScore += 5;
-          
-          // Estimated content scoring
-          heuristicScore += Math.min(20, estimatedWords * 2);
-          
-          // Random variation for realism
-          heuristicScore += (Math.random() - 0.5) * 10;
-          
-          const finalScore = Math.max(25, Math.min(85, Math.round(heuristicScore)));
-          
-          resolve({
-            transcription: `Speech recorded (${duration}s, ~${estimatedWords} words)`,
-            score: finalScore,
-            confidence: 0.5,
-            responseTimeScore
-          });
-        }
-      });
-    });
-    
-    // Wait for all analyses to complete
-    const results = await Promise.all(analysisPromises);
-    
-    // Calculate comprehensive scores with response time consideration
-    const overallScore = results.reduce((sum, r) => sum + r.score, 0) / results.length;
-    const avgConfidence = results.reduce((sum, r) => sum + r.confidence, 0) / results.length;
-    const avgResponseTimeScore = results.reduce((sum, r) => sum + r.responseTimeScore, 0) / results.length;
-    
-    // Enhanced confidence scoring that includes response time
-    const confidenceScore = Math.round((overallScore * 0.7) + (avgResponseTimeScore * 0.3));
-    
-    // Section-based scoring
-    const sectionScores = {
-      spontaneous: 0,
-      reading: 0,
-      personal: 0
-    };
-    
-    const questions = getQuestionsForGrade(grade);
-    
-    results.forEach((result, index) => {
-      const section = questions[index]?.section || '';
-      if (section.includes('Spontaneous')) {
-        sectionScores.spontaneous = (sectionScores.spontaneous + result.score) / 2;
-      } else if (section.includes('Reading')) {
-        sectionScores.reading = (sectionScores.reading + result.score) / 2;
-      } else if (section.includes('Personal')) {
-        sectionScores.personal = (sectionScores.personal + result.score) / 2;
-      }
-    });
-    
-    // Generate feedback about response times
-    const slowResponses = recordings.filter(r => r.responseTime > 3000).length;
-    const improvements = overallScore < 60 ? 
-      ['Practice pronunciation daily', 'Speak more clearly and slowly', 'Use more varied vocabulary'] : 
-      ['Continue practicing for fluency', 'Work on pronunciation accuracy'];
-    
-    if (slowResponses > recordings.length / 2) {
-      improvements.push('Improve response speed - try to respond more naturally in conversations');
-    }
-    
-    return {
-      overallScore: Math.round(overallScore),
-      pronunciation: Math.round(overallScore * (0.85 + avgConfidence * 0.15)),
-      vocabulary: Math.round(overallScore * (0.8 + (avgConfidence * 0.2))),
-      fluency: Math.round(overallScore * (0.75 + (avgConfidence * 0.25))),
-      confidence: confidenceScore,
-      sectionScores,
-      detailedAnalysis: results.map((result, index) => ({
-        section: questions[index]?.section || '',
-        question: questions[index]?.text || '',
-        score: result.score,
-        confidence: result.confidence,
-        feedback: result.transcription,
-        responseTime: recordings[index]?.responseTime || 0
-      })),
-      grade,
-      questionsAttempted: recordings.length,
-      strengths: overallScore >= 70 ? 
-        ['Clear pronunciation', 'Good vocabulary usage', 'Confident delivery'] : 
-        ['Completed all sections', 'Shows effort'],
-      improvements,
-      avgResponseTime: recordings.reduce((sum, r) => sum + r.responseTime, 0) / recordings.length
-    };
-  };
 
   // Real Hong Kong exam format questions
   const getQuestionsForGrade = (grade: string) => {
@@ -388,7 +140,6 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
       mediaRecorderRef.current = mediaRecorder;
       
       const chunks: Blob[] = [];
-      let wordCount = 0;
       
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
@@ -400,9 +151,6 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
         const blob = new Blob(chunks, { type: 'audio/webm' });
         setAudioBlob(blob);
         setHasRecorded(true);
-        
-        // Estimate word count based on recording duration
-        wordCount = Math.max(1, Math.floor(recordingTime / 0.7));
       };
       
       mediaRecorder.start(100); // Collect data every 100ms
@@ -505,32 +253,39 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
     setIsAnalyzing(true);
     
     try {
-      console.log('Starting comprehensive speech analysis...');
-      const results = await performAdvancedSpeechAnalysis(finalRecordings);
+      console.log('開始AI驅動的語音分析...');
+      const results = await performAIEvaluation(finalRecordings, grade);
       
+      console.log('AI分析完成:', results);
       setIsAnalyzing(false);
       onComplete(results);
     } catch (error) {
-      console.error('Analysis failed:', error);
+      console.error('AI分析失敗:', error);
       setIsAnalyzing(false);
       
-      // Fallback results
+      toast({
+        title: "評估完成",
+        description: "使用了備用評估方法，建議稍後重試以獲得更詳細的AI分析",
+        variant: "default",
+      });
+      
+      // 提供基本的備用結果
       const fallbackResults = {
-        overallScore: 45,
-        pronunciation: 40,
-        vocabulary: 50,
-        fluency: 45,
-        confidence: 40,
-        sectionScores: { spontaneous: 45, reading: 50, personal: 40 },
+        overallScore: 50,
+        pronunciation: 45,
+        vocabulary: 55,
+        fluency: 50,
+        confidence: 45,
+        sectionScores: { spontaneous: 50, reading: 55, personal: 45 },
         grade,
         questionsAttempted: finalRecordings.length,
-        strengths: ['Completed all sections'],
-        improvements: ['Practice speaking more clearly', 'Work on pronunciation'],
+        strengths: ['完成了所有測試環節'],
+        improvements: ['建議重新測試以獲得AI詳細分析'],
         detailedAnalysis: finalRecordings.map(rec => ({
           section: rec.section,
           question: rec.question,
-          score: 45,
-          feedback: `Recording completed (${rec.duration}s)`
+          score: 50,
+          feedback: `錄音完成 (${rec.duration}秒) - 請重新測試獲得AI分析`
         }))
       };
       
@@ -567,13 +322,16 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
             <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
               <Mic className="w-8 h-8 text-white" />
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-4">正在進行全面語音分析...</h3>
-            <p className="text-gray-600 mb-6">AI正在評估您所有錄音的發音、詞彙、流暢度和自信程度</p>
+            <h3 className="text-xl font-bold text-gray-900 mb-4">🤖 AI正在進行深度語音分析...</h3>
+            <p className="text-gray-600 mb-6">
+              我們的AI專家正在評估您的發音、詞彙、流暢度和自信程度，
+              並為您生成個人化的學習建議
+            </p>
             <div className="space-y-2">
               <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-gradient-to-r from-blue-600 to-purple-600 h-2 rounded-full animate-pulse" style={{width: '75%'}}></div>
+                <div className="bg-gradient-to-r from-blue-600 to-purple-600 h-2 rounded-full animate-pulse" style={{width: '85%'}}></div>
               </div>
-              <p className="text-sm text-gray-500">正在分析 {recordings.length} 段錄音...</p>
+              <p className="text-sm text-gray-500">正在分析 {recordings.length} 段錄音，請稍候...</p>
             </div>
           </CardContent>
         </Card>
@@ -732,15 +490,15 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
 
           <Card className="bg-blue-50 border-blue-200">
             <CardContent className="p-4">
-              <h4 className="font-semibold text-blue-800 mb-2">📋 Assessment Instructions:</h4>
+              <h4 className="font-semibold text-blue-800 mb-2">🤖 AI驅動評測說明:</h4>
               <ul className="text-sm text-blue-700 space-y-1">
                 <li>• <strong>真實對話模式</strong>: 題目會自動朗讀，然後自動開始錄音</li>
-                <li>• <strong>反應速度</strong>: 請盡快開始回應以獲得更好的自信分數</li>
-                <li>• <strong>Section A</strong>: 自然回應基本問題</li>
-                <li>• <strong>Section B</strong>: 清晰朗讀文章，注意發音</li>
-                <li>• <strong>Section C</strong>: 詳細表達個人經驗</li>
+                <li>• <strong>AI專業分析</strong>: 使用先進AI模型評估發音、詞彙、流暢度和自信程度</li>
+                <li>• <strong>反應速度評分</strong>: 請盡快開始回應以獲得更好的自信分數</li>
+                <li>• <strong>針對香港學生</strong>: AI專門針對香港學生的英語學習特點進行評估</li>
+                <li>• <strong>個人化建議</strong>: 完成後將獲得詳細的改進建議和學習計劃</li>
                 <li>• 如需要可以重新錄音</li>
-                <li>• <strong>所有錄音將在最後統一進行AI分析</strong></li>
+                <li>• <strong>所有錄音將在最後進行AI統合分析</strong></li>
               </ul>
             </CardContent>
           </Card>
