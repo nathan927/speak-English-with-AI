@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -84,6 +83,43 @@ export const VoiceTest = ({ grade, speechRate, showQuestions, onComplete, onBack
 
   // Check if current grade is kindergarten (K1, K2, K3) - disable transitions for these
   const isKindergarten = useMemo(() => ['K1', 'K2', 'K3'].includes(grade), [grade]);
+
+  // DSE exam content
+  const dseExamContent = {
+    partA: {
+      title: "Group Interaction",
+      article: {
+        title: "Redevelopment in Western District leaves residents without a good night's sleep",
+        quote: "\"Redevelopment of old areas gives opportunities for developers to earn money. But local people do not have any say in the redevelopment and are forced to leave.\"",
+        content: `If you took a walk around Western District just a couple of years ago, you would see mostly stationery shops, bakeries, grocers and university students eating in cha chaan tengs. For years, even with its proximity to Central, the old neighbourhood remained largely untouched, retaining its traditional characteristics and flavour.
+
+But when three new MTR stations — Sai Ying Pun, HKU and Kennedy Town — opened in the area in late 2014, they brought with them a whole range of bars and expensive restaurants that drew in young rich hipsters. Today, Western District is the new, trendy neighbourhood, with young professionals increasingly turning older buildings into expensive trendy flats, forcing many long-term residents to leave the area that has been their home all their lives.
+
+Traditional shops are forced to leave because of high rents: 250 of the 700 shops in the Sai Ying Pun area either changed tenants or closed down from 2015 to 2017.
+
+There have been multiple complaints from residents about noise from bars and restaurants. \"For families and the elderly in this area, they are disturbed by the noise every day and can't afford to shop,\" one netizen said. \"We can't stop the world from developing, but there has to be a balance.\"`
+      },
+      discussionPoints: [
+        "why old districts are redeveloped",
+        "what problems redevelopments cause", 
+        "what the government should do to reduce the problems residents face",
+        "anything else you think is important"
+      ]
+    },
+    partB: {
+      title: "Individual Response",
+      questions: [
+        "What do you like about the area you live in?",
+        "What is the biggest advantage of redevelopment?",
+        "What types of shops are typical of old neighbourhoods?",
+        "Why do older people like to live in traditional districts?",
+        "What would you like to change about your district?",
+        "Would you prefer to live in an old neighbourhood or a redeveloped area?",
+        "Is the redevelopment of old areas too slow in Hong Kong?",
+        "Who benefits most from redevelopment?"
+      ]
+    }
+  };
 
   useEffect(() => {
     logger.info('VoiceTest component mounted', {
@@ -632,7 +668,7 @@ export const VoiceTest = ({ grade, speechRate, showQuestions, onComplete, onBack
             <div className="flex items-center justify-between mb-2 md:mb-4">
               <div>
                 <h1 className="text-lg md:text-2xl font-bold text-gray-900">
-                  {grade} English Speaking Test
+                  {grade} English Language Paper 4
                 </h1>
                 <p className="text-sm md:text-base text-gray-600">
                   {currentPart === 'A' ? 'Part A: Group Interaction' : 'Part B: Individual Response'}
@@ -663,14 +699,43 @@ export const VoiceTest = ({ grade, speechRate, showQuestions, onComplete, onBack
                     </ul>
                   </div>
 
-                  {showQuestions && (
-                    <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6">
-                      <h3 className="text-lg font-bold mb-3">Discussion Topic:</h3>
-                      <p className="text-base leading-relaxed">
-                        {questions[0]?.text || "Sample group discussion topic will appear here"}
-                      </p>
+                  {/* Article Section */}
+                  <div className="bg-white border-2 border-gray-200 rounded-lg p-6">
+                    <div className="mb-4">
+                      <p className="text-sm text-gray-600 mb-2">This article appeared in a local newspaper:</p>
+                      <h3 className="text-lg font-bold text-gray-900 mb-3">
+                        {dseExamContent.partA.article.title}
+                      </h3>
+                      <blockquote className="border-l-4 border-blue-500 pl-4 italic text-gray-700 mb-4">
+                        {dseExamContent.partA.article.quote}
+                      </blockquote>
                     </div>
-                  )}
+                    <div className="prose prose-sm max-w-none">
+                      {dseExamContent.partA.article.content.split('\n\n').map((paragraph, index) => (
+                        <p key={index} className="mb-3 text-gray-800 leading-relaxed">
+                          {paragraph}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Discussion Instructions */}
+                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6">
+                    <h3 className="text-lg font-bold mb-3">Discussion Task:</h3>
+                    <p className="mb-3 text-gray-800">
+                      Your class is discussing the redevelopment of older districts in Hong Kong. 
+                      Your group has been asked to discuss the problems redevelopment causes. 
+                      You may want to talk about:
+                    </p>
+                    <ul className="space-y-2">
+                      {dseExamContent.partA.discussionPoints.map((point, index) => (
+                        <li key={index} className="flex items-start">
+                          <span className="text-blue-600 mr-2">•</span>
+                          <span className="text-gray-800">{point}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
 
                   <div className="text-center space-y-4">
                     {!isPreparation && !isDiscussion && (
@@ -743,18 +808,26 @@ export const VoiceTest = ({ grade, speechRate, showQuestions, onComplete, onBack
                   <div className="bg-green-50 rounded-lg p-4">
                     <h3 className="font-semibold mb-2">Instructions:</h3>
                     <p className="text-sm text-gray-700">
-                      Respond individually to the examiner's question based on the group discussion. 
+                      Each candidate will respond individually to an examiner's question(s), which will be based on the group discussion task. 
                       You have 1 minute to provide your response.
                     </p>
                   </div>
 
-                  {showQuestions && (
-                    <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-6">
-                      <p className="text-lg font-bold text-gray-900 leading-relaxed">
-                        Based on your group discussion, explain your personal position and justify your choice with specific reasons.
-                      </p>
+                  {/* Individual Questions */}
+                  <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-6">
+                    <h3 className="text-lg font-bold mb-4">Sample Individual Response Questions:</h3>
+                    <div className="grid gap-3">
+                      {dseExamContent.partB.questions.map((question, index) => (
+                        <div key={index} className="flex items-start p-3 bg-white rounded border-l-4 border-green-500">
+                          <span className="font-bold text-green-600 mr-3">{index + 1}.</span>
+                          <span className="text-gray-800">{question}</span>
+                        </div>
+                      ))}
                     </div>
-                  )}
+                    <p className="text-sm text-gray-600 mt-4 italic">
+                      * The examiner will select one question for you to answer
+                    </p>
+                  </div>
 
                   <div className="text-center space-y-4">
                     {!hasRecorded ? (
@@ -766,7 +839,7 @@ export const VoiceTest = ({ grade, speechRate, showQuestions, onComplete, onBack
                             className="bg-red-500 hover:bg-red-600 text-white px-8 py-4"
                           >
                             <Mic className="w-6 h-6 mr-2" />
-                            Start Individual Response
+                            Start Individual Response (1 min)
                           </Button>
                         ) : (
                           <div className="space-y-4">
