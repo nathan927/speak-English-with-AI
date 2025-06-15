@@ -1319,10 +1319,10 @@ Parents and teachers often emphasize traditional "safe" careers like medicine, l
 
                   <div 
                     className="flex items-center space-x-2 text-blue-600 mt-4 cursor-pointer"
-                    onClick={(e) => {
+                    onClick={async (e) => {
                       e.stopPropagation();
                       if (currentQ) {
-                        speakText(currentQ.text);
+                        await handlePlayQuestion(currentQ.text);
                       }
                     }}
                   >
