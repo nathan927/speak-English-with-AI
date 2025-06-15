@@ -69,6 +69,104 @@ export const VoiceTest = ({ grade, speechRate, showQuestions, onComplete, onBack
 
   // Get questions from the comprehensive question bank
   const questions: Question[] = useMemo(() => getRandomQuestionSet(grade), [grade]);
+  
+  // For senior secondary, get a random question set for DSE content
+  const randomDseContent = useMemo(() => {
+    if (!isSeniorSecondary) return null;
+    
+    const questionSets = getRandomQuestionSet(grade);
+    if (questionSets.length === 0) return null;
+    
+    // Get the first question set (already randomized by getRandomQuestionSet)
+    const selectedSet = questionSets[0];
+    
+    // Extract DSE Part A content from the selected set
+    const partAQuestions = selectedSet.questions.filter(q => q.section === 'A. Group Interaction');
+    const partBQuestions = selectedSet.questions.filter(q => q.section === 'B. Individual Response');
+    
+    if (partAQuestions.length === 0 || partBQuestions.length === 0) {
+      // Fallback to default content if no proper DSE structure found
+      return {
+        partA: {
+          title: "Group Interaction",
+          article: {
+            title: "Redevelopment in Western District leaves residents without a good night's sleep",
+            quote: "\"Redevelopment of old areas gives opportunities for developers to earn money. But local people do not have any say in the redevelopment and are forced to leave.\"",
+            content: `If you took a walk around Western District just a couple of years ago, you would see mostly stationery shops, bakeries, grocers and university students eating in cha chaan tengs. For years, even with its proximity to Central, the old neighbourhood remained largely untouched, retaining its traditional characteristics and flavour.
+
+But when three new MTR stations — Sai Ying Pun, HKU and Kennedy Town — opened in the area in late 2014, they brought with them a whole range of bars and expensive restaurants that drew in young rich hipsters. Today, Western District is the new, trendy neighbourhood, with young professionals increasingly turning older buildings into expensive trendy flats, forcing many long-term residents to leave the area that has been their home all their lives.
+
+Traditional shops are forced to leave because of high rents: 250 of the 700 shops in the Sai Ying Pun area either changed tenants or closed down from 2015 to 2017.
+
+There have been multiple complaints from residents about noise from bars and restaurants. \"For families and the elderly in this area, they are disturbed by the noise every day and can't afford to shop,\" one netizen said. \"We can't stop the world from developing, but there has to be a balance.\"`
+          },
+          discussionPoints: [
+            "why old districts are redeveloped",
+            "what problems redevelopments cause", 
+            "what the government should do to reduce the problems residents face",
+            "anything else you think is important"
+          ]
+        },
+        partB: {
+          title: "Individual Response",
+          questions: [
+            "What do you like about the area you live in?",
+            "What is the biggest advantage of redevelopment?",
+            "What types of shops are typical of old neighbourhoods?",
+            "Why do older people like to live in traditional districts?",
+            "What would you like to change about your district?",
+            "Would you prefer to live in an old neighbourhood or a redeveloped area?",
+            "Is the redevelopment of old areas too slow in Hong Kong?",
+            "Who benefits most from redevelopment?"
+          ]
+        }
+      };
+    }
+    
+    // Extract article content and discussion points from Part A question
+    const partAQuestion = partAQuestions[0];
+    const articleMatch = partAQuestion.text.match(/Article:\s*(.+?)(?:\n\nDiscussion:|$)/s);
+    const discussionMatch = partAQuestion.text.match(/Discussion:\s*(.+)$/s);
+    
+    let article = {
+      title: selectedSet.name || "Current Affairs Discussion",
+      quote: "",
+      content: articleMatch ? articleMatch[1].trim() : partAQuestion.text
+    };
+    
+    // Try to extract quote if it exists
+    const quoteMatch = article.content.match(/"([^"]+)"/);
+    if (quoteMatch) {
+      article.quote = `"${quoteMatch[1]}"`;
+    }
+    
+    let discussionPoints = [
+      "the main issues mentioned in the article",
+      "possible solutions to the problems",
+      "how this affects people in Hong Kong",
+      "anything else you think is important"
+    ];
+    
+    if (discussionMatch) {
+      const points = discussionMatch[1].split('\n').filter(p => p.trim());
+      if (points.length > 0) {
+        discussionPoints = points.map(p => p.replace(/^[-•]\s*/, '').trim());
+      }
+    }
+    
+    return {
+      partA: {
+        title: "Group Interaction",
+        article: article,
+        discussionPoints: discussionPoints
+      },
+      partB: {
+        title: "Individual Response",
+        questions: partBQuestions.slice(0, 8).map(q => q.text)
+      }
+    };
+  }, [isSeniorSecondary, grade]);
+
   const currentQ = questions[currentQuestion];
   const progress = isSeniorSecondary 
     ? (currentPart === 'A' ? 25 : (currentPart === 'B' ? 75 : 100))
@@ -83,43 +181,6 @@ export const VoiceTest = ({ grade, speechRate, showQuestions, onComplete, onBack
 
   // Check if current grade is kindergarten (K1, K2, K3) - disable transitions for these
   const isKindergarten = useMemo(() => ['K1', 'K2', 'K3'].includes(grade), [grade]);
-
-  // DSE exam content
-  const dseExamContent = {
-    partA: {
-      title: "Group Interaction",
-      article: {
-        title: "Redevelopment in Western District leaves residents without a good night's sleep",
-        quote: "\"Redevelopment of old areas gives opportunities for developers to earn money. But local people do not have any say in the redevelopment and are forced to leave.\"",
-        content: `If you took a walk around Western District just a couple of years ago, you would see mostly stationery shops, bakeries, grocers and university students eating in cha chaan tengs. For years, even with its proximity to Central, the old neighbourhood remained largely untouched, retaining its traditional characteristics and flavour.
-
-But when three new MTR stations — Sai Ying Pun, HKU and Kennedy Town — opened in the area in late 2014, they brought with them a whole range of bars and expensive restaurants that drew in young rich hipsters. Today, Western District is the new, trendy neighbourhood, with young professionals increasingly turning older buildings into expensive trendy flats, forcing many long-term residents to leave the area that has been their home all their lives.
-
-Traditional shops are forced to leave because of high rents: 250 of the 700 shops in the Sai Ying Pun area either changed tenants or closed down from 2015 to 2017.
-
-There have been multiple complaints from residents about noise from bars and restaurants. \"For families and the elderly in this area, they are disturbed by the noise every day and can't afford to shop,\" one netizen said. \"We can't stop the world from developing, but there has to be a balance.\"`
-      },
-      discussionPoints: [
-        "why old districts are redeveloped",
-        "what problems redevelopments cause", 
-        "what the government should do to reduce the problems residents face",
-        "anything else you think is important"
-      ]
-    },
-    partB: {
-      title: "Individual Response",
-      questions: [
-        "What do you like about the area you live in?",
-        "What is the biggest advantage of redevelopment?",
-        "What types of shops are typical of old neighbourhoods?",
-        "Why do older people like to live in traditional districts?",
-        "What would you like to change about your district?",
-        "Would you prefer to live in an old neighbourhood or a redeveloped area?",
-        "Is the redevelopment of old areas too slow in Hong Kong?",
-        "Who benefits most from redevelopment?"
-      ]
-    }
-  };
 
   useEffect(() => {
     logger.info('VoiceTest component mounted', {
@@ -639,6 +700,19 @@ There have been multiple complaints from residents about noise from bars and res
 
   // Senior Secondary Mode Layout
   if (isSeniorSecondary) {
+    // Use the randomly selected DSE content instead of hardcoded content
+    const dseContent = randomDseContent || {
+      partA: {
+        title: "Group Interaction",
+        article: { title: "Loading...", quote: "", content: "Content loading..." },
+        discussionPoints: ["Loading discussion points..."]
+      },
+      partB: {
+        title: "Individual Response",
+        questions: ["Loading questions..."]
+      }
+    };
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
         <div className="container mx-auto px-3 py-3 md:px-4 md:py-8">
@@ -704,14 +778,16 @@ There have been multiple complaints from residents about noise from bars and res
                     <div className="mb-4">
                       <p className="text-sm text-gray-600 mb-2">This article appeared in a local newspaper:</p>
                       <h3 className="text-lg font-bold text-gray-900 mb-3">
-                        {dseExamContent.partA.article.title}
+                        {dseContent.partA.article.title}
                       </h3>
-                      <blockquote className="border-l-4 border-blue-500 pl-4 italic text-gray-700 mb-4">
-                        {dseExamContent.partA.article.quote}
-                      </blockquote>
+                      {dseContent.partA.article.quote && (
+                        <blockquote className="border-l-4 border-blue-500 pl-4 italic text-gray-700 mb-4">
+                          {dseContent.partA.article.quote}
+                        </blockquote>
+                      )}
                     </div>
                     <div className="prose prose-sm max-w-none">
-                      {dseExamContent.partA.article.content.split('\n\n').map((paragraph, index) => (
+                      {dseContent.partA.article.content.split('\n\n').map((paragraph, index) => (
                         <p key={index} className="mb-3 text-gray-800 leading-relaxed">
                           {paragraph}
                         </p>
@@ -723,12 +799,12 @@ There have been multiple complaints from residents about noise from bars and res
                   <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6">
                     <h3 className="text-lg font-bold mb-3">Discussion Task:</h3>
                     <p className="mb-3 text-gray-800">
-                      Your class is discussing the redevelopment of older districts in Hong Kong. 
-                      Your group has been asked to discuss the problems redevelopment causes. 
+                      Your class is discussing the topic mentioned in the article. 
+                      Your group has been asked to discuss the issues raised. 
                       You may want to talk about:
                     </p>
                     <ul className="space-y-2">
-                      {dseExamContent.partA.discussionPoints.map((point, index) => (
+                      {dseContent.partA.discussionPoints.map((point, index) => (
                         <li key={index} className="flex items-start">
                           <span className="text-blue-600 mr-2">•</span>
                           <span className="text-gray-800">{point}</span>
@@ -737,6 +813,7 @@ There have been multiple complaints from residents about noise from bars and res
                     </ul>
                   </div>
 
+                  {/* Rest of Part A UI remains the same */}
                   <div className="text-center space-y-4">
                     {!isPreparation && !isDiscussion && (
                       <Button
@@ -817,7 +894,7 @@ There have been multiple complaints from residents about noise from bars and res
                   <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-6">
                     <h3 className="text-lg font-bold mb-4">Sample Individual Response Questions:</h3>
                     <div className="grid gap-3">
-                      {dseExamContent.partB.questions.map((question, index) => (
+                      {dseContent.partB.questions.map((question, index) => (
                         <div key={index} className="flex items-start p-3 bg-white rounded border-l-4 border-green-500">
                           <span className="font-bold text-green-600 mr-3">{index + 1}.</span>
                           <span className="text-gray-800">{question}</span>
@@ -829,6 +906,7 @@ There have been multiple complaints from residents about noise from bars and res
                     </p>
                   </div>
 
+                  {/* Rest of Part B UI remains the same */}
                   <div className="text-center space-y-4">
                     {!hasRecorded ? (
                       <div className="space-y-4">
