@@ -84,7 +84,7 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
     };
   }, []);
 
-  // 簡化 useEffect，處理題目切換和過渡句
+  // 簮化 useEffect，處理題目切換和過渡句
   useEffect(() => {
     logger.questionLog(currentQuestion, currentQ, 'changed');
     
@@ -576,7 +576,7 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
           </Card>
 
           <Card className="mb-3 md:mb-6">
-            <CardHeader className="pb-2 md:pb-4">
+            <CardHeader className="pb-3 md:pb-4">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base md:text-lg">
                   {/* Show question number or reading instruction */}
@@ -594,23 +594,23 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
               </div>
             </CardHeader>
             <CardContent className="pt-0">
-              <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-5 md:p-8 mb-3 md:mb-4">
-                <p className="text-base md:text-xl font-bold text-gray-900 mb-2">
+              <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 md:p-10 mb-4 md:mb-6">
+                <p className="text-lg md:text-2xl font-bold text-gray-900 mb-3 leading-relaxed">
                   {currentQ.text}
                 </p>
                 {isSpeaking && (
-                  <div className="flex items-center space-x-2 mt-2">
+                  <div className="flex items-center space-x-2 mt-3">
                     <Volume2 className="w-4 h-4 text-blue-600 animate-pulse" />
                     <span className="text-xs md:text-sm text-blue-600">Playing question...</span>
                   </div>
                 )}
               </div>
               
-              <div className="text-center space-y-4 md:space-y-6">
+              <div className="text-center space-y-5 md:space-y-6">
                 {!hasRecorded ? (
                   <div>
                     {!isRecording ? (
-                      <div className="space-y-2 md:space-y-4">
+                      <div className="space-y-3 md:space-y-4">
                         {/* Only show Listen button for non-Reading questions */}
                         {!isReadingQuestion && (
                           <Button
@@ -633,7 +633,7 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
                         </Button>
                       </div>
                     ) : (
-                      <div className="space-y-2 md:space-y-4">
+                      <div className="space-y-3 md:space-y-4">
                         <div className="flex items-center justify-center space-x-2 md:space-x-4">
                           <div className="w-3 h-3 md:w-4 md:h-4 bg-red-500 rounded-full animate-pulse"></div>
                           <span className="text-lg md:text-xl font-mono">
@@ -653,7 +653,7 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
                     )}
                   </div>
                 ) : (
-                  <div className="space-y-2 md:space-y-4">
+                  <div className="space-y-3 md:space-y-4">
                     <div className="flex justify-center space-x-2 md:space-x-4">
                       {!isPlaying ? (
                         <Button
