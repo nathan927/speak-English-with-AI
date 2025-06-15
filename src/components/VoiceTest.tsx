@@ -644,7 +644,7 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
                           size="sm"
                           onClick={stopRecording}
                           variant="outline"
-                          className="px-4 py-2 md:px-8 md:py-4 text-sm md:text-lg"
+                          className="px-4 py-2 md:px-8 md:py-4 text-sm"
                         >
                           <MicOff className="w-4 h-4 md:w-6 md:h-6 mr-1 md:mr-2" />
                           Stop Recording
@@ -689,9 +689,9 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
                     </div>
                     
                     <Button
-                      size="sm"
+                      size="lg"
                       onClick={nextQuestion}
-                      className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-2 md:px-16 md:py-4 text-sm md:text-lg"
+                      className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 md:px-16 md:py-4 text-base md:text-lg"
                     >
                       {currentQuestion === questions.length - 1 ? 'Complete Assessment' : 'Next Question'}
                     </Button>
