@@ -37,6 +37,7 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
   const [recordings, setRecordings] = useState<RecordingData[]>([]);
   const [isReadingQuestion, setIsReadingQuestion] = useState(false);
   const [responseStartTime, setResponseStartTime] = useState<number | null>(null);
+  const [hasListened, setHasListened] = useState(false);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -51,18 +52,13 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
   const currentQ = questions[currentQuestion];
   const progress = ((currentQuestion + 1) / questions.length) * 100;
 
-  // Auto-read question and start recording when question changes
+  // Auto-read question when question changes
   useEffect(() => {
-    if (currentQ && !hasRecorded) {
-      setIsReadingQuestion(true);
-      speakText(currentQ.text, () => {
-        setIsReadingQuestion(false);
-        questionReadTimeRef.current = Date.now();
-        // Auto start recording after question is read
-        setTimeout(() => {
-          startRecording();
-        }, 500);
-      });
+    if (currentQ && !hasRecorded && !hasListened) {
+      // Automatically trigger the listen function
+      setTimeout(() => {
+        handleListen();
+      }, 500);
     }
   }, [currentQuestion, currentQ]);
 
@@ -74,6 +70,21 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
       }
     };
   }, []);
+
+  const handleListen = () => {
+    if (currentQ && !isReadingQuestion) {
+      setIsReadingQuestion(true);
+      setHasListened(true);
+      speakText(currentQ.text, () => {
+        setIsReadingQuestion(false);
+        questionReadTimeRef.current = Date.now();
+        // Auto start recording after question is read
+        setTimeout(() => {
+          startRecording();
+        }, 500);
+      });
+    }
+  };
 
   const startRecording = async () => {
     try {
@@ -172,6 +183,7 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
     setHasRecorded(false);
     setRecordingTime(0);
     setResponseStartTime(null);
+    setHasListened(false);
     stopPlaying();
   };
 
@@ -356,25 +368,31 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
               <div className="text-center space-y-4">
                 {!hasRecorded ? (
                   <div>
-                    {!isRecording ? (
+                    {!hasListened && !isReadingQuestion ? (
                       <div className="space-y-4">
-                        {isReadingQuestion && (
-                          <div className="text-gray-600">
-                            <p>請仔細聽題目，題目讀完後會自動開始錄音</p>
-                          </div>
-                        )}
-                        {!isReadingQuestion && !hasRecorded && (
-                          <Button
-                            size="lg"
-                            onClick={startRecording}
-                            className="bg-red-500 hover:bg-red-600 text-white px-8 py-4 text-lg"
-                          >
-                            <Mic className="w-6 h-6 mr-2" />
-                            Start Recording
-                          </Button>
-                        )}
+                        <Button
+                          size="lg"
+                          onClick={handleListen}
+                          className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg mr-4"
+                        >
+                          <Volume2 className="w-6 h-6 mr-2" />
+                          Listen
+                        </Button>
+                        <p className="text-gray-600">點擊 "Listen" 聆聽題目，或等待自動播放</p>
                       </div>
-                    ) : (
+                    ) : !isRecording && !isReadingQuestion ? (
+                      <div className="space-y-4">
+                        <Button
+                          size="lg"
+                          onClick={startRecording}
+                          className="bg-red-500 hover:bg-red-600 text-white px-8 py-4 text-lg"
+                        >
+                          <Mic className="w-6 h-6 mr-2" />
+                          Start Recording
+                        </Button>
+                        <p className="text-gray-600">點擊開始錄音，或等待自動開始</p>
+                      </div>
+                    ) : isRecording ? (
                       <div className="space-y-4">
                         <div className="flex items-center justify-center space-x-4">
                           <div className="w-4 h-4 bg-red-500 rounded-full animate-pulse"></div>
@@ -392,7 +410,11 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
                           Stop Recording
                         </Button>
                       </div>
-                    )}
+                    ) : isReadingQuestion ? (
+                      <div className="text-gray-600">
+                        <p>請仔細聽題目，題目讀完後會自動開始錄音</p>
+                      </div>
+                    ) : null}
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -461,5 +483,69 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
       </div>
     </div>
   );
-};
 
+  const completeTest = async (finalRecordings: RecordingData[]) => {
+    setIsAnalyzing(true);
+    
+    try {
+      console.log('開始AI驅動的語音分析...');
+      const results = await performAIEvaluation(finalRecordings, grade);
+      
+      console.log('AI分析完成:', results);
+      setIsAnalyzing(false);
+      onComplete(results);
+    } catch (error) {
+      console.error('AI分析失敗:', error);
+      setIsAnalyzing(false);
+      
+      toast({
+        title: "評估完成",
+        description: "使用了備用評估方法，建議稍後重試以獲得更詳細的AI分析",
+        variant: "default",
+      });
+      
+      // 提供基本的備用結果
+      const fallbackResults = {
+        overallScore: 50,
+        pronunciation: 45,
+        vocabulary: 55,
+        fluency: 50,
+        confidence: 45,
+        sectionScores: { spontaneous: 50, reading: 55, personal: 45 },
+        grade,
+        questionsAttempted: finalRecordings.length,
+        strengths: ['完成了所有測試環節'],
+        improvements: ['建議重新測試以獲得AI詳細分析'],
+        detailedAnalysis: finalRecordings.map(rec => ({
+          section: rec.section,
+          question: rec.question,
+          score: 50,
+          feedback: `錄音完成 (${rec.duration}秒) - 請重新測試獲得AI分析`
+        }))
+      };
+      
+      onComplete(fallbackResults);
+    }
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const speakText = (text: string, onEnd?: () => void) => {
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'en-US';
+      utterance.rate = 0.8;
+      if (onEnd) {
+        utterance.onend = onEnd;
+      }
+      speechSynthesis.speak(utterance);
+    } else if (onEnd) {
+      // Fallback: call onEnd after estimated reading time
+      setTimeout(onEnd, text.length * 80);
+    }
+  };
+};
