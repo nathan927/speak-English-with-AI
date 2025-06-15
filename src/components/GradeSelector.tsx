@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -50,32 +49,33 @@ export const GradeSelector = ({ onGradeSelect, onBack }: GradeSelectorProps) => 
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-2 py-6">
         <div className="mb-6">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             onClick={onBack}
             className="group relative overflow-hidden bg-gradient-to-r from-gray-100 to-gray-200 hover:from-blue-100 hover:to-purple-100 border border-gray-300 hover:border-blue-300 text-gray-700 hover:text-blue-700 font-medium px-6 py-3 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-105 mb-4"
           >
             <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
             <ArrowLeft className="w-4 h-4 mr-2 transition-transform duration-300 group-hover:-translate-x-1" />
-            <span className="relative z-10">返回首頁</span>
+            <span className="relative z-10">Back to Home</span>
           </Button>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">選擇年級</h1>
-          <p className="text-gray-600">請選擇您的學習階段，我們將為您提供相應的測試內容</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Select Grade</h1>
+          <p className="text-gray-600">Please choose your grade level for tailored test content</p>
         </div>
 
         {!selectedCategory ? (
-          <div className="grid md:grid-cols-3 gap-4 max-w-4xl mx-auto">
+          <div className="flex flex-col md:grid md:grid-cols-3 gap-3 max-w-3xl mx-auto">
             {gradeCategories.map((category) => {
               const IconComponent = category.icon;
               return (
-                <Card 
+                <Card
                   key={category.id}
-                  className="cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105 h-full"
+                  className="cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105 h-full flex-1 min-h-[120px] md:min-h-[180px] justify-center items-center flex flex-col"
                   onClick={() => setSelectedCategory(category.id)}
+                  style={{ minWidth: 0, flexBasis: 0, flexGrow: 1 }}
                 >
-                  <CardHeader className="text-center pb-3">
+                  <CardHeader className="text-center pb-2 flex-1 flex flex-col items-center justify-center">
                     <div className={`w-10 h-10 bg-gradient-to-r ${category.color} rounded-full flex items-center justify-center mx-auto mb-2`}>
                       <IconComponent className="w-5 h-5 text-white" />
                     </div>
@@ -84,15 +84,8 @@ export const GradeSelector = ({ onGradeSelect, onBack }: GradeSelectorProps) => 
                       {category.subtitle}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="text-center pt-0 pb-4">
-                    <p className="text-gray-600 mb-3 text-sm">{category.description}</p>
-                    <div className="flex flex-wrap justify-center gap-1.5">
-                      {category.features.map((feature, index) => (
-                        <Badge key={index} variant="secondary" className="text-xs px-2 py-1">
-                          {feature}
-                        </Badge>
-                      ))}
-                    </div>
+                  <CardContent className="text-center pt-0 pb-2 flex flex-col items-center justify-center">
+                    <p className="text-gray-600 mb-0 text-sm">{category.description}</p>
                   </CardContent>
                 </Card>
               );
@@ -101,18 +94,18 @@ export const GradeSelector = ({ onGradeSelect, onBack }: GradeSelectorProps) => 
         ) : (
           <div className="max-w-4xl mx-auto">
             <div className="mb-6">
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 onClick={() => setSelectedCategory('')}
                 className="group relative overflow-hidden bg-gradient-to-r from-gray-100 to-gray-200 hover:from-blue-100 hover:to-purple-100 border border-gray-300 hover:border-blue-300 text-gray-700 hover:text-blue-700 font-medium px-6 py-3 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-105 mb-4"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
                 <ArrowLeft className="w-4 h-4 mr-2 transition-transform duration-300 group-hover:-translate-x-1" />
-                <span className="relative z-10">返回選擇</span>
+                <span className="relative z-10">Back</span>
               </Button>
               <div className="text-center">
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                  {selectedCategoryData?.title}階段
+                  {selectedCategoryData?.title}
                 </h2>
                 <p className="text-gray-600">{selectedCategoryData?.description}</p>
               </div>
@@ -120,7 +113,7 @@ export const GradeSelector = ({ onGradeSelect, onBack }: GradeSelectorProps) => 
 
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
               {selectedCategoryData?.grades.map((grade) => (
-                <Card 
+                <Card
                   key={grade}
                   className="cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105 text-center"
                   onClick={() => onGradeSelect(grade)}
@@ -130,11 +123,6 @@ export const GradeSelector = ({ onGradeSelect, onBack }: GradeSelectorProps) => 
                       <span className="text-white font-bold text-sm">{grade}</span>
                     </div>
                     <h3 className="font-semibold text-gray-900 text-sm">{grade}</h3>
-                    <p className="text-xs text-gray-600 mt-1">
-                      {selectedCategoryData.id === 'kindergarten' && '觀察記錄'}
-                      {selectedCategoryData.id === 'primary' && '4級制度'}
-                      {selectedCategoryData.id === 'secondary' && '6級制度'}
-                    </p>
                   </CardContent>
                 </Card>
               ))}
@@ -142,7 +130,7 @@ export const GradeSelector = ({ onGradeSelect, onBack }: GradeSelectorProps) => 
 
             <div className="mt-8 bg-white/80 backdrop-blur-sm rounded-xl p-5">
               <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                {selectedCategoryData?.title}階段特色
+                {selectedCategoryData?.title} Features
               </h3>
               <div className="grid md:grid-cols-2 gap-3">
                 {selectedCategoryData?.features.map((feature, index) => (

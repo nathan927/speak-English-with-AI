@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -38,6 +37,7 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
   const [recordings, setRecordings] = useState<RecordingData[]>([]);
   const [responseStartTime, setResponseStartTime] = useState<number | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [pendingCompletionPhrase, setPendingCompletionPhrase] = useState(''); // 新增，持有過渡語
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -209,43 +209,49 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
     stopPlaying();
   };
 
+  // 1. 在 nextQuestion 只變更畫面和 reset，不直接 speak
   const nextQuestion = () => {
-    if (audioBlob) {
-      // Save recording data first
-      const responseTime = responseStartTime && questionReadTimeRef.current > 0 
-        ? responseStartTime - questionReadTimeRef.current 
-        : 0;
+    if (!audioBlob) return;
+    // 保存錄音資料
+    const responseTime = responseStartTime && questionReadTimeRef.current > 0
+      ? responseStartTime - questionReadTimeRef.current
+      : 0;
 
-      const recordingData: RecordingData = {
-        questionId: currentQ.id,
-        section: currentQ.section,
-        question: currentQ.text,
-        audioBlob,
-        timestamp: new Date().toISOString(),
-        duration: recordingTime,
-        wordCount: Math.max(1, Math.floor(recordingTime / 0.7)),
-        responseTime
-      };
+    const recordingData: RecordingData = {
+      questionId: currentQ.id,
+      section: currentQ.section,
+      question: currentQ.text,
+      audioBlob,
+      timestamp: new Date().toISOString(),
+      duration: recordingTime,
+      wordCount: Math.max(1, Math.floor(recordingTime / 0.7)),
+      responseTime
+    };
 
-      const newRecordings = [...recordings, recordingData];
-      setRecordings(newRecordings);
+    const newRecordings = [...recordings, recordingData];
+    setRecordings(newRecordings);
 
-      if (currentQuestion < questions.length - 1) {
-        // Change screen first, then speak completion phrase
-        setCurrentQuestion(prev => prev + 1);
-        resetRecording();
-        questionReadTimeRef.current = 0;
-        
-        // Speak completion phrase after screen change
-        setTimeout(() => {
-          const completionPhrase = getCompletionPhrase();
-          speakText(completionPhrase);
-        }, 300); // Small delay to ensure screen has changed
-      } else {
-        completeTest(newRecordings);
-      }
+    if (currentQuestion < questions.length - 1) {
+      setCurrentQuestion(prev => prev + 1);
+      resetRecording();
+      questionReadTimeRef.current = 0;
+      // 避免在畫面切換前就 speak，pendingPhrase 等下 useEffect 處理
+      setPendingCompletionPhrase(getCompletionPhrase());
+    } else {
+      completeTest(newRecordings);
     }
   };
+
+  // 1.1 新增 useEffect，當 currentQuestion 或 pendingCompletionPhrase 變時才 speak
+  useEffect(() => {
+    if (pendingCompletionPhrase) {
+      const timeout = setTimeout(() => {
+        speakText(pendingCompletionPhrase);
+        setPendingCompletionPhrase('');
+      }, 350); // 確保畫面已切換
+      return () => clearTimeout(timeout);
+    }
+  }, [currentQuestion, pendingCompletionPhrase]);
 
   const completeTest = async (finalRecordings: RecordingData[]) => {
     setIsAnalyzing(true);
