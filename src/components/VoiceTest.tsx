@@ -1310,35 +1310,120 @@ Parents and teachers often emphasize traditional "safe" careers like medicine, l
                   <p className="text-lg md:text-2xl font-bold text-gray-900 mb-3 leading-relaxed">
                     {currentQ?.text}
                   </p>
-
-                  {isReadingQuestion && currentQ?.readingPassage && (
-                    <div className="mt-4 p-4 border rounded-md bg-white shadow-sm text-left">
-                      <p className="text-base text-gray-800 whitespace-pre-wrap">{currentQ.readingPassage}</p>
+                  {isSpeaking && (
+                    <div className="flex items-center space-x-2 mt-3">
+                      <Volume2 className="w-4 h-4 text-blue-600 animate-pulse" />
+                      <span className="text-xs md:text-sm text-blue-600">Playing question...</span>
                     </div>
                   )}
-
-                  <div 
-                    className="flex items-center space-x-2 text-blue-600 mt-4 cursor-pointer"
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      if (currentQ) {
-                        await handlePlayQuestion(currentQ.text);
-                      }
-                    }}
-                  >
-                    <Volume2 className="h-5 w-5" />
-                    <span className="text-sm font-medium">
-                      {isSpeaking ? '正在播放問題...' : '點擊播放問題'}
-                    </span>
-                  </div>
                 </div>
               ) : (
-                <div className="text-center py-10 md:py-16">
-                  <p className="text-gray-500">
-                    問題已隱藏，請按「開始錄音」開始。
-                  </p>
+                <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg p-6 md:p-10 mb-4 md:mb-6 text-center">
+                  <div className="text-gray-500 mb-3">
+                    <Volume2 className="w-8 h-8 mx-auto mb-2" />
+                    <p className="text-sm">Listen carefully to the question</p>
+                  </div>
+                  {isSpeaking && (
+                    <div className="flex items-center justify-center space-x-2 mt-3">
+                      <Volume2 className="w-4 h-4 text-blue-600 animate-pulse" />
+                      <span className="text-xs md:text-sm text-blue-600">Playing question...</span>
+                    </div>
+                  )}
                 </div>
               )}
+              
+              <div className="text-center space-y-5 md:space-y-6">
+                {!hasRecorded ? (
+                  <div>
+                    {!isRecording ? (
+                      <div className="space-y-3 md:space-y-4">
+                        {/* Only show Listen Again button when showQuestions is true and not reading question */}
+                        {showQuestions && !isReadingQuestion && (
+                          <Button
+                            size="sm"
+                            onClick={handleListen}
+                            disabled={isSpeaking}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 md:px-8 md:py-4 text-sm md:text-lg mr-2 md:mr-4 disabled:opacity-50"
+                          >
+                            <Volume2 className="w-4 h-4 md:w-6 md:h-6 mr-1 md:mr-2" />
+                            {isSpeaking ? 'Playing...' : 'Listen Again'}
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          onClick={startRecording}
+                          className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 md:px-8 md:py-4 text-sm md:text-lg"
+                        >
+                          <Mic className="w-4 h-4 md:w-6 md:h-6 mr-1 md:mr-2" />
+                          Start Recording
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-3 md:space-y-4">
+                        <div className="flex items-center justify-center space-x-2 md:space-x-4">
+                          <div className="w-3 h-3 md:w-4 md:h-4 bg-red-500 rounded-full animate-pulse"></div>
+                          <span className="text-lg md:text-xl font-mono">
+                            {formatTime(recordingTime)}
+                          </span>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={stopRecording}
+                          variant="outline"
+                          className="px-4 py-2 md:px-8 md:py-4 text-sm"
+                        >
+                          <MicOff className="w-4 h-4 md:w-6 md:h-6 mr-1 md:mr-2" />
+                          Stop Recording
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-3 md:space-y-4">
+                    <div className="flex justify-center space-x-2 md:space-x-4">
+                      {!isPlaying ? (
+                        <Button
+                          size="sm"
+                          onClick={playRecording}
+                          variant="outline"
+                          className="px-3 py-2 md:px-6 md:py-3 text-sm"
+                        >
+                          <Play className="w-4 h-4 md:w-5 md:h-5 mr-1 md:mr-2" />
+                          Play
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          onClick={stopPlaying}
+                          variant="outline"
+                          className="px-3 py-2 md:px-6 md:py-3 text-sm"
+                        >
+                          <Pause className="w-4 h-4 md:w-5 md:h-5 mr-1 md:mr-2" />
+                          Stop
+                        </Button>
+                      )}
+                      
+                      <Button
+                        size="sm"
+                        onClick={resetRecording}
+                        variant="outline"
+                        className="px-3 py-2 md:px-6 md:py-3 text-sm"
+                      >
+                        <RotateCcw className="w-4 h-4 md:w-5 md:h-5 mr-1 md:mr-2" />
+                        Re-record
+                      </Button>
+                    </div>
+                    
+                    <Button
+                      size="lg"
+                      onClick={nextQuestion}
+                      className="mt-16 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 md:px-16 md:py-5 text-lg md:text-xl"
+                    >
+                      {currentQuestion === questions.length - 1 ? 'Complete Assessment' : 'Next Question'}
+                    </Button>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>
