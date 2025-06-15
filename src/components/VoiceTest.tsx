@@ -8,8 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Mic, MicOff, Play, Pause, RotateCcw, ArrowLeft, ArrowRight, Volume2 } from 'lucide-react';
 import { getRandomQuestionSet } from '@/data/questionBank';
 import { logger } from '@/services/logService';
-import { evaluateResponse } from '@/services/aiEvaluationService';
-import { convertTextToSpeech } from '@/services/conversationService';
+import { performAIEvaluation } from '@/services/aiEvaluationService';
 
 interface VoiceTestProps {
   grade: string;
@@ -92,17 +91,13 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
 
     try {
       setIsPlaying(true);
-      const audioBlob = await convertTextToSpeech(currentQuestion.text, speechRate);
-      const audioUrl = URL.createObjectURL(audioBlob);
-      
-      if (audioRef.current) {
-        audioRef.current.src = audioUrl;
-        audioRef.current.onended = () => {
-          setIsPlaying(false);
-          URL.revokeObjectURL(audioUrl);
-        };
-        await audioRef.current.play();
-      }
+      // For now, we'll use browser's speech synthesis as a fallback
+      const utterance = new SpeechSynthesisUtterance(currentQuestion.text);
+      utterance.rate = speechRate;
+      utterance.onend = () => {
+        setIsPlaying(false);
+      };
+      speechSynthesis.speak(utterance);
     } catch (error) {
       logger.error('Error playing question audio', error);
       setIsPlaying(false);
@@ -195,7 +190,19 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
       if (audioBlob) {
         try {
           const responseText = responses[i] || 'No response recorded.';
-          const evaluation = await evaluateResponse(audioBlob, question.text, grade);
+          // Create recording data for AI evaluation
+          const recordingData = {
+            questionId: i,
+            section: question.section,
+            question: question.text,
+            audioBlob: audioBlob,
+            timestamp: new Date().toISOString(),
+            duration: recordingTime,
+            wordCount: Math.max(1, Math.floor(recordingTime / 0.8)),
+            responseTime: 3000 // Default response time
+          };
+          
+          const evaluation = await performAIEvaluation([recordingData], grade);
           testResults[question.id] = {
             question: question.text,
             responseText: responseText,
