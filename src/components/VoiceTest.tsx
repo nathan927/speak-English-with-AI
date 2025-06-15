@@ -100,10 +100,10 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
     if (currentQ) {
       setIsSpeaking(true);
       
-      // Build natural conversation text
+      // Build natural conversation text with grade context
       const isFirst = currentQuestion === 0;
       const isLast = currentQuestion === questions.length - 1;
-      const naturalText = buildNaturalQuestion(currentQ.text, isFirst, isLast);
+      const naturalText = buildNaturalQuestion(currentQ.text, isFirst, isLast, grade);
       
       speakText(naturalText, () => {
         questionReadTimeRef.current = Date.now();

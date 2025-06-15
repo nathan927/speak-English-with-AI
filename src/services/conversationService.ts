@@ -147,19 +147,25 @@ export const getRandomPhrase = (type: keyof ConversationPhrase): string => {
   return selectedPhrase;
 };
 
-export const buildNaturalQuestion = (questionText: string, isFirst: boolean = false, isLast: boolean = false): string => {
+export const buildNaturalQuestion = (questionText: string, isFirst: boolean = false, isLast: boolean = false, grade?: string): string => {
   let naturalText = '';
+  
+  // Determine if this is a kindergarten or primary grade
+  const isKindergarten = grade?.startsWith('K') || false;
+  const isPrimary = grade?.startsWith('P') || false;
   
   // Add greeting for first question
   if (isFirst) {
     if (Math.random() < 0.7) { // 70% chance
       naturalText += getRandomPhrase('greeting') + ' ';
     }
-  } else {
-    // Add opening phrase for non-first questions
-    if (Math.random() < 0.8) { // 80% chance
+  } else if (!isKindergarten) { // Skip transition phrases for kindergarten
+    // Reduce opening phrases for primary students (50% instead of 80%)
+    const openingChance = isPrimary ? 0.5 : 0.8;
+    
+    if (Math.random() < openingChance) {
       naturalText += getRandomPhrase('opening') + ' ';
-    } else {
+    } else if (!isPrimary) { // Only use transition/casual for secondary students
       // Sometimes use transition or casual phrases instead
       if (Math.random() < 0.5) {
         naturalText += getRandomPhrase('transition') + ' ';
@@ -169,22 +175,44 @@ export const buildNaturalQuestion = (questionText: string, isFirst: boolean = fa
     }
   }
   
-  // Add encouragement occasionally (25% chance, reduced from 30%)
-  if (Math.random() < 0.25) {
+  // Reduce encouragement for younger students
+  let encouragementChance = 0.25; // Default for secondary
+  if (isKindergarten) {
+    encouragementChance = 0.1; // Very low for kindergarten
+  } else if (isPrimary) {
+    encouragementChance = 0.15; // Reduced for primary
+  }
+  
+  if (Math.random() < encouragementChance) {
     naturalText += getRandomPhrase('encouragement') + ' ';
   }
   
-  // Sometimes add thinking phrases before the question (15% chance)
-  if (Math.random() < 0.15) {
+  // Skip thinking phrases for kindergarten, reduce for primary
+  let thinkingChance = 0.15; // Default for secondary
+  if (isKindergarten) {
+    thinkingChance = 0; // No thinking phrases for kindergarten
+  } else if (isPrimary) {
+    thinkingChance = 0.08; // Reduced for primary
+  }
+  
+  if (Math.random() < thinkingChance) {
     naturalText += getRandomPhrase('thinking') + ' ';
   }
   
   // Add the actual question
   naturalText += questionText;
   
-  // Add closing encouragement for last question
+  // Add closing encouragement for last question (simplified for younger students)
   if (isLast) {
-    const lastQuestionPhrases = [
+    const lastQuestionPhrases = isKindergarten ? [
+      ' This is our last question.',
+      ' Here\'s our final question.',
+      ' One more question for you.'
+    ] : isPrimary ? [
+      ' This is our final question, take your time.',
+      ' Here\'s our last question for today.',
+      ' Final question now, no rush.'
+    ] : [
       ' This is our final question, so take your time.',
       ' We\'re at the last question now, no rush.',
       ' Here\'s our final question for today.',

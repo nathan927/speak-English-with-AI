@@ -96,10 +96,10 @@ const Index = () => {
           <div className="flex justify-center">
             <Button 
               size="lg" 
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-12 py-6 text-2xl font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-16 py-8 text-3xl font-semibold rounded-2xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
               onClick={handleStartTest}
             >
-              <Mic className="w-8 h-8 mr-4" />
+              <Mic className="w-10 h-10 mr-6" />
               開始測驗
             </Button>
           </div>
