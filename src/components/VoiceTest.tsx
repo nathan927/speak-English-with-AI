@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -504,14 +505,14 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
 
   if (isAnalyzing) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
-        <Card className="w-full max-w-md mx-4">
-          <CardContent className="p-8 text-center">
-            <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
-              <Mic className="w-8 h-8 text-white" />
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6 text-center">
+            <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+              <Mic className="w-6 h-6 text-white" />
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-4">🤖 AI is performing deep voice analysis...</h3>
-            <p className="text-gray-600 mb-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-3">🤖 AI is performing deep voice analysis...</h3>
+            <p className="text-sm text-gray-600 mb-4">
               Our AI expert is evaluating your pronunciation, vocabulary, fluency and confidence,
               and generating personalized learning recommendations for you
             </p>
@@ -519,7 +520,7 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div className="bg-gradient-to-r from-blue-600 to-purple-600 h-2 rounded-full animate-pulse" style={{width: '85%'}}></div>
               </div>
-              <p className="text-sm text-gray-500">Analyzing {recordings.length} recordings, please wait...</p>
+              <p className="text-xs text-gray-500">Analyzing {recordings.length} recordings, please wait...</p>
             </div>
           </CardContent>
         </Card>
@@ -529,44 +530,45 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
+      <div className="container mx-auto px-3 py-3 md:px-4 md:py-8">
+        {/* Compressed header for mobile */}
+        <div className="mb-3 md:mb-8">
+          <div className="flex items-center justify-between mb-2 md:mb-4">
             <Button 
               variant="ghost" 
               onClick={handleBackClick}
-              className="group relative overflow-hidden bg-gradient-to-r from-gray-100 to-gray-200 hover:from-blue-100 hover:to-purple-100 border border-gray-300 hover:border-blue-300 text-gray-700 hover:text-blue-700 font-medium px-6 py-3 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-105"
+              className="group relative overflow-hidden bg-gradient-to-r from-gray-100 to-gray-200 hover:from-blue-100 hover:to-purple-100 border border-gray-300 hover:border-blue-300 text-gray-700 hover:text-blue-700 font-medium px-3 py-2 md:px-6 md:py-3 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-105"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
-              <ArrowLeft className="w-4 h-4 mr-2 transition-transform duration-300 group-hover:-translate-x-1" />
-              <span className="relative z-10">Back to Selection</span>
+              <ArrowLeft className="w-4 h-4 mr-1 md:mr-2 transition-transform duration-300 group-hover:-translate-x-1" />
+              <span className="relative z-10 text-sm md:text-base">Back</span>
             </Button>
           </div>
           
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-2 md:mb-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                {grade} English Speaking Assessment
+              <h1 className="text-lg md:text-2xl font-bold text-gray-900">
+                {grade} English Assessment
               </h1>
-              <p className="text-gray-600">
+              <p className="text-sm md:text-base text-gray-600">
                 Question {currentQuestion + 1} / {questions.length}
               </p>
             </div>
-            <Badge variant="outline" className="bg-blue-50 text-blue-700">
-              Progress: {Math.round(progress)}%
+            <Badge variant="outline" className="bg-blue-50 text-blue-700 text-xs">
+              {Math.round(progress)}%
             </Badge>
           </div>
           
-          <Progress value={progress} className="w-full" />
+          <Progress value={progress} className="w-full h-2" />
         </div>
 
         <div className="max-w-4xl mx-auto">
-          {/* Recording Instructions */}
-          <Card className="mb-4 bg-blue-50 border-blue-200">
-            <CardContent className="p-4">
-              <div className="flex items-start space-x-3">
-                <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                <div className="text-sm text-blue-800">
+          {/* Compressed recording instructions for mobile */}
+          <Card className="mb-2 md:mb-4 bg-blue-50 border-blue-200">
+            <CardContent className="p-2 md:p-4">
+              <div className="flex items-start space-x-2 md:space-x-3">
+                <Info className="w-4 h-4 md:w-5 md:h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                <div className="text-xs md:text-sm text-blue-800">
                   <p className="font-medium mb-1">錄音提示：</p>
                   <p>系統會自動按下 「Start Recording」 模擬真人對話，請盡快回答</p>
                 </div>
@@ -574,10 +576,10 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
             </CardContent>
           </Card>
 
-          <Card className="mb-6">
-            <CardHeader>
+          <Card className="mb-3 md:mb-6">
+            <CardHeader className="pb-2 md:pb-4">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">
+                <CardTitle className="text-base md:text-lg">
                   {/* Show question number or reading instruction */}
                   {(currentQ.section === 'B. 朗讀' || (currentQ.instruction && currentQ.instruction.includes('朗讀')))
                     ? 'Please read the following text aloud'
@@ -592,105 +594,105 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
                 </Badge>
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 mb-4">
-                <p className="text-xl font-medium text-gray-900 mb-2">
+            <CardContent className="pt-0">
+              <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-3 md:p-6 mb-3 md:mb-4">
+                <p className="text-base md:text-xl font-medium text-gray-900 mb-2">
                   {currentQ.text}
                 </p>
                 {isSpeaking && (
-                  <div className="flex items-center space-x-2 mt-4">
+                  <div className="flex items-center space-x-2 mt-2">
                     <Volume2 className="w-4 h-4 text-blue-600 animate-pulse" />
-                    <span className="text-sm text-blue-600">Playing question...</span>
+                    <span className="text-xs md:text-sm text-blue-600">Playing question...</span>
                   </div>
                 )}
               </div>
               
-              <div className="text-center space-y-4">
+              <div className="text-center space-y-2 md:space-y-4">
                 {!hasRecorded ? (
                   <div>
                     {!isRecording ? (
-                      <div className="space-y-4">
+                      <div className="space-y-2 md:space-y-4">
                         {/* Only show Listen button for non-Reading questions */}
                         {!isReadingQuestion && (
                           <Button
-                            size="lg"
+                            size="sm"
                             onClick={handleListen}
                             disabled={isSpeaking}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg mr-4 disabled:opacity-50"
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 md:px-8 md:py-4 text-sm md:text-lg mr-2 md:mr-4 disabled:opacity-50"
                           >
-                            <Volume2 className="w-6 h-6 mr-2" />
+                            <Volume2 className="w-4 h-4 md:w-6 md:h-6 mr-1 md:mr-2" />
                             {isSpeaking ? 'Playing...' : 'Listen Again'}
                           </Button>
                         )}
                         <Button
-                          size="lg"
+                          size="sm"
                           onClick={startRecording}
-                          className="bg-red-500 hover:bg-red-600 text-white px-8 py-4 text-lg"
+                          className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 md:px-8 md:py-4 text-sm md:text-lg"
                         >
-                          <Mic className="w-6 h-6 mr-2" />
+                          <Mic className="w-4 h-4 md:w-6 md:h-6 mr-1 md:mr-2" />
                           Start Recording
                         </Button>
                       </div>
                     ) : (
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-center space-x-4">
-                          <div className="w-4 h-4 bg-red-500 rounded-full animate-pulse"></div>
-                          <span className="text-xl font-mono">
+                      <div className="space-y-2 md:space-y-4">
+                        <div className="flex items-center justify-center space-x-2 md:space-x-4">
+                          <div className="w-3 h-3 md:w-4 md:h-4 bg-red-500 rounded-full animate-pulse"></div>
+                          <span className="text-lg md:text-xl font-mono">
                             {formatTime(recordingTime)}
                           </span>
                         </div>
                         <Button
-                          size="lg"
+                          size="sm"
                           onClick={stopRecording}
                           variant="outline"
-                          className="px-8 py-4 text-lg"
+                          className="px-4 py-2 md:px-8 md:py-4 text-sm md:text-lg"
                         >
-                          <MicOff className="w-6 h-6 mr-2" />
+                          <MicOff className="w-4 h-4 md:w-6 md:h-6 mr-1 md:mr-2" />
                           Stop Recording
                         </Button>
                       </div>
                     )}
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    <div className="flex justify-center space-x-4">
+                  <div className="space-y-2 md:space-y-4">
+                    <div className="flex justify-center space-x-2 md:space-x-4">
                       {!isPlaying ? (
                         <Button
-                          size="lg"
+                          size="sm"
                           onClick={playRecording}
                           variant="outline"
-                          className="px-6 py-3"
+                          className="px-3 py-2 md:px-6 md:py-3 text-sm"
                         >
-                          <Play className="w-5 h-5 mr-2" />
-                          Play Recording
+                          <Play className="w-4 h-4 md:w-5 md:h-5 mr-1 md:mr-2" />
+                          Play
                         </Button>
                       ) : (
                         <Button
-                          size="lg"
+                          size="sm"
                           onClick={stopPlaying}
                           variant="outline"
-                          className="px-6 py-3"
+                          className="px-3 py-2 md:px-6 md:py-3 text-sm"
                         >
-                          <Pause className="w-5 h-5 mr-2" />
-                          Stop Playing
+                          <Pause className="w-4 h-4 md:w-5 md:h-5 mr-1 md:mr-2" />
+                          Stop
                         </Button>
                       )}
                       
                       <Button
-                        size="lg"
+                        size="sm"
                         onClick={resetRecording}
                         variant="outline"
-                        className="px-6 py-3"
+                        className="px-3 py-2 md:px-6 md:py-3 text-sm"
                       >
-                        <RotateCcw className="w-5 h-5 mr-2" />
+                        <RotateCcw className="w-4 h-4 md:w-5 md:h-5 mr-1 md:mr-2" />
                         Re-record
                       </Button>
                     </div>
                     
                     <Button
-                      size="lg"
+                      size="sm"
                       onClick={nextQuestion}
-                      className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-16 py-4 text-lg"
+                      className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-2 md:px-16 md:py-4 text-sm md:text-lg"
                     >
                       {currentQuestion === questions.length - 1 ? 'Complete Assessment' : 'Next Question'}
                     </Button>
