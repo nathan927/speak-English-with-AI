@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,7 +18,7 @@ export const GradeSelector = ({ onGradeSelect, onBack }: GradeSelectorProps) => 
       id: 'kindergarten',
       title: '幼稚園',
       subtitle: 'K1 - K3',
-      description: '觀察記錄制度，遊戲化學習體驗',
+      description: '遊戲化學習體驗',
       icon: Users,
       color: 'from-pink-500 to-rose-500',
       grades: ['K1', 'K2', 'K3'],
@@ -27,7 +28,7 @@ export const GradeSelector = ({ onGradeSelect, onBack }: GradeSelectorProps) => 
       id: 'primary',
       title: '小學',
       subtitle: 'P1 - P6',
-      description: '4級評分制度，成就導向學習',
+      description: '成就導向學習',
       icon: BookOpen,
       color: 'from-blue-500 to-cyan-500',
       grades: ['P1', 'P2', 'P3', 'P4', 'P5', 'P6'],
@@ -37,7 +38,7 @@ export const GradeSelector = ({ onGradeSelect, onBack }: GradeSelectorProps) => 
       id: 'secondary',
       title: '中學',
       subtitle: 'S1 - S6',
-      description: '6級評分制度，專業分析報告',
+      description: '專業分析報告',
       icon: GraduationCap,
       color: 'from-purple-500 to-indigo-500',
       grades: ['S1', 'S2', 'S3', 'S4', 'S5', 'S6'],
@@ -71,11 +72,11 @@ export const GradeSelector = ({ onGradeSelect, onBack }: GradeSelectorProps) => 
               return (
                 <Card
                   key={category.id}
-                  className="cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105 h-full flex-1 min-h-[120px] md:min-h-[180px] justify-center items-center flex flex-col"
+                  className="cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105 h-full flex-1 md:min-h-[180px] flex flex-col"
                   onClick={() => setSelectedCategory(category.id)}
                   style={{ minWidth: 0, flexBasis: 0, flexGrow: 1 }}
                 >
-                  <CardHeader className="text-center pb-2 flex-1 flex flex-col items-center justify-center">
+                  <CardHeader className="text-center p-4 flex-1 flex flex-col items-center justify-center">
                     <div className={`w-10 h-10 bg-gradient-to-r ${category.color} rounded-full flex items-center justify-center mx-auto mb-2`}>
                       <IconComponent className="w-5 h-5 text-white" />
                     </div>
@@ -84,7 +85,7 @@ export const GradeSelector = ({ onGradeSelect, onBack }: GradeSelectorProps) => 
                       {category.subtitle}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="text-center pt-0 pb-2 flex flex-col items-center justify-center">
+                  <CardContent className="text-center px-4 pt-0 pb-4 flex flex-col items-center justify-center">
                     <p className="text-gray-600 mb-0 text-sm">{category.description}</p>
                   </CardContent>
                 </Card>
