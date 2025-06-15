@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Question } from '../data/questionBank';
+import { Question, questionBank } from '../data/questionBank';
 import { Volume2 } from 'lucide-react';
 
 interface VoiceTestProps {
@@ -24,17 +24,20 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Load questions based on grade - this would need to be implemented
-    // For now, using empty array as placeholder
-    const loadedQuestions: Question[] = [];
+    // Load questions based on grade
+    const loadedQuestions = questionBank.filter(q => q.grade === grade);
     setQuestions(loadedQuestions);
+    setIsLoading(false);
   }, [grade]);
 
   useEffect(() => {
     if (questions.length > 0) {
       setCurrentQuestion(questions[currentQuestionIndex]);
+    } else {
+      setCurrentQuestion(null);
     }
   }, [questions, currentQuestionIndex]);
 
@@ -66,8 +69,31 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
     window.speechSynthesis.speak(utterance);
   };
 
-  if (!currentQuestion && questions.length === 0) {
-    return <div>Loading questions...</div>;
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        Loading questions...
+      </div>
+    );
+  }
+
+  if (questions.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-3xl w-full space-y-4 text-center">
+            <h2 className="text-2xl font-bold text-gray-900">No Questions Found</h2>
+            <p className="text-lg text-gray-600">
+                Sorry, no questions are available for {grade} at the moment.
+            </p>
+            <button
+                onClick={onBack}
+                className="mt-4 px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-1"
+            >
+                Go Back
+            </button>
+        </div>
+      </div>
+    );
   }
 
   return (
