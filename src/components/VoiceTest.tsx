@@ -35,9 +35,7 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [recordings, setRecordings] = useState<RecordingData[]>([]);
-  const [isReadingQuestion, setIsReadingQuestion] = useState(false);
   const [responseStartTime, setResponseStartTime] = useState<number | null>(null);
-  const [hasListened, setHasListened] = useState(false);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -52,16 +50,6 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
   const currentQ = questions[currentQuestion];
   const progress = ((currentQuestion + 1) / questions.length) * 100;
 
-  // Auto-trigger listen when question changes
-  useEffect(() => {
-    if (currentQ && !hasRecorded && !hasListened) {
-      // Auto-trigger the listen function after a short delay
-      setTimeout(() => {
-        handleListen();
-      }, 500);
-    }
-  }, [currentQuestion, currentQ]);
-
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -72,16 +60,9 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
   }, []);
 
   const handleListen = () => {
-    if (currentQ && !isReadingQuestion) {
-      setIsReadingQuestion(true);
-      setHasListened(true);
+    if (currentQ) {
       speakText(currentQ.text, () => {
-        setIsReadingQuestion(false);
         questionReadTimeRef.current = Date.now();
-        // Auto-trigger recording after question is read
-        setTimeout(() => {
-          startRecording();
-        }, 500);
       });
     }
   };
@@ -183,7 +164,6 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
     setHasRecorded(false);
     setRecordingTime(0);
     setResponseStartTime(null);
-    setHasListened(false);
     stopPlaying();
   };
 
@@ -358,30 +338,21 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
                 <p className="text-xl font-medium text-gray-900 mb-2">
                   {currentQ.text}
                 </p>
-                {isReadingQuestion && (
-                  <div className="flex items-center space-x-2 mt-4">
-                    <Volume2 className="w-4 h-4 text-blue-600 animate-pulse" />
-                    <span className="text-sm text-blue-600">Reading question...</span>
-                  </div>
-                )}
               </div>
               
               <div className="text-center space-y-4">
                 {!hasRecorded ? (
                   <div>
-                    {!hasListened && !isReadingQuestion ? (
+                    {!isRecording ? (
                       <div className="space-y-4">
                         <Button
                           size="lg"
                           onClick={handleListen}
-                          className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg"
+                          className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg mr-4"
                         >
                           <Volume2 className="w-6 h-6 mr-2" />
                           Listen
                         </Button>
-                      </div>
-                    ) : !isRecording && !isReadingQuestion ? (
-                      <div className="space-y-4">
                         <Button
                           size="lg"
                           onClick={startRecording}
@@ -391,7 +362,7 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
                           Start Recording
                         </Button>
                       </div>
-                    ) : isRecording ? (
+                    ) : (
                       <div className="space-y-4">
                         <div className="flex items-center justify-center space-x-4">
                           <div className="w-4 h-4 bg-red-500 rounded-full animate-pulse"></div>
@@ -409,7 +380,7 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
                           Stop Recording
                         </Button>
                       </div>
-                    ) : null}
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-4">
