@@ -78,6 +78,26 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
     initializeSpeech();
   }, []);
 
+  // Helper function to get short section name
+  const getShortSectionName = (section: string) => {
+    switch (section.toLowerCase()) {
+      case 'picture description':
+        return 'A. 圖片';
+      case 'reading aloud':
+        return 'B. 朗讀';
+      case 'expression of personal experiences':
+        return 'C. 表達';
+      case 'short conversation':
+        return 'A. 對話';
+      case 'picture-based response':
+        return 'B. 圖片';
+      case 'role play':
+        return 'C. 角色';
+      default:
+        return section;
+    }
+  };
+
   // Function to speak the current question
   const speakQuestion = (text: string) => {
     if (!speechInitialized) {
@@ -303,7 +323,7 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
           <CardHeader>
             <div className="flex justify-between items-center">
               <CardTitle className="text-lg">Question {currentQuestionIndex + 1}</CardTitle>
-              <Badge variant="secondary">{currentQuestion.section}</Badge>
+              <Badge variant="secondary">{getShortSectionName(currentQuestion.section)}</Badge>
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -314,8 +334,8 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
               </div>
             )}
 
-            {/* Reading Passage - Show only for reading type questions and if showQuestions is true */}
-            {showQuestions && currentQuestion.type === 'reading' && currentQuestion.readingPassage && (
+            {/* Reading Passage - Always show for reading type questions */}
+            {currentQuestion.type === 'reading' && currentQuestion.readingPassage && (
               <div className="bg-gray-50 p-4 rounded-lg border">
                 <h4 className="font-semibold text-gray-900 mb-3">Reading Passage:</h4>
                 <div className="text-gray-800 leading-relaxed whitespace-pre-line">
@@ -325,32 +345,32 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
             )}
 
             {/* Audio Controls */}
-            <div className="flex justify-center space-x-4">
+            <div className="flex justify-center space-x-3">
               <Button
                 variant="outline"
-                size="lg"
+                size="default"
                 onClick={handlePlayQuestion}
                 disabled={isPlaying && !isPaused}
-                className="flex items-center space-x-2"
+                className="flex items-center space-x-2 px-4"
               >
                 {isPlaying && !isPaused ? (
                   <>
-                    <Pause className="w-5 h-5" />
+                    <Pause className="w-4 h-4" />
                     <span>Playing...</span>
                   </>
                 ) : (
                   <>
-                    <Play className="w-5 h-5" />
+                    <Play className="w-4 h-4" />
                     <span>Play Question</span>
                   </>
                 )}
               </Button>
 
               <Button
-                size="lg"
+                size="default"
                 onClick={handleStartRecording}
                 disabled={isRecording}
-                className={`flex items-center space-x-2 ${
+                className={`flex items-center space-x-2 px-4 ${
                   isRecording 
                     ? 'bg-red-600 hover:bg-red-700' 
                     : 'bg-red-500 hover:bg-red-600'
@@ -358,12 +378,12 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
               >
                 {isRecording ? (
                   <>
-                    <MicOff className="w-5 h-5" />
+                    <MicOff className="w-4 h-4" />
                     <span>Recording...</span>
                   </>
                 ) : (
                   <>
-                    <Mic className="w-5 h-5" />
+                    <Mic className="w-4 h-4" />
                     <span>Start Recording</span>
                   </>
                 )}
