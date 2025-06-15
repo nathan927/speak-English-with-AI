@@ -578,10 +578,10 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg">
-                  {/* Show English instruction or section name */}
-                  {currentQ.section === 'B. 朗讀' ? 'Please read the following text aloud' : 
-                   currentQ.instruction.includes('朗讀') ? 'Please read the following text aloud' :
-                   currentQ.instruction}
+                  {/* Show question number or reading instruction */}
+                  {(currentQ.section === 'B. 朗讀' || (currentQ.instruction && currentQ.instruction.includes('朗讀')))
+                    ? 'Please read the following text aloud'
+                    : `Question ${currentQuestion + 1}`}
                 </CardTitle>
                 <Badge variant="secondary" className="text-xs">
                   {/* Convert section names to English */}
