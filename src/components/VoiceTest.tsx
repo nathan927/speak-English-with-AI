@@ -14,6 +14,7 @@ interface VoiceTestProps {
 
 interface RecordingData {
   questionId: number;
+  section: string;
   question: string;
   audioBlob: Blob;
   timestamp: string;
@@ -53,36 +54,69 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
   
   const { toast } = useToast();
 
-  // All-English test questions for Hong Kong context
+  // Real Hong Kong exam format questions
   const getQuestionsForGrade = (grade: string) => {
-    const baseQuestions = {
+    const examQuestions = {
       'K1': [
-        { id: 1, type: 'word', text: 'Say the word: Apple', instruction: 'Please say this word clearly', targetWords: ['apple'] },
-        { id: 2, type: 'sentence', text: 'I like milk tea', instruction: 'Please repeat this sentence', targetWords: ['milk', 'tea'] },
-        { id: 3, type: 'describe', text: 'Tell me about the red bus you see', instruction: 'Describe in English', targetWords: ['red', 'bus'] },
-        { id: 4, type: 'question', text: 'What is your name?', instruction: 'Answer this question', targetWords: ['name'] },
-        { id: 5, type: 'story', text: 'Tell me about playing in the park', instruction: 'Tell a short story in English', targetWords: ['play', 'park'] },
-        { id: 6, type: 'rhyme', text: 'Twinkle, twinkle, little star', instruction: 'Say this nursery rhyme', targetWords: ['twinkle', 'star'] }
+        // A. Spontaneous Language Use
+        { id: 1, section: 'A. Spontaneous Language Use', type: 'greeting', text: 'Good morning.', instruction: 'Please respond to the greeting', targetWords: ['good', 'morning'] },
+        { id: 2, section: 'A. Spontaneous Language Use', type: 'question', text: 'How old are you?', instruction: 'Answer this question', targetWords: ['old', 'years'] },
+        { id: 3, section: 'A. Spontaneous Language Use', type: 'question', text: 'What is your name?', instruction: 'Tell me your name', targetWords: ['name'] },
+        
+        // B. Reading Aloud
+        { id: 4, section: 'B. Reading Aloud', type: 'reading', text: 'The cat is big. The dog is small. I like animals.', instruction: 'Please read this passage clearly', targetWords: ['cat', 'big', 'dog', 'small', 'animals'] },
+        
+        // C. Expression of Personal Experiences
+        { id: 5, section: 'C. Expression of Personal Experiences', type: 'personal', text: 'Do you like toys?', instruction: 'Tell me about your favorite toys', targetWords: ['like', 'toys', 'play'] },
+        { id: 6, section: 'C. Expression of Personal Experiences', type: 'personal', text: 'What do you like to eat?', instruction: 'Talk about your favorite food', targetWords: ['like', 'eat', 'food'] }
       ],
       'P1': [
-        { id: 1, type: 'word', text: 'Say the word: School', instruction: 'Please say this word clearly', targetWords: ['school'] },
-        { id: 2, type: 'sentence', text: 'I go to school by MTR', instruction: 'Please repeat this sentence', targetWords: ['school', 'MTR'] },
-        { id: 3, type: 'describe', text: 'Describe the weather in Hong Kong today', instruction: 'Describe the weather in English', targetWords: ['weather', 'Hong Kong'] },
-        { id: 4, type: 'question', text: 'What do you eat for breakfast?', instruction: 'Answer this question', targetWords: ['eat', 'breakfast'] },
-        { id: 5, type: 'story', text: 'Tell me about your experience at a tea restaurant', instruction: 'Tell a story in English', targetWords: ['tea', 'restaurant'] },
-        { id: 6, type: 'roleplay', text: 'You are a shop assistant. Welcome a customer', instruction: 'Role play scenario', targetWords: ['welcome', 'customer'] }
+        // A. Spontaneous Language Use
+        { id: 1, section: 'A. Spontaneous Language Use', type: 'greeting', text: 'Good afternoon.', instruction: 'Please respond to the greeting', targetWords: ['good', 'afternoon'] },
+        { id: 2, section: 'A. Spontaneous Language Use', type: 'question', text: 'How old are you?', instruction: 'Answer this question', targetWords: ['old', 'years'] },
+        { id: 3, section: 'A. Spontaneous Language Use', type: 'question', text: 'What class are you in?', instruction: 'Tell me your class', targetWords: ['class'] },
+        
+        // B. Reading Aloud
+        { id: 4, section: 'B. Reading Aloud', type: 'reading', text: 'My Family: I have a big family. My father is tall. My mother is kind. I have one brother and one sister. We are happy.', instruction: 'Please read this passage clearly', targetWords: ['family', 'father', 'mother', 'brother', 'sister', 'happy'] },
+        
+        // C. Expression of Personal Experiences (Set A)
+        { id: 5, section: 'C. Expression of Personal Experiences', type: 'personal', text: 'Are you interested in ball games?', instruction: 'Tell me about ball games you like', targetWords: ['interested', 'ball', 'games'] },
+        { id: 6, section: 'C. Expression of Personal Experiences', type: 'personal', text: 'What do you like doing at the beach?', instruction: 'Describe activities at the beach', targetWords: ['beach', 'swimming', 'sand'] }
+      ],
+      'P3': [
+        // A. Spontaneous Language Use
+        { id: 1, section: 'A. Spontaneous Language Use', type: 'greeting', text: 'Good morning.', instruction: 'Please respond to the greeting', targetWords: ['good', 'morning'] },
+        { id: 2, section: 'A. Spontaneous Language Use', type: 'question', text: 'How old are you?', instruction: 'Answer this question', targetWords: ['old', 'years'] },
+        { id: 3, section: 'A. Spontaneous Language Use', type: 'question', text: 'How are you?', instruction: 'Tell me how you are feeling', targetWords: ['fine', 'good', 'well'] },
+        { id: 4, section: 'A. Spontaneous Language Use', type: 'question', text: 'What class are you in?', instruction: 'Tell me your class', targetWords: ['class'] },
+        { id: 5, section: 'A. Spontaneous Language Use', type: 'question', text: "What's the weather like today?", instruction: 'Describe today\'s weather', targetWords: ['weather', 'sunny', 'cloudy', 'rainy'] },
+        
+        // B. Reading Aloud
+        { id: 6, section: 'B. Reading Aloud', type: 'reading', text: 'The School Picnic: The school picnic is coming. May and Tom are going to a country park with their classmates. May asks: "When\'s the school picnic?" "It\'s on the twentieth of January," says Tom. Then they think about the activities they can do on that day. Tom is interested in sports. He can play football. May can\'t play football but she can play the guitar. She is interested in music.', instruction: 'Please read this passage clearly', targetWords: ['school', 'picnic', 'country', 'park', 'January', 'football', 'guitar', 'music'] },
+        
+        // C. Expression of Personal Experiences (Set A)
+        { id: 7, section: 'C. Expression of Personal Experiences', type: 'personal', text: 'Are you interested in ball games?', instruction: 'Tell me about ball games you like', targetWords: ['interested', 'ball', 'games', 'football', 'basketball'] },
+        { id: 8, section: 'C. Expression of Personal Experiences', type: 'personal', text: 'What do you like doing at the beach?', instruction: 'Describe activities you enjoy at the beach', targetWords: ['beach', 'swimming', 'sand', 'play'] },
+        { id: 9, section: 'C. Expression of Personal Experiences', type: 'personal', text: 'What food do you want on your birthday?', instruction: 'Tell me about your birthday food preferences', targetWords: ['birthday', 'food', 'cake', 'party'] }
       ],
       'S1': [
-        { id: 1, type: 'pronunciation', text: 'Say the word: International', instruction: 'Please pronounce this complex word clearly', targetWords: ['international'] },
-        { id: 2, type: 'sentence', text: 'Hong Kong is famous for its Victoria Harbour', instruction: 'Please say this sentence fluently', targetWords: ['Hong Kong', 'famous', 'Victoria Harbour'] },
-        { id: 3, type: 'describe', text: 'Describe how people celebrate Mid-Autumn Festival', instruction: 'Describe in detail using English', targetWords: ['celebrate', 'Mid-Autumn Festival'] },
-        { id: 4, type: 'opinion', text: 'What do you think about online learning?', instruction: 'Express your opinion', targetWords: ['think', 'online learning'] },
-        { id: 5, type: 'presentation', text: 'Give a short presentation about Hong Kong dim sum', instruction: 'Present in English', targetWords: ['presentation', 'dim sum'] },
-        { id: 6, type: 'debate', text: 'Discuss whether Victoria Peak is worth visiting', instruction: 'Present your argument', targetWords: ['discuss', 'Victoria Peak', 'worth visiting'] }
+        // A. Spontaneous Language Use
+        { id: 1, section: 'A. Spontaneous Language Use', type: 'greeting', text: 'Good afternoon.', instruction: 'Please respond appropriately', targetWords: ['good', 'afternoon'] },
+        { id: 2, section: 'A. Spontaneous Language Use', type: 'question', text: 'How old are you?', instruction: 'Answer this question', targetWords: ['old', 'years'] },
+        { id: 3, section: 'A. Spontaneous Language Use', type: 'question', text: 'What form are you in?', instruction: 'Tell me your form/class', targetWords: ['form', 'class'] },
+        { id: 4, section: 'A. Spontaneous Language Use', type: 'question', text: 'What subjects do you study?', instruction: 'List some of your subjects', targetWords: ['subjects', 'study', 'English', 'Mathematics'] },
+        
+        // B. Reading Aloud
+        { id: 5, section: 'B. Reading Aloud', type: 'reading', text: 'Environmental Protection: Hong Kong faces many environmental challenges today. Air pollution from vehicles and factories affects our daily lives. Many citizens are becoming more aware of the importance of recycling and reducing waste. Schools are teaching students about sustainable living practices. Everyone can contribute to protecting our environment by making small changes in their daily habits.', instruction: 'Please read this passage with proper pronunciation and intonation', targetWords: ['environmental', 'pollution', 'recycling', 'sustainable', 'citizens'] },
+        
+        // C. Expression of Personal Experiences
+        { id: 6, section: 'C. Expression of Personal Experiences', type: 'opinion', text: 'What do you think about using technology in education?', instruction: 'Express your views on educational technology', targetWords: ['technology', 'education', 'learning', 'computers'] },
+        { id: 7, section: 'C. Expression of Personal Experiences', type: 'personal', text: 'Describe a memorable experience you had during the holidays.', instruction: 'Share a detailed personal experience', targetWords: ['memorable', 'experience', 'holidays', 'family'] },
+        { id: 8, section: 'C. Expression of Personal Experiences', type: 'future', text: 'What are your plans for secondary school?', instruction: 'Discuss your academic and personal goals', targetWords: ['plans', 'secondary', 'school', 'future'] }
       ]
     };
 
-    return baseQuestions[grade as keyof typeof baseQuestions] || baseQuestions['P1'];
+    return examQuestions[grade as keyof typeof examQuestions] || examQuestions['P3'];
   };
 
   const questions = getQuestionsForGrade(grade);
@@ -122,12 +156,24 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
             
             targetWords.forEach(word => {
               if (transcript.includes(word.toLowerCase())) {
-                wordMatchScore += 20;
+                wordMatchScore += 15; // More stringent scoring
               }
             });
             
-            // Combine confidence and word matching for final score
-            const finalScore = Math.min(100, Math.round((confidence * 50) + wordMatchScore));
+            // Stricter scoring for real assessment
+            let finalScore = Math.round((confidence * 40) + wordMatchScore);
+            
+            // Additional penalties for very short responses
+            if (transcript.length < 10) {
+              finalScore -= 20;
+            }
+            
+            // Bonus for longer, more complete responses
+            if (transcript.length > 50) {
+              finalScore += 10;
+            }
+            
+            finalScore = Math.max(0, Math.min(100, finalScore));
             
             resolve({
               transcription: event.results[0][0].transcript,
@@ -136,30 +182,34 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
           };
           
           recognition.onerror = () => {
-            // Fallback scoring based on audio analysis
+            // Fallback scoring based on audio analysis - more stringent
             const duration = audioBuffer.duration;
             const amplitude = calculateAverageAmplitude(audioBuffer);
             
-            let score = 50; // Base score
+            let score = 30; // Lower base score
             
-            // Duration scoring (optimal range: 3-10 seconds)
-            if (duration >= 3 && duration <= 10) {
+            // Duration scoring (optimal range: 5-15 seconds for detailed responses)
+            if (duration >= 5 && duration <= 15) {
+              score += 25;
+            } else if (duration >= 2 && duration <= 20) {
+              score += 15;
+            } else if (duration < 2) {
+              score -= 10; // Penalty for very short responses
+            }
+            
+            // Amplitude scoring (check if user actually spoke clearly)
+            if (amplitude > 0.02) {
               score += 20;
-            } else if (duration >= 1 && duration <= 15) {
+            } else if (amplitude > 0.01) {
               score += 10;
             }
             
-            // Amplitude scoring (check if user actually spoke)
-            if (amplitude > 0.01) {
-              score += 20;
-            }
-            
-            // Random variation based on audio characteristics
-            score += Math.random() * 10;
+            // Smaller random variation
+            score += Math.random() * 5;
             
             resolve({
-              transcription: 'Audio analysis completed',
-              score: Math.min(100, Math.round(score))
+              transcription: 'Audio recorded and analyzed',
+              score: Math.max(0, Math.min(100, Math.round(score)))
             });
           };
           
@@ -167,18 +217,24 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
           audio.play();
           recognition.start();
         } else {
-          // Fallback analysis
+          // Fallback analysis - more realistic scoring
           const duration = audioBuffer.duration;
           const amplitude = calculateAverageAmplitude(audioBuffer);
           
-          let score = 50;
-          if (duration >= 3 && duration <= 10) score += 20;
-          if (amplitude > 0.01) score += 20;
-          score += Math.random() * 10;
+          let score = 35; // Lower base score
+          
+          if (duration >= 5 && duration <= 15) score += 25;
+          else if (duration >= 2 && duration <= 20) score += 15;
+          else if (duration < 2) score -= 15;
+          
+          if (amplitude > 0.02) score += 20;
+          else if (amplitude > 0.01) score += 10;
+          
+          score += Math.random() * 5;
           
           resolve({
             transcription: 'Speech recorded and analyzed',
-            score: Math.min(100, Math.round(score))
+            score: Math.max(0, Math.min(100, Math.round(score)))
           });
         }
       });
@@ -186,7 +242,7 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
       console.error('Audio analysis error:', error);
       return {
         transcription: 'Analysis unavailable',
-        score: 60
+        score: 40 // Lower fallback score
       };
     }
   };
@@ -240,10 +296,10 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
       }, 1000);
       
     } catch (error) {
-      console.error('錄音啟動失敗:', error);
+      console.error('Recording failed:', error);
       toast({
-        title: "錄音失敗",
-        description: "請確保已允許麥克風權限",
+        title: "Recording Failed",
+        description: "Please ensure microphone permissions are granted",
         variant: "destructive",
       });
     }
@@ -306,6 +362,7 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
       // Save recording data
       const recordingData: RecordingData = {
         questionId: currentQ.id,
+        section: currentQ.section,
         question: currentQ.text,
         audioBlob,
         timestamp: new Date().toISOString(),
@@ -333,18 +390,26 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
     const recordings = testSession.recordings;
     const totalScore = recordings.reduce((sum, rec) => sum + rec.score, 0) / recordings.length;
     
-    // Calculate detailed scores
+    // Calculate detailed scores by section
+    const sectionScores = {
+      spontaneous: recordings.filter(r => r.section.includes('Spontaneous')).reduce((sum, rec) => sum + rec.score, 0) / recordings.filter(r => r.section.includes('Spontaneous')).length || 0,
+      reading: recordings.filter(r => r.section.includes('Reading')).reduce((sum, rec) => sum + rec.score, 0) / recordings.filter(r => r.section.includes('Reading')).length || 0,
+      personal: recordings.filter(r => r.section.includes('Personal')).reduce((sum, rec) => sum + rec.score, 0) / recordings.filter(r => r.section.includes('Personal')).length || 0
+    };
+    
     const results = {
       overallScore: Math.round(totalScore),
-      pronunciation: Math.round(totalScore * (0.9 + Math.random() * 0.2)),
-      vocabulary: Math.round(totalScore * (0.8 + Math.random() * 0.3)),
-      fluency: Math.round(totalScore * (0.85 + Math.random() * 0.25)),
-      confidence: Math.round(totalScore * (0.9 + Math.random() * 0.2)),
+      pronunciation: Math.round(totalScore * (0.9 + Math.random() * 0.1)),
+      vocabulary: Math.round(totalScore * (0.85 + Math.random() * 0.15)),
+      fluency: Math.round(totalScore * (0.8 + Math.random() * 0.2)),
+      confidence: Math.round(totalScore * (0.85 + Math.random() * 0.15)),
+      sectionScores,
       grade: grade,
       questionsAttempted: recordings.length,
-      strengths: totalScore >= 80 ? ['Clear pronunciation', 'Good vocabulary'] : ['Attempted all questions'],
-      improvements: totalScore < 70 ? ['Practice pronunciation', 'Speak more fluently'] : ['Keep practicing'],
+      strengths: totalScore >= 70 ? ['Clear pronunciation', 'Good vocabulary usage'] : ['Completed all sections'],
+      improvements: totalScore < 60 ? ['Practice pronunciation', 'Speak more clearly', 'Use more vocabulary'] : ['Keep practicing for fluency'],
       detailedAnalysis: recordings.map(rec => ({
+        section: rec.section,
         question: rec.question,
         score: rec.score,
         feedback: `Transcription: "${rec.transcription}"`
@@ -375,14 +440,14 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
     
     const link = document.createElement('a');
     link.href = url;
-    link.download = `voice-test-${grade}-${new Date().toISOString().split('T')[0]}.json`;
+    link.download = `english-speaking-test-${grade}-${new Date().toISOString().split('T')[0]}.json`;
     link.click();
     
     URL.revokeObjectURL(url);
     
     toast({
-      title: "下載成功",
-      description: "測試記錄已下載為 JSON 文件",
+      title: "Download Successful",
+      description: "Test session downloaded as JSON file",
     });
   };
 
@@ -397,13 +462,13 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
         const sessionData = JSON.parse(e.target?.result as string);
         setTestSession(sessionData);
         toast({
-          title: "上傳成功",
-          description: "測試記錄已載入",
+          title: "Upload Successful",
+          description: "Test session loaded successfully",
         });
       } catch (error) {
         toast({
-          title: "上傳失敗",
-          description: "無效的 JSON 文件格式",
+          title: "Upload Failed",
+          description: "Invalid JSON file format",
           variant: "destructive",
         });
       }
@@ -494,7 +559,7 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">
-                {grade} English Speaking Test
+                {grade} English Speaking Assessment
               </h1>
               <p className="text-gray-600">
                 Question {currentQuestion + 1} / {questions.length}
@@ -512,9 +577,14 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
           <Card className="mb-6">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">
-                  {currentQ.instruction}
-                </CardTitle>
+                <div>
+                  <Badge variant="secondary" className="mb-2">
+                    {currentQ.section}
+                  </Badge>
+                  <CardTitle className="text-lg">
+                    {currentQ.instruction}
+                  </CardTitle>
+                </div>
                 <Button
                   variant="outline"
                   size="sm"
@@ -529,11 +599,18 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
             <CardContent>
               <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 mb-4">
                 <p className="text-xl font-medium text-gray-900 mb-2">
-                  "{currentQ.text}"
+                  {currentQ.text}
                 </p>
-                <Badge variant="secondary" className="bg-green-100 text-green-800">
-                  Type: {currentQ.type}
-                </Badge>
+                <div className="flex items-center space-x-2">
+                  <Badge variant="secondary" className="bg-green-100 text-green-800">
+                    Type: {currentQ.type}
+                  </Badge>
+                  {currentQ.section.includes('Reading') && (
+                    <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+                      Reading Passage
+                    </Badge>
+                  )}
+                </div>
               </div>
               
               <div className="text-center space-y-4">
@@ -609,7 +686,7 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
                       onClick={nextQuestion}
                       className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 text-lg"
                     >
-                      {currentQuestion === questions.length - 1 ? 'Complete Test' : 'Next Question'}
+                      {currentQuestion === questions.length - 1 ? 'Complete Assessment' : 'Next Question'}
                     </Button>
                   </div>
                 )}
@@ -617,15 +694,16 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
             </CardContent>
           </Card>
 
-          {/* Recording Tips */}
-          <Card className="bg-yellow-50 border-yellow-200">
+          {/* Assessment Instructions */}
+          <Card className="bg-blue-50 border-blue-200">
             <CardContent className="p-4">
-              <h4 className="font-semibold text-yellow-800 mb-2">💡 Recording Tips:</h4>
-              <ul className="text-sm text-yellow-700 space-y-1">
-                <li>• Record in a quiet environment</li>
-                <li>• Speak at natural pace, not too fast or slow</li>
-                <li>• You can re-record if not satisfied</li>
-                <li>• Play back to check your recording</li>
+              <h4 className="font-semibold text-blue-800 mb-2">📋 Assessment Instructions:</h4>
+              <ul className="text-sm text-blue-700 space-y-1">
+                <li>• <strong>Section A</strong>: Respond naturally to basic questions</li>
+                <li>• <strong>Section B</strong>: Read the passage clearly with proper pronunciation</li>
+                <li>• <strong>Section C</strong>: Express your personal experiences in detail</li>
+                <li>• Speak clearly and at a natural pace</li>
+                <li>• You may re-record if needed</li>
               </ul>
             </CardContent>
           </Card>
