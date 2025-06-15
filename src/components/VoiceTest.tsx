@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -82,11 +83,11 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
   const getShortSectionName = (section: string) => {
     switch (section.toLowerCase()) {
       case 'picture description':
-        return 'A. 圖片';
+        return 'A. Spontaneous';
       case 'reading aloud':
         return 'B. 朗讀';
       case 'expression of personal experiences':
-        return 'C. 表達';
+        return 'C. Personal Expression';
       case 'short conversation':
         return 'A. 對話';
       case 'picture-based response':
@@ -333,10 +334,10 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
             <div className="flex justify-center space-x-3">
               <Button
                 variant="outline"
-                size="default"
+                size="sm"
                 onClick={handlePlayQuestion}
                 disabled={isPlaying && !isPaused}
-                className="flex items-center space-x-2 px-4"
+                className="flex items-center space-x-2"
               >
                 {isPlaying && !isPaused ? (
                   <>
@@ -352,10 +353,10 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
               </Button>
 
               <Button
-                size="default"
+                size="sm"
                 onClick={handleStartRecording}
                 disabled={isRecording}
-                className={`flex items-center space-x-2 px-4 ${
+                className={`flex items-center space-x-2 ${
                   isRecording 
                     ? 'bg-red-600 hover:bg-red-700' 
                     : 'bg-red-500 hover:bg-red-600'
