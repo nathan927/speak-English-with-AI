@@ -104,7 +104,7 @@ const Index = () => {
               className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-16 py-8 text-3xl font-semibold rounded-2xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
               onClick={handleStartTest}
             >
-              <Mic className="w-10 h-10 mr-6" strokeWidth={3} />
+              <Mic className="w-12 h-12 mr-6" strokeWidth={3} />
               開始測驗
             </Button>
           </div>
@@ -120,15 +120,15 @@ const Index = () => {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <Card className="text-center hover:shadow-lg transition-shadow duration-300">
-            <CardHeader>
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <Mic className="w-6 h-6 text-blue-600" />
+            <CardHeader className="p-4">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                <Mic className="w-5 h-5 text-blue-600" />
               </div>
-              <CardTitle className="text-lg">發音準確度</CardTitle>
+              <CardTitle className="text-base">發音準確度</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 pt-0">
               <CardDescription>
                 基於音素匹配和置信度分析，提供精確的發音評估與改進建議
               </CardDescription>
@@ -136,13 +136,13 @@ const Index = () => {
           </Card>
 
           <Card className="text-center hover:shadow-lg transition-shadow duration-300">
-            <CardHeader>
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <BookOpen className="w-6 h-6 text-green-600" />
+            <CardHeader className="p-4">
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                <BookOpen className="w-5 h-5 text-green-600" />
               </div>
-              <CardTitle className="text-lg">詞彙運用</CardTitle>
+              <CardTitle className="text-base">詞彙運用</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 pt-0">
               <CardDescription>
                 智能識別關鍵詞彙使用情況，評估語言豐富度和表達能力
               </CardDescription>
@@ -150,13 +150,13 @@ const Index = () => {
           </Card>
 
           <Card className="text-center hover:shadow-lg transition-shadow duration-300">
-            <CardHeader>
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <TrendingUp className="w-6 h-6 text-purple-600" />
+            <CardHeader className="p-4">
+              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                <TrendingUp className="w-5 h-5 text-purple-600" />
               </div>
-              <CardTitle className="text-lg">流暢度分析</CardTitle>
+              <CardTitle className="text-base">流暢度分析</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 pt-0">
               <CardDescription>
                 分析語速、停頓模式和連貫性，提供流暢度提升指導
               </CardDescription>
@@ -164,13 +164,13 @@ const Index = () => {
           </Card>
 
           <Card className="text-center hover:shadow-lg transition-shadow duration-300">
-            <CardHeader>
-              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <Award className="w-6 h-6 text-orange-600" />
+            <CardHeader className="p-4">
+              <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                <Award className="w-5 h-5 text-orange-600" />
               </div>
-              <CardTitle className="text-lg">自信程度</CardTitle>
+              <CardTitle className="text-base">自信程度</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 pt-0">
               <CardDescription>
                 評估音量、音質和表達清晰度，培養自信的口語表達能力
               </CardDescription>

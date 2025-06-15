@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -550,7 +549,7 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
                 <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
                 <div className="text-sm text-blue-800">
                   <p className="font-medium mb-1">錄音提示：</p>
-                  <p>點擊「Start Recording」後會自動開始錄音，請像真人對話一樣盡快回應問題。</p>
+                  <p>系統會自動按下 「Start Recording」 模擬真人對話，請盡快回答</p>
                 </div>
               </div>
             </CardContent>

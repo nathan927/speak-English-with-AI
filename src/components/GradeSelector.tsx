@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -184,7 +183,7 @@ export const GradeSelector = ({ onGradeSelect, onBack }: GradeSelectorProps) => 
                 onClick={handleStartTest}
                 className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-12 py-6 text-2xl font-semibold rounded-2xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
               >
-                <Mic className="w-10 h-10 mr-4" strokeWidth={3} />
+                <Mic className="w-12 h-12 mr-4" strokeWidth={3} />
                 開始 {selectedGrade} 測驗
               </Button>
               <p className="text-gray-600 mt-4">
