@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -81,9 +82,8 @@ const Index = () => {
       <section className="container mx-auto px-4 py-12">
         <div className="text-center max-w-4xl mx-auto">
           <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-            AI驅動的英語口語
             <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              即時評測
+              AI 英語口語即時評測
             </span>
           </h2>
           <p className="text-xl text-gray-600 mb-8 leading-relaxed">
