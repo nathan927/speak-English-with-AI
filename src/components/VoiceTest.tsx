@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { Mic, MicOff, ArrowLeft, Volume2, Play, Pause, RotateCcw, CheckCircle, AlertCircle } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Mic, MicOff, ArrowLeft, Volume2, Play, Pause, RotateCcw, CheckCircle, AlertCircle, Square } from 'lucide-react';
 import { getRandomQuestionSet, Question } from '@/data/questionBank';
 import { logger } from '@/services/logService';
 
@@ -36,6 +37,7 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
   const [speechInitialized, setSpeechInitialized] = useState(false);
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(true);
+  const [showCompleteDialog, setShowCompleteDialog] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const speechTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -46,7 +48,14 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
     const loadQuestions = () => {
       try {
         setIsLoadingQuestions(true);
-        const questionSet = getRandomQuestionSet(grade);
+        let questionSet = getRandomQuestionSet(grade);
+        
+        // Update "Good Morning/Good Afternoon" to "Good Morning"
+        questionSet = questionSet.map(question => ({
+          ...question,
+          text: question.text.replace(/Good Morning\/Good Afternoon/g, 'Good Morning')
+        }));
+        
         if (questionSet.length === 0) {
           logger.warn(`No questions available for grade ${grade}`);
         } else {
@@ -227,6 +236,20 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
     }
   };
 
+  // Handle complete test with confirmation
+  const handleCompleteTest = () => {
+    setShowCompleteDialog(true);
+  };
+
+  const confirmCompleteTest = () => {
+    const results = Object.entries(responses).map(([questionId, audioBlob]) => ({
+      questionId: parseInt(questionId),
+      audioBlob,
+    }));
+    onComplete(results);
+    setShowCompleteDialog(false);
+  };
+
   const currentQuestion = questions[currentQuestionIndex];
   const progress = questions.length > 0 ? ((currentQuestionIndex + 1) / questions.length) * 100 : 0;
 
@@ -331,7 +354,7 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
             )}
 
             {/* Audio Controls */}
-            <div className="flex justify-center space-x-3">
+            <div className="flex justify-center space-x-3 flex-wrap gap-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -352,28 +375,25 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
                 )}
               </Button>
 
-              <Button
-                size="sm"
-                onClick={handleStartRecording}
-                disabled={isRecording}
-                className={`flex items-center space-x-2 ${
-                  isRecording 
-                    ? 'bg-red-600 hover:bg-red-700' 
-                    : 'bg-red-500 hover:bg-red-600'
-                } text-white`}
-              >
-                {isRecording ? (
-                  <>
-                    <MicOff className="w-4 h-4" />
-                    <span>Recording...</span>
-                  </>
-                ) : (
-                  <>
-                    <Mic className="w-4 h-4" />
-                    <span>Start Recording</span>
-                  </>
-                )}
-              </Button>
+              {!isRecording ? (
+                <Button
+                  size="sm"
+                  onClick={handleStartRecording}
+                  className="flex items-center space-x-2 bg-red-500 hover:bg-red-600 text-white"
+                >
+                  <Mic className="w-4 h-4" />
+                  <span>Start Recording</span>
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  onClick={stopRecording}
+                  className="flex items-center space-x-2 bg-red-600 hover:bg-red-700 text-white"
+                >
+                  <Square className="w-4 h-4" />
+                  <span>Stop Recording</span>
+                </Button>
+              )}
             </div>
 
             {/* Response indicator */}
@@ -396,14 +416,43 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
             Previous
           </Button>
           
-          <Button
-            onClick={handleNextQuestion}
-            disabled={currentQuestionIndex >= questions.length - 1}
-          >
-            {currentQuestionIndex === questions.length - 1 ? 'Complete Test' : 'Next'}
-          </Button>
+          <div className="flex space-x-2">
+            <Button
+              onClick={handleNextQuestion}
+              disabled={currentQuestionIndex >= questions.length - 1}
+            >
+              {currentQuestionIndex === questions.length - 1 ? 'Complete Test' : 'Next'}
+            </Button>
+            
+            <Button
+              onClick={handleCompleteTest}
+              variant="destructive"
+            >
+              Complete Test
+            </Button>
+          </div>
         </div>
       </div>
+
+      {/* Complete Test Confirmation Dialog */}
+      <Dialog open={showCompleteDialog} onOpenChange={setShowCompleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Complete Test</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to complete the test? You have answered {Object.keys(responses).length} out of {questions.length} questions.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCompleteDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={confirmCompleteTest}>
+              Complete Test
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
