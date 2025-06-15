@@ -1,4 +1,3 @@
-
 export interface Question {
   id: number;
   text: string;
@@ -6,6 +5,8 @@ export interface Question {
   instruction?: string;
   grade: string;
   type: 'speaking' | 'reading' | 'personal' | 'dse_group' | 'dse_individual';
+  readingPassage?: string;
+  setGroup?: string; // For C section pairing (A1, B1, A2, B2, etc.)
 }
 
 export interface QuestionSet {
@@ -425,177 +426,429 @@ export const questionSets: GradeQuestionSets = {
     }
   ],
 
-  // P3 Question Sets
+  // P3 Question Sets - Completely redesigned based on provided sample
   "P3": [
     {
-      id: "p3_school_books",
-      theme: "School and Reading",
-      description: "Questions about school life and reading habits",
+      id: "p3_assessment_1",
+      theme: "Primary 3 Speaking Assessment 1",
+      description: "Complete P3 speaking assessment with all sections",
       questions: [
+        // A. Spontaneous Language Use
         {
-          id: 42,
-          text: "What do you like most about your school?",
-          section: "C. Personal",
-          grade: "P3",
-          type: "personal"
-        },
-        {
-          id: 43,
-          text: "Tell me about a book you have read recently.",
-          section: "A. Speaking",
+          id: 300,
+          text: "Good morning. / Good afternoon.",
+          section: "A. Spontaneous Language Use",
           grade: "P3",
           type: "speaking"
         },
         {
-          id: 44,
-          text: "Do you prefer reading books or watching TV?",
-          section: "A. Speaking",
+          id: 301,
+          text: "How old are you?",
+          section: "A. Spontaneous Language Use",
           grade: "P3",
           type: "speaking"
+        },
+        {
+          id: 302,
+          text: "How are you?",
+          section: "A. Spontaneous Language Use",
+          grade: "P3",
+          type: "speaking"
+        },
+        {
+          id: 303,
+          text: "What class are you in?",
+          section: "A. Spontaneous Language Use",
+          grade: "P3",
+          type: "speaking"
+        },
+        {
+          id: 304,
+          text: "What's the weather like today?",
+          section: "A. Spontaneous Language Use",
+          grade: "P3",
+          type: "speaking"
+        },
+
+        // B. Reading Aloud
+        {
+          id: 305,
+          text: "Please read aloud the passage.",
+          section: "B. Reading Aloud",
+          grade: "P3",
+          type: "reading",
+          readingPassage: "The School Picnic\n\nThe school picnic is coming. May and Tom are going to a country park with their classmates. May asks: 'When's the school picnic?' 'It's on the twentieth of January.' says Tom. Then they think about the activities they can do on that day. Tom is interested in sports. He can play football. May can't play football but she can play the guitar. She is interested in music."
+        },
+
+        // C. Expression of Personal Experiences - Set A
+        {
+          id: 306,
+          text: "Are you interested in ball games?",
+          section: "C. Expression of Personal Experiences",
+          grade: "P3",
+          type: "personal",
+          setGroup: "A1"
+        },
+        {
+          id: 307,
+          text: "What do you like doing at the beach?",
+          section: "C. Expression of Personal Experiences",
+          grade: "P3",
+          type: "personal",
+          setGroup: "A2"
+        },
+        {
+          id: 308,
+          text: "What food do you want on your birthday?",
+          section: "C. Expression of Personal Experiences",
+          grade: "P3",
+          type: "personal",
+          setGroup: "A3"
+        },
+
+        // C. Expression of Personal Experiences - Set B
+        {
+          id: 309,
+          text: "Are you interested in board games?",
+          section: "C. Expression of Personal Experiences",
+          grade: "P3",
+          type: "personal",
+          setGroup: "B1"
+        },
+        {
+          id: 310,
+          text: "What do you like doing at the farm?",
+          section: "C. Expression of Personal Experiences",
+          grade: "P3",
+          type: "personal",
+          setGroup: "B2"
+        },
+        {
+          id: 311,
+          text: "What drinks do you want on your birthday?",
+          section: "C. Expression of Personal Experiences",
+          grade: "P3",
+          type: "personal",
+          setGroup: "B3"
         }
       ]
     },
     {
-      id: "p3_hobbies_activities",
-      theme: "Hobbies and Weekend Activities",
-      description: "Questions about personal interests and weekend activities",
+      id: "p3_assessment_2",
+      theme: "Primary 3 Speaking Assessment 2",
+      description: "Alternative P3 speaking assessment with different topics",
       questions: [
+        // A. Spontaneous Language Use
         {
-          id: 45,
-          text: "What are your hobbies?",
-          section: "C. Personal",
-          grade: "P3",
-          type: "personal"
-        },
-        {
-          id: 46,
-          text: "Describe what you did last weekend.",
-          section: "A. Speaking",
+          id: 312,
+          text: "Good morning. / Good afternoon.",
+          section: "A. Spontaneous Language Use",
           grade: "P3",
           type: "speaking"
         },
         {
-          id: 47,
-          text: "What do you like to do in your free time?",
-          section: "A. Speaking",
-          grade: "P3",
-          type: "speaking"
-        }
-      ]
-    },
-    {
-      id: "p3_environment",
-      theme: "Environment and Nature",
-      description: "Questions about environmental awareness",
-      questions: [
-        {
-          id: 48,
-          text: "Read this article about the environment.",
-          section: "B. Reading",
-          grade: "P3",
-          type: "reading"
-        },
-        {
-          id: 49,
-          text: "How can we protect the environment?",
-          section: "A. Speaking",
+          id: 313,
+          text: "What's your name?",
+          section: "A. Spontaneous Language Use",
           grade: "P3",
           type: "speaking"
         },
         {
-          id: 50,
-          text: "What do you do to help the environment?",
-          section: "A. Speaking",
+          id: 314,
+          text: "How do you come to school?",
+          section: "A. Spontaneous Language Use",
           grade: "P3",
           type: "speaking"
+        },
+        {
+          id: 315,
+          text: "What's your favourite subject?",
+          section: "A. Spontaneous Language Use",
+          grade: "P3",
+          type: "speaking"
+        },
+        {
+          id: 316,
+          text: "Do you have any pets?",
+          section: "A. Spontaneous Language Use",
+          grade: "P3",
+          type: "speaking"
+        },
+
+        // B. Reading Aloud
+        {
+          id: 317,
+          text: "Please read aloud the passage.",
+          section: "B. Reading Aloud",
+          grade: "P3",
+          type: "reading",
+          readingPassage: "My Weekend\n\nLast weekend, I went to the park with my family. We had a picnic under a big tree. My mother made sandwiches and my father brought juice. My little brother played with his toy car. I flew a kite with my sister. The weather was sunny and warm. We had a wonderful time together. I love spending time with my family."
+        },
+
+        // C. Expression of Personal Experiences - Set A
+        {
+          id: 318,
+          text: "Do you like playing computer games?",
+          section: "C. Expression of Personal Experiences",
+          grade: "P3",
+          type: "personal",
+          setGroup: "A1"
+        },
+        {
+          id: 319,
+          text: "What do you usually do after school?",
+          section: "C. Expression of Personal Experiences",
+          grade: "P3",
+          type: "personal",
+          setGroup: "A2"
+        },
+        {
+          id: 320,
+          text: "Where do you like to go on holidays?",
+          section: "C. Expression of Personal Experiences",
+          grade: "P3",
+          type: "personal",
+          setGroup: "A3"
+        },
+
+        // C. Expression of Personal Experiences - Set B
+        {
+          id: 321,
+          text: "Do you like reading books?",
+          section: "C. Expression of Personal Experiences",
+          grade: "P3",
+          type: "personal",
+          setGroup: "B1"
+        },
+        {
+          id: 322,
+          text: "What do you usually do on weekends?",
+          section: "C. Expression of Personal Experiences",
+          grade: "P3",
+          type: "personal",
+          setGroup: "B2"
+        },
+        {
+          id: 323,
+          text: "What places do you like to visit with your family?",
+          section: "C. Expression of Personal Experiences",
+          grade: "P3",
+          type: "personal",
+          setGroup: "B3"
         }
       ]
     }
   ],
 
-  // P4 Question Sets
+  // P4 Question Sets - Created following the same pattern
   "P4": [
     {
-      id: "p4_school_challenges",
-      theme: "School Life and Challenges",
-      description: "Questions about school experiences and academic challenges",
+      id: "p4_assessment_1",
+      theme: "Primary 4 Speaking Assessment 1",
+      description: "Complete P4 speaking assessment with all sections",
       questions: [
+        // A. Spontaneous Language Use
         {
-          id: 51,
-          text: "What challenges do students face in school today?",
-          section: "A. Speaking",
+          id: 400,
+          text: "Good morning. / Good afternoon.",
+          section: "A. Spontaneous Language Use",
           grade: "P4",
           type: "speaking"
         },
         {
-          id: 52,
-          text: "Tell me about your favorite teacher and why.",
-          section: "C. Personal",
-          grade: "P4",
-          type: "personal"
-        },
-        {
-          id: 53,
-          text: "How do you handle difficult subjects in school?",
-          section: "A. Speaking",
+          id: 401,
+          text: "What did you do yesterday?",
+          section: "A. Spontaneous Language Use",
           grade: "P4",
           type: "speaking"
+        },
+        {
+          id: 402,
+          text: "What's your favourite season and why?",
+          section: "A. Spontaneous Language Use",
+          grade: "P4",
+          type: "speaking"
+        },
+        {
+          id: 403,
+          text: "How do you usually spend your weekends?",
+          section: "A. Spontaneous Language Use",
+          grade: "P4",
+          type: "speaking"
+        },
+        {
+          id: 404,
+          text: "What would you like to be when you grow up?",
+          section: "A. Spontaneous Language Use",
+          grade: "P4",
+          type: "speaking"
+        },
+
+        // B. Reading Aloud
+        {
+          id: 405,
+          text: "Please read aloud the passage.",
+          section: "B. Reading Aloud",
+          grade: "P4",
+          type: "reading",
+          readingPassage: "A Trip to the Zoo\n\nLast Sunday, our class went to the zoo for a field trip. We saw many different animals. The lions were sleeping under the trees. The monkeys were jumping and playing with each other. The elephants were having a bath in the water. My favourite animals were the pandas. They were eating bamboo and looked very cute. Our teacher told us many interesting facts about the animals. It was an educational and fun day."
+        },
+
+        // C. Expression of Personal Experiences - Set A
+        {
+          id: 406,
+          text: "What's your favourite school subject and why?",
+          section: "C. Expression of Personal Experiences",
+          grade: "P4",
+          type: "personal",
+          setGroup: "A1"
+        },
+        {
+          id: 407,
+          text: "Describe your best friend.",
+          section: "C. Expression of Personal Experiences",
+          grade: "P4",
+          type: "personal",
+          setGroup: "A2"
+        },
+        {
+          id: 408,
+          text: "What do you like to do during summer holidays?",
+          section: "C. Expression of Personal Experiences",
+          grade: "P4",
+          type: "personal",
+          setGroup: "A3"
+        },
+
+        // C. Expression of Personal Experiences - Set B
+        {
+          id: 409,
+          text: "What's the most difficult subject for you and why?",
+          section: "C. Expression of Personal Experiences",
+          grade: "P4",
+          type: "personal",
+          setGroup: "B1"
+        },
+        {
+          id: 410,
+          text: "Tell me about your family members.",
+          section: "C. Expression of Personal Experiences",
+          grade: "P4",
+          type: "personal",
+          setGroup: "B2"
+        },
+        {
+          id: 411,
+          text: "What do you like to do during winter holidays?",
+          section: "C. Expression of Personal Experiences",
+          grade: "P4",
+          type: "personal",
+          setGroup: "B3"
         }
       ]
     },
     {
-      id: "p4_technology_learning",
-      theme: "Technology and Learning",
-      description: "Questions about technology's role in education",
+      id: "p4_assessment_2",
+      theme: "Primary 4 Speaking Assessment 2",
+      description: "Alternative P4 speaking assessment with different topics",
       questions: [
+        // A. Spontaneous Language Use
         {
-          id: 54,
-          text: "How do you think technology affects learning?",
-          section: "A. Speaking",
+          id: 412,
+          text: "Good morning. / Good afternoon.",
+          section: "A. Spontaneous Language Use",
           grade: "P4",
           type: "speaking"
         },
         {
-          id: 55,
-          text: "What technology do you use for studying?",
-          section: "A. Speaking",
+          id: 413,
+          text: "What time do you usually go to bed?",
+          section: "A. Spontaneous Language Use",
           grade: "P4",
           type: "speaking"
         },
         {
-          id: 56,
-          text: "Read this passage about climate change.",
-          section: "B. Reading",
-          grade: "P4",
-          type: "reading"
-        }
-      ]
-    },
-    {
-      id: "p4_goals_future",
-      theme: "Goals and Future Planning",
-      description: "Questions about personal goals and future aspirations",
-      questions: [
-        {
-          id: 57,
-          text: "What are your goals for this school year?",
-          section: "C. Personal",
-          grade: "P4",
-          type: "personal"
-        },
-        {
-          id: 58,
-          text: "How do you plan to achieve your goals?",
-          section: "A. Speaking",
+          id: 414,
+          text: "What's your favourite food and why?",
+          section: "A. Spontaneous Language Use",
           grade: "P4",
           type: "speaking"
         },
         {
-          id: 59,
-          text: "What skills do you want to improve?",
-          section: "C. Personal",
+          id: 415,
+          text: "Do you prefer indoor or outdoor activities?",
+          section: "A. Spontaneous Language Use",
           grade: "P4",
-          type: "personal"
+          type: "speaking"
+        },
+        {
+          id: 416,
+          text: "What makes you happy?",
+          section: "A. Spontaneous Language Use",
+          grade: "P4",
+          type: "speaking"
+        },
+
+        // B. Reading Aloud
+        {
+          id: 417,
+          text: "Please read aloud the passage.",
+          section: "B. Reading Aloud",
+          grade: "P4",
+          type: "reading",
+          readingPassage: "My School Library\n\nOur school library is a quiet and comfortable place. There are many books on the shelves. Students can borrow story books, picture books, and reference books. The librarian, Mrs. Wong, is very helpful. She helps us find the books we need. There are also computers where we can search for information. Many students like to read there during lunch time. Reading helps us learn new things and improves our English."
+        },
+
+        // C. Expression of Personal Experiences - Set A
+        {
+          id: 418,
+          text: "What kind of books do you like to read?",
+          section: "C. Expression of Personal Experiences",
+          grade: "P4",
+          type: "personal",
+          setGroup: "A1"
+        },
+        {
+          id: 419,
+          text: "Describe your bedroom.",
+          section: "C. Expression of Personal Experiences",
+          grade: "P4",
+          type: "personal",
+          setGroup: "A2"
+        },
+        {
+          id: 420,
+          text: "What's your favourite festival and why?",
+          section: "C. Expression of Personal Experiences",
+          grade: "P4",
+          type: "personal",
+          setGroup: "A3"
+        },
+
+        // C. Expression of Personal Experiences - Set B
+        {
+          id: 421,
+          text: "What kind of movies do you like to watch?",
+          section: "C. Expression of Personal Experiences",
+          grade: "P4",
+          type: "personal",
+          setGroup: "B1"
+        },
+        {
+          id: 422,
+          text: "Describe your school.",
+          section: "C. Expression of Personal Experiences",
+          grade: "P4",
+          type: "personal",
+          setGroup: "B2"
+        },
+        {
+          id: 423,
+          text: "What's your favourite game and why?",
+          section: "C. Expression of Personal Experiences",
+          grade: "P4",
+          type: "personal",
+          setGroup: "B3"
         }
       ]
     }
@@ -1272,4 +1525,3 @@ export const getRandomQuestionByType = (grade: string, type: Question['type']): 
   if (questions.length === 0) return null;
   return questions[Math.floor(Math.random() * questions.length)];
 };
-
