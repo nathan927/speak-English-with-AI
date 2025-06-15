@@ -1,9 +1,10 @@
+
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Mic, MicOff, Play, Pause, RotateCcw, Volume2 } from 'lucide-react';
+import { ArrowLeft, Mic, MicOff, Play, Pause, RotateCcw, Volume2, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { performAIEvaluation } from '@/services/aiEvaluationService';
 import { getRandomQuestionSet, type Question } from '@/data/questionBank';
@@ -62,11 +63,15 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
     [currentQ]
   );
 
+  // Check if current grade is kindergarten (K1, K2, K3) - disable transitions for these
+  const isKindergarten = useMemo(() => ['K1', 'K2', 'K3'].includes(grade), [grade]);
+
   useEffect(() => {
     logger.info('VoiceTest component mounted', {
       grade,
       speechRate,
-      questionsCount: questions.length
+      questionsCount: questions.length,
+      isKindergarten
     }, 'VoiceTest', 'mount');
 
     return () => {
@@ -119,8 +124,8 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
           isReadingQuestion: true
         }, 'VoiceTest', 'readingInstruction');
       } else {
-        // 對於非誦讀題，如果是切換後第一次說話且還沒說過過渡句，先說過渡句
-        if (currentQuestion > 0 && !hasSpokenTransition) {
+        // 對於非誦讀題，如果是切換後第一次說話且還沒說過過渡句，先說過渡句（但排除幼稚園）
+        if (currentQuestion > 0 && !hasSpokenTransition && !isKindergarten) {
           const completionPhrase = getCompletionPhrase();
           speechText = completionPhrase + ' ' + buildNaturalQuestion(currentQ.text, false, currentQuestion === questions.length - 1, grade);
           setHasSpokenTransition(true);
@@ -136,7 +141,8 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
         speechText,
         textLength: speechText.length,
         hasSpokenTransition,
-        currentQuestion
+        currentQuestion,
+        isKindergarten
       }, 'VoiceTest', 'textPrepared');
       
       speakText(speechText, () => {
@@ -537,6 +543,19 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
         </div>
 
         <div className="max-w-4xl mx-auto">
+          {/* Recording Instructions */}
+          <Card className="mb-4 bg-blue-50 border-blue-200">
+            <CardContent className="p-4">
+              <div className="flex items-start space-x-3">
+                <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-blue-800">
+                  <p className="font-medium mb-1">錄音提示：</p>
+                  <p>點擊「Start Recording」後會自動開始錄音，請像真人對話一樣盡快回應問題。</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card className="mb-6">
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -653,7 +672,7 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
                     <Button
                       size="lg"
                       onClick={nextQuestion}
-                      className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 text-lg"
+                      className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-16 py-4 text-lg"
                     >
                       {currentQuestion === questions.length - 1 ? 'Complete Assessment' : 'Next Question'}
                     </Button>

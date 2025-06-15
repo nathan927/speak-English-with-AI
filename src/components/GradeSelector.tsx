@@ -59,6 +59,14 @@ export const GradeSelector = ({ onGradeSelect, onBack }: GradeSelectorProps) => 
 
   const handleGradeSelect = (gradeId: string) => {
     setSelectedGrade(gradeId);
+    
+    // Auto-scroll to bottom after grade selection
+    setTimeout(() => {
+      window.scrollTo({
+        top: document.documentElement.scrollHeight,
+        behavior: 'smooth'
+      });
+    }, 300);
   };
 
   const handleStartTest = () => {
@@ -142,7 +150,7 @@ export const GradeSelector = ({ onGradeSelect, onBack }: GradeSelectorProps) => 
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Volume2 className="w-5 h-5" />
-                <span>語速設定</span>
+                <span>語速</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -176,7 +184,7 @@ export const GradeSelector = ({ onGradeSelect, onBack }: GradeSelectorProps) => 
                 onClick={handleStartTest}
                 className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-12 py-6 text-2xl font-semibold rounded-2xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
               >
-                <Mic className="w-10 h-10 mr-4" />
+                <Mic className="w-10 h-10 mr-4" strokeWidth={3} />
                 開始 {selectedGrade} 測驗
               </Button>
               <p className="text-gray-600 mt-4">
