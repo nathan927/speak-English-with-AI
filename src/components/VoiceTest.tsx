@@ -1,17 +1,36 @@
+
 import React, { useState, useEffect } from 'react';
 import { Question } from '../data/questionBank';
 import { Volume2 } from 'lucide-react';
 
 interface VoiceTestProps {
-  questions: Question[];
+  grade: string;
+  speechRate: number;
   showQuestions: boolean;
-  onComplete: () => void;
+  onComplete: (results: any) => void;
+  onBack: () => void;
+  onShowQuestionsChange: (checked: boolean) => void;
 }
 
-const VoiceTest: React.FC<VoiceTestProps> = ({ questions, showQuestions, onComplete }) => {
+const VoiceTest: React.FC<VoiceTestProps> = ({ 
+  grade, 
+  speechRate, 
+  showQuestions, 
+  onComplete, 
+  onBack,
+  onShowQuestionsChange 
+}) => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
+
+  useEffect(() => {
+    // Load questions based on grade - this would need to be implemented
+    // For now, using empty array as placeholder
+    const loadedQuestions: Question[] = [];
+    setQuestions(loadedQuestions);
+  }, [grade]);
 
   useEffect(() => {
     if (questions.length > 0) {
@@ -23,7 +42,13 @@ const VoiceTest: React.FC<VoiceTestProps> = ({ questions, showQuestions, onCompl
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     } else {
-      onComplete();
+      // Create mock results for completion
+      const results = {
+        grade,
+        totalQuestions: questions.length,
+        completedAt: new Date().toISOString()
+      };
+      onComplete(results);
     }
   };
 
@@ -35,12 +60,13 @@ const VoiceTest: React.FC<VoiceTestProps> = ({ questions, showQuestions, onCompl
     }
 
     const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = speechRate;
     utterance.onstart = () => setIsSpeaking(true);
     utterance.onend = () => setIsSpeaking(false);
     window.speechSynthesis.speak(utterance);
   };
 
-  if (!currentQuestion) {
+  if (!currentQuestion && questions.length === 0) {
     return <div>Loading questions...</div>;
   }
 
@@ -49,7 +75,7 @@ const VoiceTest: React.FC<VoiceTestProps> = ({ questions, showQuestions, onCompl
       <div className="max-w-3xl w-full space-y-8">
         <div className="text-center">
           <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-            Voice Test
+            Voice Test - {grade}
           </h2>
           <p className="mt-2 text-lg text-gray-600">
             Answer the questions by speaking clearly.
@@ -57,8 +83,8 @@ const VoiceTest: React.FC<VoiceTestProps> = ({ questions, showQuestions, onCompl
         </div>
 
         {/* Question Display */}
-        <div className="space-y-4">
-          {currentQuestion && (
+        {currentQuestion && (
+          <div className="space-y-4">
             <div className="bg-white rounded-lg p-6 shadow-sm border">
               <div className="flex justify-between items-start mb-4">
                 <h3 className="text-lg font-semibold text-gray-900">Question {currentQuestionIndex + 1}</h3>
@@ -110,18 +136,24 @@ const VoiceTest: React.FC<VoiceTestProps> = ({ questions, showQuestions, onCompl
                   className="flex items-center gap-2 px-3 py-2 text-blue-600 hover:text-blue-800 transition-colors"
                 >
                   <Volume2 className="w-4 h-4" />
-                  {isSpeaking ? 'Playing...' : 'Playing question...'}
+                  {isSpeaking ? 'Playing...' : 'Play question'}
                 </button>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Navigation */}
-        <div className="flex justify-end">
+        <div className="flex justify-between">
+          <button
+            onClick={onBack}
+            className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-1"
+          >
+            Back
+          </button>
           <button
             onClick={nextQuestion}
-            className="ml-3 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
           >
             Next Question
           </button>
