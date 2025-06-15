@@ -426,7 +426,7 @@ export const questionSets: GradeQuestionSets = {
     }
   ],
 
-  // P3 Question Sets - Updated based on attachments
+  // P3 Question Sets - Completely redesigned based on provided sample
   "P3": [
     {
       id: "p3_assessment_1",
@@ -536,9 +536,9 @@ export const questionSets: GradeQuestionSets = {
     {
       id: "p3_assessment_2",
       theme: "Primary 3 Speaking Assessment 2",
-      description: "P3 Assessment 2 based on provided document",
+      description: "Alternative P3 speaking assessment with different topics",
       questions: [
-        // A. Spontaneous Language Use - Assessment 2
+        // A. Spontaneous Language Use
         {
           id: 312,
           text: "Good morning. / Good afternoon.",
@@ -548,47 +548,47 @@ export const questionSets: GradeQuestionSets = {
         },
         {
           id: 313,
-          text: "How old are you?",
+          text: "What's your name?",
           section: "A. Spontaneous Language Use",
           grade: "P3",
           type: "speaking"
         },
         {
           id: 314,
-          text: "How are you?",
+          text: "How do you come to school?",
           section: "A. Spontaneous Language Use",
           grade: "P3",
           type: "speaking"
         },
         {
           id: 315,
-          text: "What class are you in?",
+          text: "What's your favourite subject?",
           section: "A. Spontaneous Language Use",
           grade: "P3",
           type: "speaking"
         },
         {
           id: 316,
-          text: "What's the weather like today?",
+          text: "Do you have any pets?",
           section: "A. Spontaneous Language Use",
           grade: "P3",
           type: "speaking"
         },
 
-        // B. Reading Aloud - Assessment 2 (4 marks)
+        // B. Reading Aloud
         {
           id: 317,
           text: "Please read aloud the passage.",
           section: "B. Reading Aloud",
           grade: "P3",
           type: "reading",
-          readingPassage: "The School Picnic\n\nThe school picnic is coming. May and Tom are going to a country park with their classmates. May asks: 'When's the school picnic?' 'It's on the twentieth of January.' says Tom. Then they think about the activities they can do on that day. Tom is interested in sports. He can play football. May can't play football but she can play the guitar. She is interested in music."
+          readingPassage: "My Weekend\n\nLast weekend, I went to the park with my family. We had a picnic under a big tree. My mother made sandwiches and my father brought juice. My little brother played with his toy car. I flew a kite with my sister. The weather was sunny and warm. We had a wonderful time together. I love spending time with my family."
         },
 
-        // C. Expression of Personal Experiences - Set A (Assessment 2)
+        // C. Expression of Personal Experiences - Set A
         {
           id: 318,
-          text: "Are you interested in ball games?",
+          text: "Do you like playing computer games?",
           section: "C. Expression of Personal Experiences",
           grade: "P3",
           type: "personal",
@@ -596,7 +596,7 @@ export const questionSets: GradeQuestionSets = {
         },
         {
           id: 319,
-          text: "What do you like doing at the beach?",
+          text: "What do you usually do after school?",
           section: "C. Expression of Personal Experiences",
           grade: "P3",
           type: "personal",
@@ -604,17 +604,17 @@ export const questionSets: GradeQuestionSets = {
         },
         {
           id: 320,
-          text: "What food do you want on your birthday?",
+          text: "Where do you like to go on holidays?",
           section: "C. Expression of Personal Experiences",
           grade: "P3",
           type: "personal",
           setGroup: "A3"
         },
 
-        // C. Expression of Personal Experiences - Set B (Assessment 2)
+        // C. Expression of Personal Experiences - Set B
         {
           id: 321,
-          text: "Are you interested in board games?",
+          text: "Do you like reading books?",
           section: "C. Expression of Personal Experiences",
           grade: "P3",
           type: "personal",
@@ -622,7 +622,7 @@ export const questionSets: GradeQuestionSets = {
         },
         {
           id: 322,
-          text: "What do you like doing at the farm?",
+          text: "What do you usually do on weekends?",
           section: "C. Expression of Personal Experiences",
           grade: "P3",
           type: "personal",
@@ -630,7 +630,7 @@ export const questionSets: GradeQuestionSets = {
         },
         {
           id: 323,
-          text: "What drinks do you want on your birthday?",
+          text: "What places do you like to visit with your family?",
           section: "C. Expression of Personal Experiences",
           grade: "P3",
           type: "personal",
