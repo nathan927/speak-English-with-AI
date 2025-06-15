@@ -51,6 +51,7 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
   const streamRef = useRef<MediaStream | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const analysisTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const { toast } = useToast();
 
@@ -58,58 +59,38 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
   const getQuestionsForGrade = (grade: string) => {
     const examQuestions = {
       'K1': [
-        // A. Spontaneous Language Use
         { id: 1, section: 'A. Spontaneous Language Use', type: 'greeting', text: 'Good morning.', instruction: 'Please respond to the greeting', targetWords: ['good', 'morning'] },
         { id: 2, section: 'A. Spontaneous Language Use', type: 'question', text: 'How old are you?', instruction: 'Answer this question', targetWords: ['old', 'years'] },
         { id: 3, section: 'A. Spontaneous Language Use', type: 'question', text: 'What is your name?', instruction: 'Tell me your name', targetWords: ['name'] },
-        
-        // B. Reading Aloud
         { id: 4, section: 'B. Reading Aloud', type: 'reading', text: 'The cat is big. The dog is small. I like animals.', instruction: 'Please read this passage clearly', targetWords: ['cat', 'big', 'dog', 'small', 'animals'] },
-        
-        // C. Expression of Personal Experiences
         { id: 5, section: 'C. Expression of Personal Experiences', type: 'personal', text: 'Do you like toys?', instruction: 'Tell me about your favorite toys', targetWords: ['like', 'toys', 'play'] },
         { id: 6, section: 'C. Expression of Personal Experiences', type: 'personal', text: 'What do you like to eat?', instruction: 'Talk about your favorite food', targetWords: ['like', 'eat', 'food'] }
       ],
       'P1': [
-        // A. Spontaneous Language Use
         { id: 1, section: 'A. Spontaneous Language Use', type: 'greeting', text: 'Good afternoon.', instruction: 'Please respond to the greeting', targetWords: ['good', 'afternoon'] },
         { id: 2, section: 'A. Spontaneous Language Use', type: 'question', text: 'How old are you?', instruction: 'Answer this question', targetWords: ['old', 'years'] },
         { id: 3, section: 'A. Spontaneous Language Use', type: 'question', text: 'What class are you in?', instruction: 'Tell me your class', targetWords: ['class'] },
-        
-        // B. Reading Aloud
         { id: 4, section: 'B. Reading Aloud', type: 'reading', text: 'My Family: I have a big family. My father is tall. My mother is kind. I have one brother and one sister. We are happy.', instruction: 'Please read this passage clearly', targetWords: ['family', 'father', 'mother', 'brother', 'sister', 'happy'] },
-        
-        // C. Expression of Personal Experiences (Set A)
         { id: 5, section: 'C. Expression of Personal Experiences', type: 'personal', text: 'Are you interested in ball games?', instruction: 'Tell me about ball games you like', targetWords: ['interested', 'ball', 'games'] },
         { id: 6, section: 'C. Expression of Personal Experiences', type: 'personal', text: 'What do you like doing at the beach?', instruction: 'Describe activities at the beach', targetWords: ['beach', 'swimming', 'sand'] }
       ],
       'P3': [
-        // A. Spontaneous Language Use
         { id: 1, section: 'A. Spontaneous Language Use', type: 'greeting', text: 'Good morning.', instruction: 'Please respond to the greeting', targetWords: ['good', 'morning'] },
         { id: 2, section: 'A. Spontaneous Language Use', type: 'question', text: 'How old are you?', instruction: 'Answer this question', targetWords: ['old', 'years'] },
         { id: 3, section: 'A. Spontaneous Language Use', type: 'question', text: 'How are you?', instruction: 'Tell me how you are feeling', targetWords: ['fine', 'good', 'well'] },
         { id: 4, section: 'A. Spontaneous Language Use', type: 'question', text: 'What class are you in?', instruction: 'Tell me your class', targetWords: ['class'] },
         { id: 5, section: 'A. Spontaneous Language Use', type: 'question', text: "What's the weather like today?", instruction: 'Describe today\'s weather', targetWords: ['weather', 'sunny', 'cloudy', 'rainy'] },
-        
-        // B. Reading Aloud
         { id: 6, section: 'B. Reading Aloud', type: 'reading', text: 'The School Picnic: The school picnic is coming. May and Tom are going to a country park with their classmates. May asks: "When\'s the school picnic?" "It\'s on the twentieth of January," says Tom. Then they think about the activities they can do on that day. Tom is interested in sports. He can play football. May can\'t play football but she can play the guitar. She is interested in music.', instruction: 'Please read this passage clearly', targetWords: ['school', 'picnic', 'country', 'park', 'January', 'football', 'guitar', 'music'] },
-        
-        // C. Expression of Personal Experiences (Set A)
         { id: 7, section: 'C. Expression of Personal Experiences', type: 'personal', text: 'Are you interested in ball games?', instruction: 'Tell me about ball games you like', targetWords: ['interested', 'ball', 'games', 'football', 'basketball'] },
         { id: 8, section: 'C. Expression of Personal Experiences', type: 'personal', text: 'What do you like doing at the beach?', instruction: 'Describe activities you enjoy at the beach', targetWords: ['beach', 'swimming', 'sand', 'play'] },
         { id: 9, section: 'C. Expression of Personal Experiences', type: 'personal', text: 'What food do you want on your birthday?', instruction: 'Tell me about your birthday food preferences', targetWords: ['birthday', 'food', 'cake', 'party'] }
       ],
       'S1': [
-        // A. Spontaneous Language Use
         { id: 1, section: 'A. Spontaneous Language Use', type: 'greeting', text: 'Good afternoon.', instruction: 'Please respond appropriately', targetWords: ['good', 'afternoon'] },
         { id: 2, section: 'A. Spontaneous Language Use', type: 'question', text: 'How old are you?', instruction: 'Answer this question', targetWords: ['old', 'years'] },
         { id: 3, section: 'A. Spontaneous Language Use', type: 'question', text: 'What form are you in?', instruction: 'Tell me your form/class', targetWords: ['form', 'class'] },
         { id: 4, section: 'A. Spontaneous Language Use', type: 'question', text: 'What subjects do you study?', instruction: 'List some of your subjects', targetWords: ['subjects', 'study', 'English', 'Mathematics'] },
-        
-        // B. Reading Aloud
         { id: 5, section: 'B. Reading Aloud', type: 'reading', text: 'Environmental Protection: Hong Kong faces many environmental challenges today. Air pollution from vehicles and factories affects our daily lives. Many citizens are becoming more aware of the importance of recycling and reducing waste. Schools are teaching students about sustainable living practices. Everyone can contribute to protecting our environment by making small changes in their daily habits.', instruction: 'Please read this passage with proper pronunciation and intonation', targetWords: ['environmental', 'pollution', 'recycling', 'sustainable', 'citizens'] },
-        
-        // C. Expression of Personal Experiences
         { id: 6, section: 'C. Expression of Personal Experiences', type: 'opinion', text: 'What do you think about using technology in education?', instruction: 'Express your views on educational technology', targetWords: ['technology', 'education', 'learning', 'computers'] },
         { id: 7, section: 'C. Expression of Personal Experiences', type: 'personal', text: 'Describe a memorable experience you had during the holidays.', instruction: 'Share a detailed personal experience', targetWords: ['memorable', 'experience', 'holidays', 'family'] },
         { id: 8, section: 'C. Expression of Personal Experiences', type: 'future', text: 'What are your plans for secondary school?', instruction: 'Discuss your academic and personal goals', targetWords: ['plans', 'secondary', 'school', 'future'] }
@@ -123,32 +104,40 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
   const currentQ = questions[currentQuestion];
   const progress = ((currentQuestion + 1) / questions.length) * 100;
 
-  // Real speech recognition function
+  // Improved speech analysis with timeout protection
   const analyzeAudio = async (audioBlob: Blob): Promise<{ transcription: string; score: number }> => {
-    try {
-      // Convert blob to audio buffer for analysis
-      const arrayBuffer = await audioBlob.arrayBuffer();
-      const audioContext = new AudioContext();
-      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-      
-      // Simulate speech recognition - in a real app, you'd use Web Speech API or cloud services
-      return new Promise((resolve) => {
+    return new Promise((resolve) => {
+      // Set a timeout to prevent infinite loading
+      const timeoutId = setTimeout(() => {
+        console.log('Speech analysis timeout, using fallback scoring');
+        resolve({
+          transcription: 'Speech analysis completed (timeout)',
+          score: Math.max(0, Math.min(100, 40 + Math.random() * 20))
+        });
+      }, 10000); // 10 second timeout
+
+      try {
+        // Check if speech recognition is available
         if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-          // Use actual speech recognition if available
           const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
           const recognition = new SpeechRecognition();
           
           recognition.continuous = false;
           recognition.interimResults = false;
           recognition.lang = 'en-US';
+          recognition.maxAlternatives = 1;
           
-          // Convert blob to audio URL for recognition
-          const audioUrl = URL.createObjectURL(audioBlob);
-          const audio = new Audio(audioUrl);
+          let hasResult = false;
           
           recognition.onresult = (event: any) => {
+            clearTimeout(timeoutId);
+            if (hasResult) return;
+            hasResult = true;
+            
             const transcript = event.results[0][0].transcript.toLowerCase();
             const confidence = event.results[0][0].confidence;
+            
+            console.log('Speech recognition result:', transcript, 'Confidence:', confidence);
             
             // Calculate score based on target words and confidence
             const targetWords = currentQ.targetWords || [];
@@ -156,20 +145,17 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
             
             targetWords.forEach(word => {
               if (transcript.includes(word.toLowerCase())) {
-                wordMatchScore += 15; // More stringent scoring
+                wordMatchScore += 10;
               }
             });
             
-            // Stricter scoring for real assessment
-            let finalScore = Math.round((confidence * 40) + wordMatchScore);
+            // More realistic scoring
+            let finalScore = Math.round((confidence * 50) + wordMatchScore);
             
-            // Additional penalties for very short responses
-            if (transcript.length < 10) {
+            // Length bonus/penalty
+            if (transcript.length < 5) {
               finalScore -= 20;
-            }
-            
-            // Bonus for longer, more complete responses
-            if (transcript.length > 50) {
+            } else if (transcript.length > 30) {
               finalScore += 10;
             }
             
@@ -181,84 +167,73 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
             });
           };
           
-          recognition.onerror = () => {
-            // Fallback scoring based on audio analysis - more stringent
-            const duration = audioBuffer.duration;
-            const amplitude = calculateAverageAmplitude(audioBuffer);
+          recognition.onerror = (event: any) => {
+            clearTimeout(timeoutId);
+            if (hasResult) return;
+            hasResult = true;
             
-            let score = 30; // Lower base score
+            console.log('Speech recognition error:', event.error);
             
-            // Duration scoring (optimal range: 5-15 seconds for detailed responses)
-            if (duration >= 5 && duration <= 15) {
-              score += 25;
-            } else if (duration >= 2 && duration <= 20) {
-              score += 15;
-            } else if (duration < 2) {
-              score -= 10; // Penalty for very short responses
-            }
-            
-            // Amplitude scoring (check if user actually spoke clearly)
-            if (amplitude > 0.02) {
-              score += 20;
-            } else if (amplitude > 0.01) {
-              score += 10;
-            }
-            
-            // Smaller random variation
-            score += Math.random() * 5;
-            
+            // Fallback scoring
             resolve({
-              transcription: 'Audio recorded and analyzed',
-              score: Math.max(0, Math.min(100, Math.round(score)))
+              transcription: 'Speech recorded (recognition unavailable)',
+              score: Math.max(0, Math.min(100, 35 + Math.random() * 15))
             });
           };
           
-          // Start recognition
-          audio.play();
-          recognition.start();
+          // Start recognition with recorded audio
+          const audioUrl = URL.createObjectURL(audioBlob);
+          const audio = new Audio(audioUrl);
+          
+          audio.onplay = () => {
+            recognition.start();
+          };
+          
+          audio.onerror = () => {
+            clearTimeout(timeoutId);
+            if (hasResult) return;
+            hasResult = true;
+            
+            resolve({
+              transcription: 'Audio playback error',
+              score: 30
+            });
+          };
+          
+          audio.play().catch(() => {
+            clearTimeout(timeoutId);
+            if (hasResult) return;
+            hasResult = true;
+            
+            resolve({
+              transcription: 'Audio analysis error',
+              score: 25
+            });
+          });
+          
         } else {
-          // Fallback analysis - more realistic scoring
-          const duration = audioBuffer.duration;
-          const amplitude = calculateAverageAmplitude(audioBuffer);
-          
-          let score = 35; // Lower base score
-          
-          if (duration >= 5 && duration <= 15) score += 25;
-          else if (duration >= 2 && duration <= 20) score += 15;
-          else if (duration < 2) score -= 15;
-          
-          if (amplitude > 0.02) score += 20;
-          else if (amplitude > 0.01) score += 10;
-          
-          score += Math.random() * 5;
-          
+          // Fallback for browsers without speech recognition
+          clearTimeout(timeoutId);
           resolve({
-            transcription: 'Speech recorded and analyzed',
-            score: Math.max(0, Math.min(100, Math.round(score)))
+            transcription: 'Speech recognition not supported',
+            score: Math.max(0, Math.min(100, 40 + Math.random() * 10))
           });
         }
-      });
-    } catch (error) {
-      console.error('Audio analysis error:', error);
-      return {
-        transcription: 'Analysis unavailable',
-        score: 40 // Lower fallback score
-      };
-    }
-  };
-
-  const calculateAverageAmplitude = (audioBuffer: AudioBuffer): number => {
-    const channelData = audioBuffer.getChannelData(0);
-    let sum = 0;
-    for (let i = 0; i < channelData.length; i++) {
-      sum += Math.abs(channelData[i]);
-    }
-    return sum / channelData.length;
+      } catch (error) {
+        clearTimeout(timeoutId);
+        console.error('Audio analysis error:', error);
+        resolve({
+          transcription: 'Analysis error occurred',
+          score: 30
+        });
+      }
+    });
   };
 
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      if (analysisTimeoutRef.current) clearTimeout(analysisTimeoutRef.current);
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
       }
@@ -355,33 +330,66 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
     if (audioBlob) {
       setIsAnalyzing(true);
       
-      // Perform real speech analysis
-      const analysis = await analyzeAudio(audioBlob);
-      setTranscription(analysis.transcription);
-      
-      // Save recording data
-      const recordingData: RecordingData = {
-        questionId: currentQ.id,
-        section: currentQ.section,
-        question: currentQ.text,
-        audioBlob,
-        timestamp: new Date().toISOString(),
-        transcription: analysis.transcription,
-        score: analysis.score
-      };
-      
-      setTestSession(prev => ({
-        ...prev,
-        recordings: [...prev.recordings, recordingData]
-      }));
-      
-      setIsAnalyzing(false);
-      
-      if (currentQuestion < questions.length - 1) {
-        setCurrentQuestion(prev => prev + 1);
-        resetRecording();
-      } else {
-        completeTest();
+      try {
+        // Perform speech analysis with timeout protection
+        const analysis = await analyzeAudio(audioBlob);
+        setTranscription(analysis.transcription);
+        
+        // Save recording data
+        const recordingData: RecordingData = {
+          questionId: currentQ.id,
+          section: currentQ.section,
+          question: currentQ.text,
+          audioBlob,
+          timestamp: new Date().toISOString(),
+          transcription: analysis.transcription,
+          score: analysis.score
+        };
+        
+        setTestSession(prev => ({
+          ...prev,
+          recordings: [...prev.recordings, recordingData]
+        }));
+        
+        setIsAnalyzing(false);
+        
+        if (currentQuestion < questions.length - 1) {
+          setCurrentQuestion(prev => prev + 1);
+          resetRecording();
+        } else {
+          completeTest();
+        }
+      } catch (error) {
+        console.error('Analysis failed:', error);
+        setIsAnalyzing(false);
+        toast({
+          title: "Analysis Failed",
+          description: "Proceeding to next question",
+          variant: "destructive",
+        });
+        
+        // Continue anyway with default score
+        const recordingData: RecordingData = {
+          questionId: currentQ.id,
+          section: currentQ.section,
+          question: currentQ.text,
+          audioBlob,
+          timestamp: new Date().toISOString(),
+          transcription: 'Analysis failed',
+          score: 30
+        };
+        
+        setTestSession(prev => ({
+          ...prev,
+          recordings: [...prev.recordings, recordingData]
+        }));
+        
+        if (currentQuestion < questions.length - 1) {
+          setCurrentQuestion(prev => prev + 1);
+          resetRecording();
+        } else {
+          completeTest();
+        }
       }
     }
   };
@@ -390,7 +398,6 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
     const recordings = testSession.recordings;
     const totalScore = recordings.reduce((sum, rec) => sum + rec.score, 0) / recordings.length;
     
-    // Calculate detailed scores by section
     const sectionScores = {
       spontaneous: recordings.filter(r => r.section.includes('Spontaneous')).reduce((sum, rec) => sum + rec.score, 0) / recordings.filter(r => r.section.includes('Spontaneous')).length || 0,
       reading: recordings.filter(r => r.section.includes('Reading')).reduce((sum, rec) => sum + rec.score, 0) / recordings.filter(r => r.section.includes('Reading')).length || 0,
@@ -430,7 +437,7 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
       ...testSession,
       recordings: testSession.recordings.map(rec => ({
         ...rec,
-        audioBlob: null // Remove blob for JSON export
+        audioBlob: null
       }))
     };
     
@@ -507,6 +514,20 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
               </div>
               <p className="text-sm text-gray-500">Processing... Please wait</p>
             </div>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsAnalyzing(false);
+                toast({
+                  title: "Analysis Cancelled",
+                  description: "Proceeding to next question",
+                });
+                nextQuestion();
+              }}
+              className="mt-4"
+            >
+              Skip Analysis
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -694,7 +715,6 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
             </CardContent>
           </Card>
 
-          {/* Assessment Instructions */}
           <Card className="bg-blue-50 border-blue-200">
             <CardContent className="p-4">
               <h4 className="font-semibold text-blue-800 mb-2">📋 Assessment Instructions:</h4>
