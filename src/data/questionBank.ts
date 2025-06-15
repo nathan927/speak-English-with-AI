@@ -320,8 +320,8 @@ export const S6_QUESTIONS: QuestionSet[] = [
     setId: 6,
     name: "無人便利店 (Unmanned Convenience Store)",
     dsePartA: {
-      title: "Family Mart’s first “unmanned convenience store” in Japan",
-      article: `We paid a visit to a Tokyo convenience store where there’s no human clerk to pay.\n\nOn Thursday, Family Mart opened a new branch inside Tokyo Station. It has the sort of food and beverages you’d expect in a Japanese convenience store, but there aren't any employees at the check-out counters. That's because the payments are all done through a slick, unmanned system.\n\nOne difference you'll notice right away is that there's a gate you pass through when entering the shop. As we stepped through, a recorded voice called out, "Irasshaimase!" ("Welcome!")\n\nThe total selection of products isn't quite as wide as it is at some Family Marts, but customers can still get toiletries and face masks.\n\nThere actually is one Family Mart employee on the premises, who only handles shelf-stocking and customer inquiries. When we walked up to the check-out counters with our purchases, no human cashier was present. We didn't even have to scan anything. The terminal already knew what we had in our hand to buy and it made an electronic beep to draw our attention to the screen, where the total amount to be paid was displayed. You can pay with an e-money card, credit card or cash.\n\nOh, and by the way, there's also a gate you have to pass through in order to leave the store, and if you have an unpaid bill, it won't open up until you settle your account.`,
+      title: "Family Mart’s first 'unmanned convenience store' in Japan",
+      article: `We paid a visit to a Tokyo convenience store where there's no human clerk to pay.\n\nOn Thursday, Family Mart opened a new branch inside Tokyo Station. It has the sort of food and beverages you'd expect in a Japanese convenience store, but there aren't any employees at the check-out counters. That's because the payments are all done through a slick, unmanned system.\n\nOne difference you'll notice right away is that there's a gate you pass through when entering the shop. As we stepped through, a recorded voice called out, "Irasshaimase!" ("Welcome!")\n\nThe total selection of products isn't quite as wide as it is at some Family Marts, but customers can still get toiletries and face masks.\n\nThere actually is one Family Mart employee on the premises, who only handles shelf-stocking and customer inquiries. When we walked up to the check-out counters with our purchases, no human cashier was present. We didn't even have to scan anything. The terminal already knew what we had in our hand to buy and it made an electronic beep to draw our attention to the screen, where the total amount to be paid was displayed. You can pay with an e-money card, credit card or cash.\n\nOh, and by the way, there's also a gate you have to pass through in order to leave the store, and if you have an unpaid bill, it won't open up until you settle your account.`,
       discussionPoints: [
         "the benefits of unmanned convenience stores",
         "the limitations of unmanned convenience stores",
@@ -553,7 +553,178 @@ export const S6_QUESTIONS: QuestionSet[] = [
       { id: 102, section: 'B. Individual Response', type: 'question', text: 'Do you think there are too many smart devices in our lives?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
       { id: 103, section: 'B. Individual Response', type: 'question', text: 'Are wearable smart devices fashionable?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
       { id: 104, section: 'B. Individual Response', type: 'question', text: 'Can using wearable smart devices help us become healthier?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
-      { id: 105, section: 'B. Individual Response', type: 'question', text: 'Would you be concerned about privacy if you wore a wearable smart device?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 105, section: 'B. Individual Response', type: 'question', text: "Would you be concerned about privacy if you wore a wearable smart device?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+    ]
+  },
+  {
+    setId: 16,
+    name: "Adaptability quotient (AQ)",
+    dsePartA: {
+      title: "Adaptability quotient",
+      article: `We are all familiar with IQ (intelligence quotient) and EQ (emotional quotient). Adding to these two Qs is a new one: AQ. AQ stands for adaptability quotient. It is the ability to learn, adjust, and change to new situations or circumstances. People with high AQ can work in a variety of environments and succeed in times of change and uncertainty.
+
+Technology is changing our world every day and requires us to learn and re-invent ourselves again and again, faster and faster. The good news is that AQ is something we can train and develop:
+
+Change your routine
+Seek or create opportunities for change. Doing the same thing is comfortable, but we can easily become too lazy to leave our comfort zone. Instead of staying home for the weekend again, reconnect with your old friends. Rather than robotically walking down the same street, take different paths.
+
+Keep learning
+Learn a new skill every now and then. Learning requires active thinking, careful planning, constant adjustment and strong commitment. Anything new will train you to be always up for challenges.
+
+Be curious and observant
+Watch and learn from others. They can be successful people you read about in books or your friends and family. Pay attention to how and why people make important decisions in life. The more you think from different people's perspectives, the more open you will be to different ideas.`,
+      discussionPoints: [
+        "why being adaptable is becoming more important nowadays",
+        "whether being adaptable is more important than being intelligent",
+        "whether it is possible to teach adaptability",
+        "anything else you think is important",
+      ]
+    },
+    questions: [
+      { id: 106, section: 'B. Individual Response', type: 'question', text: "Do you like trying new things?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 107, section: 'B. Individual Response', type: 'question', text: "Can you adapt to new environments quickly?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 108, section: 'B. Individual Response', type: 'question', text: "Do you think having new experiences is important?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 109, section: 'B. Individual Response', type: 'question', text: "Are Hong Kong students adaptable?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 110, section: 'B. Individual Response', type: 'question', text: "Are young people better at coping with change than older people?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 111, section: 'B. Individual Response', type: 'question', text: "Do you think change is always good?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 112, section: 'B. Individual Response', type: 'question', text: "Do you consider yourself a risk taker?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 113, section: 'B. Individual Response', type: 'question', text: "Why are some people more adaptable than others?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+    ]
+  },
+  {
+    setId: 17,
+    name: "社交媒體正能量 (Social Media Positivity)",
+    dsePartA: {
+      title: "How to use social media to spread positivity",
+      article: `Social media has taken the sharing of knowledge to an entirely new level, but we face so much information we often don't know what to do with it. Here are some ways to reduce the impact of social media on your mental health and help you use social media to spread positivity instead.
+
+1. Be intentional about using social media.
+When you show up to use a social media platform, such as Instagram, ask yourself, 'Why am I here?' If you don't have any need to be on that platform then, close the app.
+
+2. Filter the noise.
+Go through your feeds and delete anyone who isn't contributing to a positive environment. You can't change the way people act but you can change your experience using these platforms quite easily.
+
+3. Don't use it to fill time and space.
+If you are using social media to kill time, you might want to ask yourself why. Why do I have to be entertained every second of the day? There's nothing wrong with being bored standing in line.
+
+4. Remove yourself from the negativity.
+At the end of the day, if you feel like you can't handle it or social media is really impacting your happiness in a negative way, it might be a better idea to remove yourself from it entirely. You might be surprised by how little you miss it after a while. You can always come back to social media when you feel like you are ready to be there again.`,
+      discussionPoints: [
+        "what kind of people are popular on social media",
+        "the negative effects of social media on users",
+        "what the club can do to help promote better social media habits",
+        "anything else you think is important",
+      ]
+    },
+    questions: [
+      { id: 114, section: 'B. Individual Response', type: 'question', text: "Do you use social media?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 115, section: 'B. Individual Response', type: 'question', text: "Would you like to be popular on social media?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 116, section: 'B. Individual Response', type: 'question', text: "How do you feel when someone 'likes' your social media posts?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 117, section: 'B. Individual Response', type: 'question', text: "Do social media posts show someone's real life?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 118, section: 'B. Individual Response', type: 'question', text: "Do people become addicted to social media?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 119, section: 'B. Individual Response', type: 'question', text: "How do you control your use of social media?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 120, section: 'B. Individual Response', type: 'question', text: "Do you agree there is a lack of compassion on social media?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 121, section: 'B. Individual Response', type: 'question', text: "Does social media impact people's self-esteem?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+    ]
+  },
+  {
+    setId: 18,
+    name: "基因尋根 (DNA tests for family history)",
+    dsePartA: {
+      title: "Searching for family history drives Chinese to DNA tests",
+      article: `With a growing middle class, an increasing number of people are now keen on finding their roots in China. DNA testing kits are now widely available – users simply use the kit, follow the instructions and mail a sample of their DNA back. Within a week, a digital report returns, showing the origin of their DNA.
+
+"I was curious about my family history. I wanted to know who I am and where I came from," Miao, a Chinese executive who recently used the service, said. "Since I grew up in the south, I was quite certain that I'm a southern Han."
+
+But when results of the test came back, Miao was shocked. She had 60% Manchurian ethnicity – a north-eastern group. This then led to a search of her grandmother's surname, which revealed that her great-great-great-grandparents were actually from the Red Banner – a royal family group in Manchu society during the Qing dynasty. In the process, she also reconnected with a few distant relatives she never knew existed.
+
+"The DNA test was such a good experience that I've just bought another DNA testing kit. This one can reveal your personality," Miao said. The kit she referred to claims to be able to detect personality traits in the genes, like whether the user is outgoing or shy, optimistic or pessimistic. "Who knows what I'll find out about myself!"`,
+      discussionPoints: [
+        "why people want to know about their family history",
+        "whether there are any disadvantages to DNA testing",
+        "other ways to find out about your family history",
+        "anything else you think is important",
+      ]
+    },
+    questions: [
+      { id: 122, section: 'B. Individual Response', type: 'question', text: "Are you interested in your family's history?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 123, section: 'B. Individual Response', type: 'question', text: "Do you often visit your relatives?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 124, section: 'B. Individual Response', type: 'question', text: "Do you feel closer to your relatives or your friends?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 125, section: 'B. Individual Response', type: 'question', text: "How can you keep a record of important family events?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 126, section: 'B. Individual Response', type: 'question', text: "How would you feel if you found out you were related to someone famous?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 127, section: 'B. Individual Response', type: 'question', text: "Do you think young people know much about their family history?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 128, section: 'B. Individual Response', type: 'question', text: "Would you be interested in taking a DNA test?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 129, section: 'B. Individual Response', type: 'question', text: "Is personality more affected by DNA or our environment?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+    ]
+  },
+  {
+    setId: 19,
+    name: "Carousell 網上買賣平台 (Carousell Marketplace)",
+    dsePartA: {
+      title: "Carousell",
+      article: `Carousell is one of Singapore's most well-known startup companies, a platform on which users can buy and sell new and secondhand goods.
+
+It has come a long way since 2012, when the startup was awarded $7,000 to develop a mobile-based marketplace app. Today, it's present in seven markets and valued at US$1.1 billion.
+
+Carousell was founded by three university friends – Quek Siu Rui, Marcus Tan and Lucas Ngoo. The trio wanted to build an app that would help to declutter the mountain of stuff they'd accumulated. The idea was to build a mobile-first version of US-based classifieds platforms like eBay and Craigslist. They were guided by a simple question: how can we reduce the time it takes to list a product?
+
+For decades, when newspapers dominated the classifieds business, it would take a few days for an ad to show up in the papers. Then came the internet. Online classifieds like Craigslist cut that time to 30 minutes. You'd take a picture with a camera, transfer the file to a computer, connect to the internet and upload the listing.
+
+As smartphones began to hit mass adoption, the founders aimed to build an app that allowed users to upload a listing for secondhand electronics, fashion, even cars and property. All within seconds. Snap, list, sell.`,
+      discussionPoints: [
+        "the benefits of buying and selling products online",
+        "how to organise the donations for uploading to Carousell",
+        "any problems which might occur from selling products online",
+        "anything else you think is important",
+      ]
+    },
+    questions: [
+      { id: 130, section: 'B. Individual Response', type: 'question', text: "Do you buy things online?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 131, section: 'B. Individual Response', type: 'question', text: "Do many people sell things online in Hong Kong?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 132, section: 'B. Individual Response', type: 'question', text: "Could selling things online become a full-time job?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 133, section: 'B. Individual Response', type: 'question', text: "Would you like to start your own business?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 134, section: 'B. Individual Response', type: 'question', text: "Will more jobs involve the internet in the future?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 135, section: 'B. Individual Response', type: 'question', text: "What are the difficulties of owning your own business?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 136, section: 'B. Individual Response', type: 'question', text: "What advice would you give someone starting his or her own business?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 137, section: 'B. Individual Response', type: 'question', text: "What qualities make someone a good entrepreneur?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+    ]
+  },
+  {
+    setId: 20,
+    name: "網上健身班 (Online Fitness Classes)",
+    dsePartA: {
+      title: "24 FitnessHK",
+      article: `With coronavirus keeping people indoors and away from sports and gyms, obesity is on the rise and so are health risks caused by an inactive lifestyle. But no need to worry, because 24 FitnessHK is bringing the workouts and personal trainers to your home!
+
+24 FitnessHK is now offering online yoga classes to all its members!
+
+From this month onwards, we are offering all our members online yoga classes held by some of our most experienced yoga teachers and senior personal trainers. You can learn and do yoga with these experts from the comfort of your home. All you need is a laptop or a mobile phone with a camera.
+
+Meet the community!
+Humans are social animals and need to socialise even when we are social distancing. Once you subscribe to this package, you can attend these yoga classes with your fellow fitness enthusiasts. You can talk and interact with them through the chat function on our mobile app to share your fitness journey.
+
+Amazing value for money package!
+
+- 10 online yoga classes for only $2000
+- Includes a limited-edition yoga mat, and a 24 FitnessHK towel and water bottle
+
+What are you waiting for? Join now!`,
+      discussionPoints: [
+        "advantages of online fitness classes",
+        "things to consider when choosing an online fitness class",
+        "whether online fitness classes will continue to be popular",
+        "anything else you think is important",
+      ]
+    },
+    questions: [
+      { id: 138, section: 'B. Individual Response', type: 'question', text: "Have you attended any online fitness classes?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 139, section: 'B. Individual Response', type: 'question', text: "Do you think you are an active person?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 140, section: 'B. Individual Response', type: 'question', text: "Are there any disadvantages of online fitness classes?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 141, section: 'B. Individual Response', type: 'question', text: "Should yoga be taught in school?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 142, section: 'B. Individual Response', type: 'question', text: "Do you prefer to exercise alone or in a group?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 143, section: 'B. Individual Response', type: 'question', text: "Is going to the gym popular nowadays?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 144, section: 'B. Individual Response', type: 'question', text: "Is Hong Kong becoming a healthier society?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 145, section: 'B. Individual Response', type: 'question', text: "Why are some people obsessed with doing exercise?", instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
     ]
   }
 ];
