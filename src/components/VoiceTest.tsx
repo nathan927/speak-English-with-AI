@@ -1,16 +1,15 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ArrowLeft, Mic, MicOff, Play, Pause, RotateCcw, Volume2, Info, Clock, Users } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { performAIEvaluation } from '@/services/aiEvaluationService';
-import { getRandomQuestionSet, type Question } from '@/data/questionBank';
-import { buildNaturalQuestion, getCompletionPhrase } from '@/services/conversationService';
+import { Progress } from '@/components/ui/progress';
+import { Mic, MicOff, Play, Pause, RotateCcw, ArrowLeft, ArrowRight, Volume2 } from 'lucide-react';
+import { getRandomQuestionSet } from '@/data/questionBank';
 import { logger } from '@/services/logService';
+import { evaluateResponse } from '@/services/aiEvaluationService';
+import { convertTextToSpeech } from '@/services/conversationService';
 
 interface VoiceTestProps {
   grade: string;
@@ -21,1433 +20,397 @@ interface VoiceTestProps {
   onShowQuestionsChange: (checked: boolean) => void;
 }
 
-interface RecordingData {
-  questionId: number;
-  section: string;
-  question: string;
-  audioBlob: Blob;
-  timestamp: string;
-  duration: number;
-  wordCount: number;
-  responseTime: number;
-}
-
-export const VoiceTest = ({ grade, speechRate, showQuestions, onComplete, onBack, onShowQuestionsChange }: VoiceTestProps) => {
-  const [currentQuestion, setCurrentQuestion] = useState(0);
+const VoiceTest: React.FC<VoiceTestProps> = ({
+  grade,
+  speechRate,
+  showQuestions,
+  onComplete,
+  onBack,
+  onShowQuestionsChange,
+}) => {
+  const [questions, setQuestions] = useState<any[]>([]);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [recordedAudios, setRecordedAudios] = useState<{ [key: number]: Blob }>({});
+  const [responses, setResponses] = useState<{ [key: number]: string }>({});
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [recordingTime, setRecordingTime] = useState(0);
-  const [hasRecorded, setHasRecorded] = useState(false);
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [recordings, setRecordings] = useState<RecordingData[]>([]);
-  const [responseStartTime, setResponseStartTime] = useState<number | null>(null);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [hasSpokenTransition, setHasSpokenTransition] = useState(false);
-  const [showBackConfirmDialog, setShowBackConfirmDialog] = useState(false);
-  
-  // New states for senior secondary mode
-  const [currentPart, setCurrentPart] = useState<'A' | 'B'>('A');
-  const [preparationTime, setPreparationTime] = useState(0);
-  const [isPreparation, setIsPreparation] = useState(false);
-  const [discussionTime, setDiscussionTime] = useState(0);
-  const [isDiscussion, setIsDiscussion] = useState(false);
-  
-  // Add PC-specific speech initialization state
-  const [speechInitialized, setSpeechInitialized] = useState(false);
-  
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const questionReadTimeRef = useRef<number>(0);
-  const speechTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const preparationTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const discussionTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const speechUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
-  const speechRequestIdRef = useRef<number>(0);
-  
-  const { toast } = useToast();
-
-  // Detect if user is on PC (desktop) vs mobile
-  const isDesktop = useMemo(() => {
-    if (typeof window === 'undefined') return false;
-    return window.innerWidth >= 1024 && !('ontouchstart' in window);
-  }, []);
-
-  // Check if current grade is senior secondary (S3-S6)
-  const isSeniorSecondary = useMemo(() => ['S3', 'S4', 'S5', 'S6'].includes(grade), [grade]);
-
-  // Get questions from the comprehensive question bank
-  const questions: Question[] = useMemo(() => getRandomQuestionSet(grade), [grade]);
-  
-  // Generate a truly random seed that changes every component mount
-  const [randomSeed] = useState(() => {
-    const seed = Date.now() + Math.random() * 1000000;
-    console.log(`🎲 Generated TRULY random seed: ${seed}`);
-    return seed;
-  });
-  
-  // Pre-defined DSE content pool for true randomization
-  const dseContentPool = useMemo(() => [
-    {
-      partA: {
-        title: "Group Interaction",
-        article: {
-          title: "Redevelopment in Western District leaves residents without a good night's sleep",
-          quote: "\"Redevelopment of old areas gives opportunities for developers to earn money. But local people do not have any say in the redevelopment and are forced to leave.\"",
-          content: `If you took a walk around Western District just a couple of years ago, you would see mostly stationery shops, bakeries, grocers and university students eating in cha chaan tengs. For years, even with its proximity to Central, the old neighbourhood remained largely untouched, retaining its traditional characteristics and flavour.
-
-But when three new MTR stations — Sai Ying Pun, HKU and Kennedy Town — opened in the area in late 2014, they brought with them a whole range of bars and expensive restaurants that drew in young rich hipsters. Today, Western District is the new, trendy neighbourhood, with young professionals increasingly turning older buildings into expensive trendy flats, forcing many long-term residents to leave the area that has been their home all their lives.
-
-Traditional shops are forced to leave because of high rents: 250 of the 700 shops in the Sai Ying Pun area either changed tenants or closed down from 2015 to 2017.
-
-There have been multiple complaints from residents about noise from bars and restaurants. \"For families and the elderly in this area, they are disturbed by the noise every day and can't afford to shop,\" one netizen said. \"We can't stop the world from developing, but there has to be a balance.\"`
-        },
-        discussionPoints: [
-          "why old districts are redeveloped",
-          "what problems redevelopments cause", 
-          "what the government should do to reduce the problems residents face",
-          "anything else you think is important"
-        ]
-      },
-      partB: {
-        title: "Individual Response",
-        questions: [
-          "What do you like about the area you live in?",
-          "What is the biggest advantage of redevelopment?",
-          "What types of shops are typical of old neighbourhoods?",
-          "Why do older people like to live in traditional districts?",
-          "What would you like to change about your district?",
-          "Would you prefer to live in an old neighbourhood or a redeveloped area?",
-          "Is the redevelopment of old areas too slow in Hong Kong?",
-          "Who benefits most from redevelopment?"
-        ]
-      }
-    },
-    {
-      partA: {
-        title: "Group Interaction",
-        article: {
-          title: "Hong Kong students struggle with online learning during pandemic",
-          quote: "\"Many students don't have proper equipment or quiet spaces to study at home, which makes online learning very challenging.\"",
-          content: `The COVID-19 pandemic has forced Hong Kong schools to switch to online learning multiple times since 2020. While this transition was necessary for public health, it has created significant challenges for students, teachers, and parents alike.
-
-Many students from lower-income families lack access to reliable internet connections or suitable devices for online learning. Some families have only one computer or tablet that must be shared among multiple children and working parents. This digital divide has widened educational inequalities in Hong Kong.
-
-Teachers have also struggled to adapt their teaching methods for online platforms. Traditional classroom activities like group discussions and hands-on experiments are difficult to conduct virtually. Many teachers report that student engagement and participation have decreased significantly during online lessons.
-
-Parents, especially those working from home, have found it challenging to supervise their children's online learning while managing their own work responsibilities. The lack of social interaction with peers has also affected students' mental health and motivation to learn.`
-        },
-        discussionPoints: [
-          "the main challenges of online learning",
-          "how to improve online education quality",
-          "what support schools should provide to students",
-          "the long-term effects on education"
-        ]
-      },
-      partB: {
-        title: "Individual Response",
-        questions: [
-          "Do you prefer online learning or face-to-face classes? Why?",
-          "What equipment do you need for effective online learning?",
-          "How can teachers make online lessons more interesting?",
-          "What are the advantages of studying from home?",
-          "How has technology changed the way we learn?",
-          "What skills are important for successful online learning?",
-          "Should schools continue using online learning after the pandemic?",
-          "How can students stay motivated during online classes?"
-        ]
-      }
-    },
-    {
-      partA: {
-        title: "Group Interaction",
-        article: {
-          title: "Young people in Hong Kong face pressure to choose career paths early",
-          quote: "\"Students feel they must decide their future career by age 16, but many are not ready to make such important decisions.\"",
-          content: `Hong Kong's education system requires students to choose their subjects and career paths at a relatively young age. By Form 4, students must select their elective subjects, which often determines what they can study at university and their future career options.
-
-This early specialization creates significant pressure on teenagers who may not yet know their interests or strengths. Many students choose subjects based on parental expectations or perceived job prospects rather than their own passions and abilities.
-
-Career counseling in schools is often limited, and students may not have enough exposure to different professions to make informed decisions. Some students later discover that their chosen path doesn't suit them, leading to dissatisfaction and the need to change direction at a higher cost.
-
-Parents and teachers often emphasize traditional "safe" careers like medicine, law, and finance, while creative industries and emerging fields receive less recognition. This narrow focus may limit students' potential and contribute to skills shortages in certain sectors.`
-        },
-        discussionPoints: [
-          "why students face pressure to choose careers early",
-          "what support students need for career planning",
-          "how schools can improve career guidance",
-          "the role of parents in career decisions"
-        ]
-      },
-      partB: {
-        title: "Individual Response",
-        questions: [
-          "When did you first think about your future career?",
-          "What factors influence young people's career choices?",
-          "Should students be allowed to change their subjects later?",
-          "How important are parents' opinions in career planning?",
-          "What careers are popular among young people today?",
-          "Do you think it's necessary to choose a career path early?",
-          "What advice would you give to someone choosing their career?",
-          "How can schools help students explore different careers?"
-        ]
-      }
-    }
-  ], []);
-  
-  // For senior secondary, select random DSE content from the pool
-  const randomDseContent = useMemo(() => {
-    if (!isSeniorSecondary) return null;
-    
-    // Use the random seed to select content from the pool
-    const contentIndex = Math.floor((randomSeed % 1000) / 1000 * dseContentPool.length);
-    const selectedContent = dseContentPool[contentIndex];
-    
-    console.log(`🎯 DSE Content Selection:
-    - Random seed: ${randomSeed}
-    - Pool size: ${dseContentPool.length}
-    - Selected index: ${contentIndex}
-    - Article title: ${selectedContent.partA.article.title}`);
-    
-    return selectedContent;
-  }, [isSeniorSecondary, randomSeed, dseContentPool]);
-
-  const currentQ = questions[currentQuestion];
-  const progress = isSeniorSecondary 
-    ? (currentPart === 'A' ? 25 : (currentPart === 'B' ? 75 : 100))
-    : ((currentQuestion + 1) / questions.length) * 100;
-
-  const isReadingQuestion = useMemo(() => {
-    if (!currentQ) return false;
-    return currentQ.section?.toLowerCase() === 'reading' || 
-           currentQ.instruction?.toLowerCase().includes('read') || 
-           currentQ.section === 'B. 朗讀';
-  }, [currentQ]);
-
-  // Check if current grade is kindergarten (K1, K2, K3) - disable transitions for these
-  const isKindergarten = useMemo(() => ['K1', 'K2', 'K3'].includes(grade), [grade]);
+  const chunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
-    logger.info('VoiceTest component mounted', {
-      grade,
-      speechRate,
-      questionsCount: questions.length,
-      isKindergarten,
-      showQuestions,
-      isSeniorSecondary,
-      randomSeed,
-      isDesktop
-    }, 'VoiceTest', 'mount');
+    const questionSet = getRandomQuestionSet(grade);
+    if (questionSet.length > 0) {
+      setQuestions(questionSet);
+      logger.info('Questions loaded for test', { grade, questionCount: questionSet.length });
+    }
+  }, [grade]);
 
+  useEffect(() => {
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-      if (preparationTimerRef.current) clearInterval(preparationTimerRef.current);
-      if (discussionTimerRef.current) clearInterval(discussionTimerRef.current);
-      if (speechTimeoutRef.current) clearTimeout(speechTimeoutRef.current);
-      if ('speechSynthesis' in window) {
-        speechSynthesis.cancel();
-        logger.debug('Speech synthesis cancelled on unmount', {}, 'VoiceTest', 'cleanup');
+      // Cleanup when the component unmounts
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
       }
-    };
-  }, []);
-
-  // Initialize speech synthesis for PC on component mount
-  useEffect(() => {
-    if (isDesktop && 'speechSynthesis' in window) {
-      // Pre-initialize speech synthesis for PC
-      const initSpeech = async () => {
-        try {
-          // Create a silent utterance to warm up the speech engine
-          const testUtterance = new SpeechSynthesisUtterance('');
-          testUtterance.volume = 0;
-          testUtterance.rate = speechRate;
-          
-          // Wait for voices to load if needed
-          if (speechSynthesis.getVoices().length === 0) {
-            await new Promise<void>((resolve) => {
-              const voicesChanged = () => {
-                speechSynthesis.removeEventListener('voiceschanged', voicesChanged);
-                resolve();
-              };
-              speechSynthesis.addEventListener('voiceschanged', voicesChanged);
-              
-              // Fallback timeout in case voiceschanged never fires
-              setTimeout(resolve, 1000);
-            });
-          }
-          
-          // Warm up the speech synthesis engine
-          speechSynthesis.speak(testUtterance);
-          
-          // Wait a bit for the engine to be ready
-          setTimeout(() => {
-            setSpeechInitialized(true);
-            logger.info('PC speech synthesis initialized successfully', {
-              voicesCount: speechSynthesis.getVoices().length,
-              isDesktop
-            }, 'VoiceTest', 'speechInit');
-          }, 500);
-          
-        } catch (error) {
-          logger.error('Speech synthesis initialization failed', { error }, 'VoiceTest', 'speechInitError');
-          setSpeechInitialized(true); // Still allow operation
-        }
-      };
-      
-      initSpeech();
-    } else {
-      setSpeechInitialized(true); // Non-PC or no speech support
-    }
-  }, [isDesktop, speechRate]);
-
-  // Reset pardon usage when moving to next question
-  useEffect(() => {
-    logger.questionLog(currentQuestion, currentQ, 'changed');
-    
-    // 重置過渡句標記
-    setHasSpokenTransition(false);
-    
-    // 對於非閱讀題目，自動開始監聽，但不自動說話 (only for non-senior secondary)
-    if (!isSeniorSecondary && currentQ && !isReadingQuestion && !hasRecorded) {
-      const autoListenTimeout = setTimeout(() => {
-        logger.debug('Auto-triggering listen for non-reading question', {
-          currentQuestion,
-          hasRecorded
-        }, 'VoiceTest', 'autoListen');
-        handleListen();
-      }, 500);
-      return () => clearTimeout(autoListenTimeout);
-    }
-  }, [currentQuestion, hasRecorded, isSeniorSecondary]);
-
-  const handleBackClick = () => {
-    if (isRecording || recordings.length > 0 || isPreparation || isDiscussion) {
-      setShowBackConfirmDialog(true);
-    } else {
-      onBack();
-    }
-  };
-
-  const confirmBack = () => {
-    // Clean up timers
-    if (preparationTimerRef.current) clearInterval(preparationTimerRef.current);
-    if (discussionTimerRef.current) clearInterval(discussionTimerRef.current);
-    setShowBackConfirmDialog(false);
-    onBack();
-  };
-
-  const cancelBack = () => {
-    setShowBackConfirmDialog(false);
-  };
-
-  // Senior Secondary specific functions
-  const startPreparation = () => {
-    setIsPreparation(true);
-    setPreparationTime(0);
-    
-    preparationTimerRef.current = setInterval(() => {
-      setPreparationTime(prev => {
-        if (prev >= 600) { // 10 minutes
-          clearInterval(preparationTimerRef.current!);
-          setIsPreparation(false);
-          toast({
-            title: "Preparation Complete",
-            description: "Ready to start group discussion",
-          });
-          return prev;
-        }
-        return prev + 1;
-      });
-    }, 1000);
-  };
-
-  const startDiscussion = () => {
-    setIsDiscussion(true);
-    setDiscussionTime(0);
-    
-    discussionTimerRef.current = setInterval(() => {
-      setDiscussionTime(prev => {
-        if (prev >= 480) { // 8 minutes
-          clearInterval(discussionTimerRef.current!);
-          setIsDiscussion(false);
-          toast({
-            title: "Discussion Complete",
-            description: "Moving to Individual Response",
-          });
-          setCurrentPart('B');
-          return prev;
-        }
-        return prev + 1;
-      });
-    }, 1000);
-  };
-
-  const handleListen = () => {
-    logger.info('Listen button clicked', {
-      currentQuestion,
-      questionText: currentQ?.text?.substring(0, 50),
-      speechSynthesisAvailable: 'speechSynthesis' in window,
-      currentlySpeaking: speechSynthesis?.speaking,
-      isDesktop
-    }, 'VoiceTest', 'listenClicked');
-    
-    if (currentQ) {
-      setIsSpeaking(true);
-      
-      let speechText: string;
-      
-      // 針對誦讀題，只說指示句
-      if (isReadingQuestion) {
-        speechText = "Please read the following text aloud.";
-        logger.info('Using simplified reading instruction', {
-          speechText,
-          isReadingQuestion: true
-        }, 'VoiceTest', 'readingInstruction');
-      } else {
-        // 對於非誦讀題，如果是切換後第一次說話且還沒說過過渡句，先說過渡句（但排除幼稚園）
-        if (currentQuestion > 0 && !hasSpokenTransition && !isKindergarten) {
-          const completionPhrase = getCompletionPhrase();
-          speechText = completionPhrase + ' ' + buildNaturalQuestion(currentQ.text, false, currentQuestion === questions.length - 1, grade);
-          setHasSpokenTransition(true);
-        } else {
-          // Build natural conversation text with grade context
-          const isFirst = currentQuestion === 0;
-          const isLast = currentQuestion === questions.length - 1;
-          speechText = buildNaturalQuestion(currentQ.text, isFirst, isLast, grade);
-        }
-      }
-      
-      logger.info('Speech text prepared', {
-        speechText,
-        textLength: speechText.length,
-        hasSpokenTransition,
-        currentQuestion,
-        isKindergarten,
-        isDesktop
-      }, 'VoiceTest', 'textPrepared');
-      
-      speakText(speechText, () => {
-        questionReadTimeRef.current = Date.now();
-        setIsSpeaking(false);
-        logger.info('Speech completed, question read time set', {
-          questionReadTime: questionReadTimeRef.current,
-          currentQuestion
-        }, 'VoiceTest', 'speechCompleted');
-        
-        // Auto-start recording after speech completes with shorter delay (EXCLUDE Reading questions)
-        if (!isReadingQuestion && !isSeniorSecondary) {
-          setTimeout(() => {
-            logger.debug('Auto-starting recording after speech', {
-              delay: 300,
-              currentQuestion
-            }, 'VoiceTest', 'autoRecord');
-            startRecording();
-          }, 300); // Reduced delay from 1000ms to 300ms for faster conversation
-        }
-      });
-    }
-  };
-
-  const startRecording = async () => {
-    console.log('Starting recording...');
-    try {
-      // Record the time when recording starts (user starts responding)
-      if (questionReadTimeRef.current > 0 && !responseStartTime) {
-        setResponseStartTime(Date.now());
-      }
-
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          sampleRate: 44100
-        } 
-      });
-      streamRef.current = stream;
-      
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus'
-      });
-      mediaRecorderRef.current = mediaRecorder;
-      
-      const chunks: Blob[] = [];
-      
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          chunks.push(event.data);
-        }
-      };
-      
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(chunks, { type: 'audio/webm' });
-        setAudioBlob(blob);
-        setHasRecorded(true);
-        console.log('Recording completed, blob size:', blob.size);
-      };
-      
-      mediaRecorder.start(100); // Collect data every 100ms
-      setIsRecording(true);
-      setRecordingTime(0);
-      
-      timerRef.current = setInterval(() => {
-        setRecordingTime(prev => prev + 1);
-      }, 1000);
-      
-    } catch (error) {
-      console.error('Recording failed:', error);
-      toast({
-        title: "Recording Failed",
-        description: "Please ensure microphone permission is granted",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const stopRecording = () => {
-    console.log('Stopping recording...');
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      
       if (timerRef.current) {
         clearInterval(timerRef.current);
-        timerRef.current = null;
       }
-      
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
+    };
+  }, [mediaRecorder]);
+
+  useEffect(() => {
+    if (isRecording && !isPaused) {
+      timerRef.current = setInterval(() => {
+        setRecordingTime((prevTime) => prevTime + 1);
+      }, 1000);
+    } else {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
       }
     }
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [isRecording, isPaused]);
+
+  const handleAudioPlayback = (index: number) => {
+    const audio = new Audio(URL.createObjectURL(recordedAudios[index]));
+    audio.play();
   };
 
-  const playRecording = () => {
-    if (audioBlob) {
+  const currentQuestion = questions[currentQuestionIndex];
+  const progress = questions.length > 0 ? ((currentQuestionIndex + 1) / questions.length) * 100 : 0;
+
+  const handlePlayQuestion = async () => {
+    if (!currentQuestion) return;
+
+    try {
+      setIsPlaying(true);
+      const audioBlob = await convertTextToSpeech(currentQuestion.text, speechRate);
       const audioUrl = URL.createObjectURL(audioBlob);
-      const audio = new Audio(audioUrl);
-      audioRef.current = audio;
       
-      audio.onplay = () => setIsPlaying(true);
-      audio.onended = () => setIsPlaying(false);
-      audio.onerror = () => setIsPlaying(false);
-      
-      audio.play();
-    }
-  };
-
-  const stopPlaying = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
+      if (audioRef.current) {
+        audioRef.current.src = audioUrl;
+        audioRef.current.onended = () => {
+          setIsPlaying(false);
+          URL.revokeObjectURL(audioUrl);
+        };
+        await audioRef.current.play();
+      }
+    } catch (error) {
+      logger.error('Error playing question audio', error);
       setIsPlaying(false);
     }
   };
 
-  const resetRecording = () => {
-    setAudioBlob(null);
-    setHasRecorded(false);
-    setRecordingTime(0);
-    setResponseStartTime(null);
-    stopPlaying();
+  const startRecording = async () => {
+    logger.info('Recording started', { question: currentQuestion?.id });
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      setMediaRecorder(recorder);
+      setIsRecording(true);
+      chunksRef.current = [];
+
+      recorder.ondataavailable = (event) => {
+        chunksRef.current.push(event.data);
+      };
+
+      recorder.onstop = () => {
+        const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        setRecordedAudios((prevAudios) => ({
+          ...prevAudios,
+          [currentQuestionIndex]: audioBlob,
+        }));
+        stream.getTracks().forEach(track => track.stop());
+        logger.info('Recording stopped', { question: currentQuestion?.id, size: audioBlob.size });
+      };
+
+      recorder.start();
+    } catch (error) {
+      logger.error('Error starting recording', error);
+      setIsRecording(false);
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+      logger.info('Stopping recording', { question: currentQuestion?.id });
+      mediaRecorder.stop();
+      setIsRecording(false);
+      setIsPaused(false);
+      clearInterval(timerRef.current as NodeJS.Timeout);
+    }
+  };
+
+  const pauseRecording = () => {
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+      logger.info('Pausing recording', { question: currentQuestion?.id });
+      mediaRecorder.pause();
+      setIsPaused(true);
+      clearInterval(timerRef.current as NodeJS.Timeout);
+    }
+  };
+
+  const resumeRecording = () => {
+    if (mediaRecorder && mediaRecorder.state === 'paused') {
+      logger.info('Resuming recording', { question: currentQuestion?.id });
+      mediaRecorder.resume();
+      setIsPaused(false);
+    }
   };
 
   const nextQuestion = () => {
-    if (!audioBlob) return;
-    
-    logger.info('Moving to next question', {
-      currentQuestion,
-      totalQuestions: questions.length,
-      hasAudioBlob: !!audioBlob,
-      recordingTime
-    }, 'VoiceTest', 'nextQuestion');
-    
-    // 保存錄音資料
-    const responseTime = responseStartTime && questionReadTimeRef.current > 0
-      ? responseStartTime - questionReadTimeRef.current
-      : 0;
-
-    const recordingData: RecordingData = {
-      questionId: currentQ.id,
-      section: currentQ.section,
-      question: currentQ.text,
-      audioBlob,
-      timestamp: new Date().toISOString(),
-      duration: recordingTime,
-      wordCount: Math.max(1, Math.floor(recordingTime / 0.7)),
-      responseTime
-    };
-
-    const newRecordings = [...recordings, recordingData];
-    setRecordings(newRecordings);
-
-    logger.debug('Recording data saved', {
-      questionId: recordingData.questionId,
-      section: recordingData.section,
-      duration: recordingData.duration,
-      responseTime: recordingData.responseTime,
-      totalRecordings: newRecordings.length
-    }, 'VoiceTest', 'recordingSaved');
-
-    if (isSeniorSecondary && currentPart === 'B') {
-      // Complete senior secondary test
-      logger.info('Senior secondary test completed, starting analysis', {
-        totalRecordings: newRecordings.length
-      }, 'VoiceTest', 'testCompleted');
-      completeTest(newRecordings);
-    } else if (!isSeniorSecondary && currentQuestion < questions.length - 1) {
-      // Continue with regular test
-      setCurrentQuestion(prev => prev + 1);
-      resetRecording();
-      questionReadTimeRef.current = 0;
-    } else if (!isSeniorSecondary) {
-      // Complete regular test
-      logger.info('Test completed, starting analysis', {
-        totalRecordings: newRecordings.length
-      }, 'VoiceTest', 'testCompleted');
-      completeTest(newRecordings);
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      setRecordingTime(0);
+      setIsRecording(false);
+      setIsPaused(false);
     }
   };
 
-  const completeTest = async (finalRecordings: RecordingData[]) => {
-    setIsAnalyzing(true);
-    
-    try {
-      console.log('Starting AI-powered speech analysis...');
-      const results = await performAIEvaluation(finalRecordings, grade);
-      
-      console.log('AI analysis completed:', results);
-      setIsAnalyzing(false);
-      onComplete(results);
-    } catch (error) {
-      console.error('AI analysis failed:', error);
-      setIsAnalyzing(false);
-      
-      toast({
-        title: "Assessment Complete",
-        description: "Used fallback evaluation method, recommend retrying for detailed AI analysis",
-        variant: "default",
-      });
-      
-      // Provide basic fallback results
-      const fallbackResults = {
-        overallScore: 50,
-        pronunciation: 45,
-        vocabulary: 55,
-        fluency: 50,
-        confidence: 45,
-        sectionScores: { spontaneous: 50, reading: 55, personal: 45 },
-        grade,
-        questionsAttempted: finalRecordings.length,
-        strengths: ['Completed all test sections'],
-        improvements: ['Recommend retesting for detailed AI analysis'],
-        detailedAnalysis: finalRecordings.map(rec => ({
-          section: rec.section,
-          question: rec.question,
-          score: 50,
-          feedback: `Recording completed (${rec.duration}s) - Please retest for AI analysis`
-        }))
-      };
-      
-      onComplete(fallbackResults);
+  const previousQuestion = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(currentQuestionIndex - 1);
+      setRecordingTime(0);
+      setIsRecording(false);
+      setIsPaused(false);
     }
   };
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
+  const completeTest = async () => {
+    logger.info('Completing test', { grade });
+    const testResults: any = {};
 
-  const speakText = (text: string, onEnd?: () => void) => {
-    // Generate unique request ID for this speech request
-    const requestId = ++speechRequestIdRef.current;
-    
-    logger.speechLog('speakText_called', {
-      text: text.substring(0, 100) + (text.length > 100 ? '...' : ''),
-      textLength: text.length,
-      speechRate,
-      hasOnEndCallback: !!onEnd,
-      currentlySpeaking: speechSynthesis?.speaking,
-      speechSynthesisState: {
-        speaking: speechSynthesis?.speaking,
-        pending: speechSynthesis?.pending,
-        paused: speechSynthesis?.paused
-      },
-      isDesktop,
-      speechInitialized,
-      requestId
-    });
-    
-    // Clear any existing timeout and utterance
-    if (speechTimeoutRef.current) {
-      clearTimeout(speechTimeoutRef.current);
-      speechTimeoutRef.current = null;
-      logger.debug('Cleared existing speech timeout', { requestId }, 'VoiceTest', 'timeoutCleared');
-    }
-    
-    if (speechUtteranceRef.current) {
-      speechUtteranceRef.current = null;
-      logger.debug('Cleared previous utterance reference', { requestId }, 'VoiceTest', 'utteranceCleared');
-    }
-    
-    if ('speechSynthesis' in window) {
-      // For PC, wait for speech initialization on first use
-      if (isDesktop && !speechInitialized) {
-        logger.info('PC speech not initialized yet, waiting...', { requestId }, 'VoiceTest', 'waitingForInit');
-        
-        const checkInit = () => {
-          if (speechInitialized) {
-            startSpeechSynthesis(text, onEnd, requestId);
-          } else {
-            setTimeout(checkInit, 100);
-          }
-        };
-        checkInit();
-        return;
-      }
-      
-      // Cancel any existing speech for PC to prevent conflicts
-      if (isDesktop && speechSynthesis.speaking) {
-        speechSynthesis.cancel();
-        logger.info('Cancelled existing speech synthesis for PC', { requestId }, 'VoiceTest', 'speechCancelled');
-        
-        // Wait longer for cancellation to complete on PC, especially for first use
-        const waitTime = speechInitialized ? 200 : 800;
-        setTimeout(() => {
-          startSpeechSynthesis(text, onEnd, requestId);
-        }, waitTime);
+    for (let i = 0; i < questions.length; i++) {
+      const question = questions[i];
+      const audioBlob = recordedAudios[i];
+
+      if (audioBlob) {
+        try {
+          const responseText = responses[i] || 'No response recorded.';
+          const evaluation = await evaluateResponse(audioBlob, question.text, grade);
+          testResults[question.id] = {
+            question: question.text,
+            responseText: responseText,
+            evaluation: evaluation,
+          };
+        } catch (error) {
+          logger.error('Error evaluating response', { questionId: question.id, error });
+          testResults[question.id] = {
+            question: question.text,
+            responseText: 'Error evaluating response.',
+            evaluation: null,
+          };
+        }
       } else {
-        startSpeechSynthesis(text, onEnd, requestId);
+        testResults[question.id] = {
+          question: question.text,
+          responseText: 'No audio recorded.',
+          evaluation: null,
+        };
       }
-    } else {
-      logger.error('Speech synthesis not supported, using fallback', {
-        textLength: text.length,
-        fallbackDuration: Math.max(2000, text.length * 80),
-        requestId
-      }, 'VoiceTest', 'speechNotSupported');
-      
-      // Fallback: call onEnd after estimated reading time
-      const estimatedTime = Math.max(2000, text.length * 80);
-      setTimeout(() => {
-        if (speechRequestIdRef.current === requestId) {
-          setIsSpeaking(false);
-          if (onEnd) {
-            onEnd();
-          }
-        }
-      }, estimatedTime);
-      
-      toast({
-        title: "Speech not supported",
-        description: "Your browser doesn't support speech playback, skipped speech playback",
-        variant: "default",
-      });
     }
+
+    onComplete(testResults);
   };
 
-  const startSpeechSynthesis = (text: string, onEnd?: () => void, requestId?: number) => {
-    // PC-optimized timeout calculation with extra time for first use
-    const baseTimeout = isDesktop ? (speechInitialized ? 8000 : 15000) : 5000;
-    const timeoutDuration = Math.max(baseTimeout, text.length * (isDesktop ? 300 : 200) / speechRate);
-    
-    logger.debug('Starting speech synthesis', {
-      timeoutDuration,
-      textLength: text.length,
-      speechRate,
-      isDesktop,
-      speechInitialized,
-      requestId
-    }, 'VoiceTest', 'speechStart');
-    
-    speechTimeoutRef.current = setTimeout(() => {
-      if (speechRequestIdRef.current === requestId) {
-        logger.warn('Speech timeout triggered - force completing', {
-          timeoutDuration,
-          textLength: text.length,
-          speechRate,
-          isDesktop,
-          speechInitialized,
-          requestId
-        }, 'VoiceTest', 'speechTimeout');
-        setIsSpeaking(false);
-        if (onEnd) {
-          onEnd();
-        }
-      }
-    }, timeoutDuration);
-    
-    // Wait longer before starting speech on PC, especially for first use
-    const startDelay = isDesktop ? (speechInitialized ? 300 : 1000) : 150;
-    
-    setTimeout(() => {
-      // Check if this request is still valid
-      if (speechRequestIdRef.current !== requestId) {
-        logger.debug('Speech request cancelled before start', { requestId }, 'VoiceTest', 'requestCancelled');
-        return;
-      }
-      
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'en-US';
-      utterance.rate = speechRate;
-      utterance.volume = 1.0;
-      
-      // For PC, try to use a specific voice for better reliability
-      if (isDesktop) {
-        const voices = speechSynthesis.getVoices();
-        const preferredVoice = voices.find(voice => 
-          voice.lang.startsWith('en') && voice.default
-        ) || voices.find(voice => voice.lang.startsWith('en'));
-        
-        if (preferredVoice) {
-          utterance.voice = preferredVoice;
-          logger.debug('Using preferred voice for PC', {
-            voiceName: preferredVoice.name,
-            voiceLang: preferredVoice.lang,
-            requestId
-          }, 'VoiceTest', 'voiceSelected');
-        }
-      }
-      
-      // Store utterance reference
-      speechUtteranceRef.current = utterance;
-      
-      utterance.onstart = () => {
-        if (speechRequestIdRef.current === requestId) {
-          logger.speechLog('speech_started', {
-            text: text.substring(0, 50) + '...',
-            rate: speechRate,
-            volume: utterance.volume,
-            lang: utterance.lang,
-            voiceName: utterance.voice?.name,
-            isDesktop,
-            speechInitialized,
-            requestId
-          });
-          setIsSpeaking(true);
-        }
-      };
-      
-      utterance.onend = () => {
-        if (speechRequestIdRef.current === requestId) {
-          logger.speechLog('speech_ended_normally', {
-            text: text.substring(0, 50) + '...',
-            isDesktop,
-            speechInitialized,
-            requestId
-          });
-          if (speechTimeoutRef.current) {
-            clearTimeout(speechTimeoutRef.current);
-            speechTimeoutRef.current = null;
-          }
-          setIsSpeaking(false);
-          speechUtteranceRef.current = null;
-          if (onEnd) {
-            onEnd();
-          }
-        }
-      };
-      
-      utterance.onerror = (event) => {
-        if (speechRequestIdRef.current === requestId) {
-          logger.speechLog('speech_error', {
-            error: event.error,
-            text: text.substring(0, 50) + '...',
-            errorEvent: event,
-            isDesktop,
-            speechInitialized,
-            requestId
-          });
-          if (speechTimeoutRef.current) {
-            clearTimeout(speechTimeoutRef.current);
-            speechTimeoutRef.current = null;
-          }
-          setIsSpeaking(false);
-          speechUtteranceRef.current = null;
-          if (onEnd) {
-            onEnd();
-          }
-        }
-      };
-      
-      logger.speechLog('speech_synthesis_speak_called', {
-        utteranceReady: true,
-        text: text.substring(0, 50) + '...',
-        voiceName: utterance.voice?.name,
-        isDesktop,
-        speechInitialized,
-        requestId
-      });
-      
-      speechSynthesis.speak(utterance);
-    }, startDelay);
-  };
-
-  if (isAnalyzing) {
+  if (questions.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-6 text-center">
-            <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
-              <Mic className="w-6 h-6 text-white" />
-            </div>
-            <h3 className="text-lg font-bold text-gray-900 mb-3">🤖 AI is performing deep voice analysis...</h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Our AI expert is evaluating your pronunciation, vocabulary, fluency and confidence,
-              and generating personalized learning recommendations for you
-            </p>
-            <div className="space-y-2">
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-gradient-to-r from-blue-600 to-purple-600 h-2 rounded-full animate-pulse" style={{width: '85%'}}></div>
-              </div>
-              <p className="text-xs text-gray-500">Analyzing {recordings.length} recordings, please wait...</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // Senior Secondary Mode Layout
-  if (isSeniorSecondary) {
-    // Use the randomly selected DSE content instead of hardcoded content
-    const dseContent = randomDseContent || {
-      partA: {
-        title: "Group Interaction",
-        article: { title: "Loading...", quote: "", content: "Content loading..." },
-        discussionPoints: ["Loading discussion points..."]
-      },
-      partB: {
-        title: "Individual Response",
-        questions: ["Loading questions..."]
-      }
-    };
-
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-        <div className="container mx-auto px-3 py-3 md:px-4 md:py-8">
-          {/* Header */}
-          <div className="mb-3 md:mb-8">
-            <div className="flex items-center justify-between mb-2 md:mb-4">
-              <Button 
-                variant="ghost" 
-                onClick={handleBackClick}
-                className="group relative overflow-hidden bg-gradient-to-r from-gray-100 to-gray-200 hover:from-blue-100 hover:to-purple-100 border border-gray-300 hover:border-blue-300 text-gray-700 hover:text-blue-700 font-medium px-3 py-2 md:px-6 md:py-3 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-105"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
-                <ArrowLeft className="w-4 h-4 mr-1 md:mr-2 transition-transform duration-300 group-hover:-translate-x-1" />
-                <span className="relative z-10 text-sm md:text-base">Back</span>
-              </Button>
-              
-              <div className="flex items-center space-x-4">
-                <Badge variant="outline" className="bg-purple-50 text-purple-700 text-xs">
-                  Part {currentPart}
-                </Badge>
-                <Badge variant="outline" className="bg-blue-50 text-blue-700 text-xs">
-                  {Math.round(progress)}%
-                </Badge>
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between mb-2 md:mb-4">
-              <div>
-                <h1 className="text-lg md:text-2xl font-bold text-gray-900">
-                  {grade} English Language Paper 4
-                </h1>
-                <p className="text-sm md:text-base text-gray-600">
-                  {currentPart === 'A' ? 'Part A: Group Interaction' : 'Part B: Individual Response'}
-                </p>
-              </div>
-            </div>
-            
-            <Progress value={progress} className="w-full h-2" />
-          </div>
-
-          <div className="max-w-4xl mx-auto">
-            {currentPart === 'A' ? (
-              /* Part A: Group Interaction */
-              <Card className="mb-6">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="w-5 h-5" />
-                    Part A: Group Interaction
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="bg-blue-50 rounded-lg p-4">
-                    <h3 className="font-semibold mb-2">Instructions:</h3>
-                    <ul className="text-sm space-y-1 text-gray-700">
-                      <li>• Preparation time: 10 minutes (make notes)</li>
-                      <li>• Discussion time: 8 minutes (group of 4)</li>
-                      <li>• You may refer to your notes during discussion</li>
-                    </ul>
-                  </div>
-
-                  {/* Article Section */}
-                  <div className="bg-white border-2 border-gray-200 rounded-lg p-6">
-                    <div className="mb-4">
-                      <p className="text-sm text-gray-600 mb-2">This article appeared in a local newspaper:</p>
-                      <h3 className="text-lg font-bold text-gray-900 mb-3">
-                        {dseContent.partA.article.title}
-                      </h3>
-                      {dseContent.partA.article.quote && (
-                        <blockquote className="border-l-4 border-blue-500 pl-4 italic text-gray-700 mb-4">
-                          {dseContent.partA.article.quote}
-                        </blockquote>
-                      )}
-                    </div>
-                    <div className="prose prose-sm max-w-none">
-                      {dseContent.partA.article.content.split('\n\n').map((paragraph, index) => (
-                        <p key={index} className="mb-3 text-gray-800 leading-relaxed">
-                          {paragraph}
-                        </p>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Discussion Instructions */}
-                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6">
-                    <h3 className="text-lg font-bold mb-3">Discussion Task:</h3>
-                    <p className="mb-3 text-gray-800">
-                      Your class is discussing the topic mentioned in the article. 
-                      Your group has been asked to discuss the issues raised. 
-                      You may want to talk about:
-                    </p>
-                    <ul className="space-y-2">
-                      {dseContent.partA.discussionPoints.map((point, index) => (
-                        <li key={index} className="flex items-start">
-                          <span className="text-blue-600 mr-2">•</span>
-                          <span className="text-gray-800">{point}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* Rest of Part A UI remains the same */}
-                  <div className="text-center space-y-4">
-                    {!isPreparation && !isDiscussion && (
-                      <Button
-                        size="lg"
-                        onClick={startPreparation}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4"
-                      >
-                        <Clock className="w-5 h-5 mr-2" />
-                        Start Preparation (10 min)
-                      </Button>
-                    )}
-
-                    {isPreparation && (
-                      <div className="space-y-3">
-                        <div className="text-2xl font-mono text-blue-600">
-                          {formatTime(600 - preparationTime)}
-                        </div>
-                        <p className="text-sm text-gray-600">Preparation time remaining</p>
-                        <Button
-                          onClick={() => {
-                            if (preparationTimerRef.current) clearInterval(preparationTimerRef.current);
-                            setIsPreparation(false);
-                            startDiscussion();
-                          }}
-                          variant="outline"
-                        >
-                          Ready for Discussion
-                        </Button>
-                      </div>
-                    )}
-
-                    {isDiscussion && (
-                      <div className="space-y-3">
-                        <div className="text-2xl font-mono text-green-600">
-                          {formatTime(480 - discussionTime)}
-                        </div>
-                        <p className="text-sm text-gray-600">Discussion time remaining</p>
-                        <Button
-                          onClick={() => {
-                            if (discussionTimerRef.current) clearInterval(discussionTimerRef.current);
-                            setIsDiscussion(false);
-                            setCurrentPart('B');
-                          }}
-                          variant="outline"
-                        >
-                          Move to Individual Response
-                        </Button>
-                      </div>
-                    )}
-
-                    {!isPreparation && !isDiscussion && currentPart === 'A' && (
-                      <Button
-                        onClick={() => setCurrentPart('B')}
-                        className="bg-green-600 hover:bg-green-700 text-white px-8 py-4"
-                      >
-                        Continue to Part B
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              /* Part B: Individual Response */
-              <Card className="mb-6">
-                <CardHeader>
-                  <CardTitle>Part B: Individual Response</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="bg-green-50 rounded-lg p-4">
-                    <h3 className="font-semibold mb-2">Instructions:</h3>
-                    <p className="text-sm text-gray-700">
-                      Each candidate will respond individually to an examiner's question(s), which will be based on the group discussion task. 
-                      You have 1 minute to provide your response.
-                    </p>
-                  </div>
-
-                  {/* Individual Questions */}
-                  <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-6">
-                    <h3 className="text-lg font-bold mb-4">Sample Individual Response Questions:</h3>
-                    <div className="grid gap-3">
-                      {dseContent.partB.questions.map((question, index) => (
-                        <div key={index} className="flex items-start p-3 bg-white rounded border-l-4 border-green-500">
-                          <span className="font-bold text-green-600 mr-3">{index + 1}.</span>
-                          <span className="text-gray-800">{question}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <p className="text-sm text-gray-600 mt-4 italic">
-                      * The examiner will select one question for you to answer
-                    </p>
-                  </div>
-
-                  {/* Rest of Part B UI remains the same */}
-                  <div className="text-center space-y-4">
-                    {!hasRecorded ? (
-                      <div className="space-y-4">
-                        {!isRecording ? (
-                          <Button
-                            size="lg"
-                            onClick={startRecording}
-                            className="bg-red-500 hover:bg-red-600 text-white px-8 py-4"
-                          >
-                            <Mic className="w-6 h-6 mr-2" />
-                            Start Individual Response (1 min)
-                          </Button>
-                        ) : (
-                          <div className="space-y-4">
-                            <div className="flex items-center justify-center space-x-4">
-                              <div className="w-4 h-4 bg-red-500 rounded-full animate-pulse"></div>
-                              <span className="text-xl font-mono">
-                                {formatTime(recordingTime)}
-                              </span>
-                            </div>
-                            <Button
-                              onClick={stopRecording}
-                              variant="outline"
-                              className="px-8 py-4"
-                            >
-                              <MicOff className="w-6 h-6 mr-2" />
-                              Stop Recording
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        <div className="flex justify-center space-x-4">
-                          {!isPlaying ? (
-                            <Button
-                              onClick={playRecording}
-                              variant="outline"
-                              className="px-6 py-3"
-                            >
-                              <Play className="w-5 h-5 mr-2" />
-                              Play
-                            </Button>
-                          ) : (
-                            <Button
-                              onClick={stopPlaying}
-                              variant="outline"
-                              className="px-6 py-3"
-                            >
-                              <Pause className="w-5 h-5 mr-2" />
-                              Stop
-                            </Button>
-                          )}
-                          
-                          <Button
-                            onClick={resetRecording}
-                            variant="outline"
-                            className="px-6 py-3"
-                          >
-                            <RotateCcw className="w-5 h-5 mr-2" />
-                            Re-record
-                          </Button>
-                        </div>
-                        
-                        <Button
-                          size="lg"
-                          onClick={nextQuestion}
-                          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-16 py-5 text-xl"
-                        >
-                          Complete Assessment
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-lg text-gray-600">載入題目中...</p>
         </div>
-
-        {/* Back Confirmation Dialog */}
-        <Dialog open={showBackConfirmDialog} onOpenChange={setShowBackConfirmDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>確認離開測驗</DialogTitle>
-              <DialogDescription>
-                您正在進行測驗中，如果現在離開，您的進度將會遺失。確定要離開嗎？
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button variant="outline" onClick={cancelBack}>
-                繼續測驗
-              </Button>
-              <Button variant="destructive" onClick={confirmBack}>
-                確定離開
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </div>
     );
   }
 
-  // Original layout for non-senior secondary grades
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <div className="container mx-auto px-3 py-3 md:px-4 md:py-8">
-        {/* Compressed header for mobile */}
-        <div className="mb-3 md:mb-8">
-          <div className="flex items-center justify-between mb-2 md:mb-4">
-            <Button 
-              variant="ghost" 
-              onClick={handleBackClick}
-              className="group relative overflow-hidden bg-gradient-to-r from-gray-100 to-gray-200 hover:from-blue-100 hover:to-purple-100 border border-gray-300 hover:border-blue-300 text-gray-700 hover:text-blue-700 font-medium px-3 py-2 md:px-6 md:py-3 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-105"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
-              <ArrowLeft className="w-4 h-4 mr-1 md:mr-2 transition-transform duration-300 group-hover:-translate-x-1" />
-              <span className="relative z-10 text-sm md:text-base">Back</span>
-            </Button>
-            
-            {/* Show Questions Checkbox */}
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <Button
+            variant="outline"
+            onClick={onBack}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            返回
+          </Button>
+          
+          <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2">
-              <Checkbox 
+              <Switch
                 id="show-questions"
                 checked={showQuestions}
                 onCheckedChange={onShowQuestionsChange}
               />
-              <label 
-                htmlFor="show-questions" 
-                className="text-sm font-medium text-gray-700 cursor-pointer"
-              >
-                Show The Questions
-              </label>
+              <Label htmlFor="show-questions">顯示題目</Label>
             </div>
           </div>
-          
-          <div className="flex items-center justify-between mb-2 md:mb-4">
-            <div>
-              <h1 className="text-lg md:text-2xl font-bold text-gray-900">
-                {grade} English Assessment
-              </h1>
-              <p className="text-sm md:text-base text-gray-600">
-                Question {currentQuestion + 1} / {questions.length}
-              </p>
-            </div>
-            <Badge variant="outline" className="bg-blue-50 text-blue-700 text-xs">
-              {Math.round(progress)}%
-            </Badge>
-          </div>
-          
-          <Progress value={progress} className="w-full h-2" />
         </div>
 
-        <div className="max-w-4xl mx-auto">
-          {/* Compressed recording instructions for mobile */}
-          <Card className="mb-2 md:mb-4 bg-blue-50 border-blue-200">
-            <CardContent className="p-2 md:p-4">
-              <div className="flex items-start space-x-2 md:space-x-3">
-                <Info className="w-4 h-4 md:w-5 md:h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                <div className="text-xs md:text-sm text-blue-800">
-                  <p className="font-medium mb-1">錄音提示：</p>
-                  <p>系統會自動按下 「Start Recording」 模擬真人對話，請盡快回答</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Progress */}
+        <div className="mb-6">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm font-medium">進度</span>
+            <span className="text-sm text-gray-600">
+              {currentQuestionIndex + 1} / {questions.length}
+            </span>
+          </div>
+          <Progress value={progress} className="w-full" />
+        </div>
 
-          <Card className="mb-3 md:mb-6">
-            <CardHeader className="pb-3 md:pb-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base md:text-lg">
-                  {/* Show question number or reading instruction */}
-                  {(currentQ?.section === 'B. 朗讀' || (currentQ?.instruction && currentQ.instruction.includes('朗讀')))
-                    ? 'Please read the following text aloud'
-                    : `Question ${currentQuestion + 1}`}
-                </CardTitle>
-                <Badge variant="secondary" className="text-xs">
-                  {/* Convert section names to English */}
-                  {currentQ?.section === 'A. 自發表達' ? 'Speaking' :
-                   currentQ?.section === 'B. 朗讀' ? 'Reading' :
-                   currentQ?.section === 'C. 個人資料' ? 'Personal' :
-                   currentQ?.section}
-                </Badge>
+        {/* Question Card */}
+        <Card className="mb-6">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-xl">
+                題目 {currentQuestionIndex + 1}
+              </CardTitle>
+              <Badge variant="secondary">
+                {currentQuestion?.section}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Question Text - Only show if showQuestions is true OR if it's not a reading question */}
+            {(showQuestions || currentQuestion?.type !== 'reading') && (
+              <div className="p-4 bg-blue-50 rounded-lg">
+                <p className="text-lg font-medium text-blue-900">
+                  {currentQuestion?.text}
+                </p>
               </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              {/* Conditional question display based on showQuestions */}
-              {(showQuestions || isReadingQuestion) ? (
-                <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 md:p-10 mb-4 md:mb-6">
-                  <p className="text-lg md:text-2xl font-bold text-gray-900 mb-3 leading-relaxed">
-                    {currentQ?.text}
-                  </p>
-                  {isSpeaking && (
-                    <div className="flex items-center space-x-2 mt-3">
-                      <Volume2 className="w-4 h-4 text-blue-600 animate-pulse" />
-                      <span className="text-xs md:text-sm text-blue-600">Playing question...</span>
-                    </div>
-                  )}
+            )}
+
+            {/* Reading Passage - Always show for reading type questions */}
+            {currentQuestion?.type === 'reading' && currentQuestion?.readingPassage && (
+              <div className="p-4 bg-gray-50 rounded-lg border-l-4 border-blue-500">
+                <h4 className="font-semibold text-gray-800 mb-2">閱讀段落:</h4>
+                <div className="text-gray-700 leading-relaxed whitespace-pre-line">
+                  {currentQuestion.readingPassage}
                 </div>
-              ) : (
-                <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg p-6 md:p-10 mb-4 md:mb-6 text-center">
-                  <div className="text-gray-500 mb-3">
-                    <Volume2 className="w-8 h-8 mx-auto mb-2" />
-                    <p className="text-sm">Listen carefully to the question</p>
-                  </div>
-                  {isSpeaking && (
-                    <div className="flex items-center justify-center space-x-2 mt-3">
-                      <Volume2 className="w-4 h-4 text-blue-600 animate-pulse" />
-                      <span className="text-xs md:text-sm text-blue-600">Playing question...</span>
-                    </div>
-                  )}
-                </div>
-              )}
-              
-              <div className="text-center space-y-5 md:space-y-6">
-                {!hasRecorded ? (
-                  <div>
-                    {!isRecording ? (
-                      <div className="space-y-3 md:space-y-4">
-                        {/* Only show Listen Again button when showQuestions is true and not reading question */}
-                        {showQuestions && !isReadingQuestion && (
-                          <Button
-                            size="sm"
-                            onClick={handleListen}
-                            disabled={isSpeaking}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 md:px-8 md:py-4 text-sm md:text-lg mr-2 md:mr-4 disabled:opacity-50"
-                          >
-                            <Volume2 className="w-4 h-4 md:w-6 md:h-6 mr-1 md:mr-2" />
-                            {isSpeaking ? 'Playing...' : 'Listen Again'}
-                          </Button>
-                        )}
-                        <Button
-                          size="sm"
-                          onClick={startRecording}
-                          className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 md:px-8 md:py-4 text-sm md:text-lg"
-                        >
-                          <Mic className="w-4 h-4 md:w-6 md:h-6 mr-1 md:mr-2" />
-                          Start Recording
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="space-y-3 md:space-y-4">
-                        <div className="flex items-center justify-center space-x-2 md:space-x-4">
-                          <div className="w-3 h-3 md:w-4 md:h-4 bg-red-500 rounded-full animate-pulse"></div>
-                          <span className="text-lg md:text-xl font-mono">
-                            {formatTime(recordingTime)}
-                          </span>
-                        </div>
-                        <Button
-                          size="sm"
-                          onClick={stopRecording}
-                          variant="outline"
-                          className="px-4 py-2 md:px-8 md:py-4 text-sm"
-                        >
-                          <MicOff className="w-4 h-4 md:w-6 md:h-6 mr-1 md:mr-2" />
-                          Stop Recording
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-3 md:space-y-4">
-                    <div className="flex justify-center space-x-2 md:space-x-4">
-                      {!isPlaying ? (
-                        <Button
-                          size="sm"
-                          onClick={playRecording}
-                          variant="outline"
-                          className="px-3 py-2 md:px-6 md:py-3 text-sm"
-                        >
-                          <Play className="w-4 h-4 md:w-5 md:h-5 mr-1 md:mr-2" />
-                          Play
-                        </Button>
-                      ) : (
-                        <Button
-                          size="sm"
-                          onClick={stopPlaying}
-                          variant="outline"
-                          className="px-3 py-2 md:px-6 md:py-3 text-sm"
-                        >
-                          <Pause className="w-4 h-4 md:w-5 md:h-5 mr-1 md:mr-2" />
-                          Stop
-                        </Button>
-                      )}
-                      
-                      <Button
-                        size="sm"
-                        onClick={resetRecording}
-                        variant="outline"
-                        className="px-3 py-2 md:px-6 md:py-3 text-sm"
-                      >
-                        <RotateCcw className="w-4 h-4 md:w-5 md:h-5 mr-1 md:mr-2" />
-                        Re-record
-                      </Button>
-                    </div>
-                    
+              </div>
+            )}
+
+            {/* Audio Controls */}
+            <div className="flex items-center gap-4">
+              <Button
+                onClick={handlePlayQuestion}
+                disabled={isPlaying}
+                variant="outline"
+                size="sm"
+              >
+                <Volume2 className="w-4 h-4 mr-2" />
+                {isPlaying ? '播放中...' : '播放題目'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Recording Controls */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>錄音控制</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-lg font-medium">
+                錄音時間: {recordingTime} 秒
+              </div>
+              <div className="flex items-center space-x-2">
+                {isRecording ? (
+                  isPaused ? (
                     <Button
-                      size="lg"
-                      onClick={nextQuestion}
-                      className="mt-16 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 md:px-16 md:py-5 text-lg md:text-xl"
+                      onClick={resumeRecording}
+                      disabled={!mediaRecorder}
+                      variant="secondary"
                     >
-                      {currentQuestion === questions.length - 1 ? 'Complete Assessment' : 'Next Question'}
+                      <Play className="w-4 h-4 mr-2" />
+                      繼續
                     </Button>
-                  </div>
+                  ) : (
+                    <Button
+                      onClick={pauseRecording}
+                      disabled={!mediaRecorder}
+                      variant="secondary"
+                    >
+                      <Pause className="w-4 h-4 mr-2" />
+                      暫停
+                    </Button>
+                  )
+                ) : null}
+
+                {isRecording ? (
+                  <Button
+                    onClick={stopRecording}
+                    disabled={!mediaRecorder}
+                    variant="destructive"
+                  >
+                    <MicOff className="w-4 h-4 mr-2" />
+                    停止
+                  </Button>
+                ) : (
+                  <Button onClick={startRecording} variant="secondary">
+                    <Mic className="w-4 h-4 mr-2" />
+                    開始錄音
+                  </Button>
                 )}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+
+            {recordedAudios[currentQuestionIndex] && (
+              <div className="mt-4">
+                <Button
+                  onClick={() => handleAudioPlayback(currentQuestionIndex)}
+                  variant="outline"
+                >
+                  <Play className="w-4 h-4 mr-2" />
+                  播放錄音
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Navigation */}
+        <div className="flex justify-between">
+          <Button
+            onClick={previousQuestion}
+            disabled={currentQuestionIndex === 0}
+            variant="outline"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            上一題
+          </Button>
+
+          {currentQuestionIndex === questions.length - 1 ? (
+            <Button
+              onClick={completeTest}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              完成測驗
+            </Button>
+          ) : (
+            <Button onClick={nextQuestion}>
+              下一題
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Back Confirmation Dialog */}
-      <Dialog open={showBackConfirmDialog} onOpenChange={setShowBackConfirmDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>確認離開測驗</DialogTitle>
-            <DialogDescription>
-              您正在進行測驗中，如果現在離開，您的進度將會遺失。確定要離開嗎？
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={cancelBack}>
-              繼續測驗
-            </Button>
-            <Button variant="destructive" onClick={confirmBack}>
-              確定離開
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <audio ref={audioRef} style={{ display: 'none' }} />
     </div>
   );
 };
+
+export default VoiceTest;
