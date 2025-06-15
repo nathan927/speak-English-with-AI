@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Mic, MicOff, Play, Pause, RotateCcw, Volume2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { performAIEvaluation } from '@/services/aiEvaluationService';
+import { getRandomQuestionSet, type Question } from '@/data/questionBank';
 
 interface VoiceTestProps {
   grade: string;
@@ -44,52 +46,8 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
   
   const { toast } = useToast();
 
-  // Real Hong Kong exam format questions
-  const getQuestionsForGrade = (grade: string) => {
-    const examQuestions = {
-      'K1': [
-        { id: 1, section: 'A. Spontaneous Language Use', type: 'greeting', text: 'Good morning.', instruction: 'Please respond to the greeting', targetWords: ['good', 'morning'] },
-        { id: 2, section: 'A. Spontaneous Language Use', type: 'question', text: 'How old are you?', instruction: 'Answer this question', targetWords: ['old', 'years'] },
-        { id: 3, section: 'A. Spontaneous Language Use', type: 'question', text: 'What is your name?', instruction: 'Tell me your name', targetWords: ['name'] },
-        { id: 4, section: 'B. Reading Aloud', type: 'reading', text: 'The cat is big. The dog is small. I like animals.', instruction: 'Please read this passage clearly', targetWords: ['cat', 'big', 'dog', 'small', 'animals'] },
-        { id: 5, section: 'C. Expression of Personal Experiences', type: 'personal', text: 'Do you like toys?', instruction: 'Tell me about your favorite toys', targetWords: ['like', 'toys', 'play'] },
-        { id: 6, section: 'C. Expression of Personal Experiences', type: 'personal', text: 'What do you like to eat?', instruction: 'Talk about your favorite food', targetWords: ['like', 'eat', 'food'] }
-      ],
-      'P1': [
-        { id: 1, section: 'A. Spontaneous Language Use', type: 'greeting', text: 'Good afternoon.', instruction: 'Please respond to the greeting', targetWords: ['good', 'afternoon'] },
-        { id: 2, section: 'A. Spontaneous Language Use', type: 'question', text: 'How old are you?', instruction: 'Answer this question', targetWords: ['old', 'years'] },
-        { id: 3, section: 'A. Spontaneous Language Use', type: 'question', text: 'What class are you in?', instruction: 'Tell me your class', targetWords: ['class'] },
-        { id: 4, section: 'B. Reading Aloud', type: 'reading', text: 'My Family: I have a big family. My father is tall. My mother is kind. I have one brother and one sister. We are happy.', instruction: 'Please read this passage clearly', targetWords: ['family', 'father', 'mother', 'brother', 'sister', 'happy'] },
-        { id: 5, section: 'C. Expression of Personal Experiences', type: 'personal', text: 'Are you interested in ball games?', instruction: 'Tell me about ball games you like', targetWords: ['interested', 'ball', 'games'] },
-        { id: 6, section: 'C. Expression of Personal Experiences', type: 'personal', text: 'What do you like doing at the beach?', instruction: 'Describe activities at the beach', targetWords: ['beach', 'swimming', 'sand'] }
-      ],
-      'P3': [
-        { id: 1, section: 'A. Spontaneous Language Use', type: 'greeting', text: 'Good morning.', instruction: 'Please respond to the greeting', targetWords: ['good', 'morning'] },
-        { id: 2, section: 'A. Spontaneous Language Use', type: 'question', text: 'How old are you?', instruction: 'Answer this question', targetWords: ['old', 'years'] },
-        { id: 3, section: 'A. Spontaneous Language Use', type: 'question', text: 'How are you?', instruction: 'Tell me how you are feeling', targetWords: ['fine', 'good', 'well'] },
-        { id: 4, section: 'A. Spontaneous Language Use', type: 'question', text: 'What class are you in?', instruction: 'Tell me your class', targetWords: ['class'] },
-        { id: 5, section: 'A. Spontaneous Language Use', type: 'question', text: "What's the weather like today?", instruction: 'Describe today\'s weather', targetWords: ['weather', 'sunny', 'cloudy', 'rainy'] },
-        { id: 6, section: 'B. Reading Aloud', type: 'reading', text: 'The School Picnic: The school picnic is coming. May and Tom are going to a country park with their classmates. May asks: "When\'s the school picnic?" "It\'s on the twentieth of January," says Tom. Then they think about the activities they can do on that day. Tom is interested in sports. He can play football. May can\'t play football but she can play the guitar. She is interested in music.', instruction: 'Please read this passage clearly', targetWords: ['school', 'picnic', 'country', 'park', 'January', 'football', 'guitar', 'music'] },
-        { id: 7, section: 'C. Expression of Personal Experiences', type: 'personal', text: 'Are you interested in ball games?', instruction: 'Tell me about ball games you like', targetWords: ['interested', 'ball', 'games', 'football', 'basketball'] },
-        { id: 8, section: 'C. Expression of Personal Experiences', type: 'personal', text: 'What do you like doing at the beach?', instruction: 'Describe activities you enjoy at the beach', targetWords: ['beach', 'swimming', 'sand', 'play'] },
-        { id: 9, section: 'C. Expression of Personal Experiences', type: 'personal', text: 'What food do you want on your birthday?', instruction: 'Tell me about your birthday food preferences', targetWords: ['birthday', 'food', 'cake', 'party'] }
-      ],
-      'S1': [
-        { id: 1, section: 'A. Spontaneous Language Use', type: 'greeting', text: 'Good afternoon.', instruction: 'Please respond appropriately', targetWords: ['good', 'afternoon'] },
-        { id: 2, section: 'A. Spontaneous Language Use', type: 'question', text: 'How old are you?', instruction: 'Answer this question', targetWords: ['old', 'years'] },
-        { id: 3, section: 'A. Spontaneous Language Use', type: 'question', text: 'What form are you in?', instruction: 'Tell me your form/class', targetWords: ['form', 'class'] },
-        { id: 4, section: 'A. Spontaneous Language Use', type: 'question', text: 'What subjects do you study?', instruction: 'List some of your subjects', targetWords: ['subjects', 'study', 'English', 'Mathematics'] },
-        { id: 5, section: 'B. Reading Aloud', type: 'reading', text: 'Environmental Protection: Hong Kong faces many environmental challenges today. Air pollution from vehicles and factories affects our daily lives. Many citizens are becoming more aware of the importance of recycling and reducing waste. Schools are teaching students about sustainable living practices. Everyone can contribute to protecting our environment by making small changes in their daily habits.', instruction: 'Please read this passage with proper pronunciation and intonation', targetWords: ['environmental', 'pollution', 'recycling', 'sustainable', 'citizens'] },
-        { id: 6, section: 'C. Expression of Personal Experiences', type: 'opinion', text: 'What do you think about using technology in education?', instruction: 'Express your views on educational technology', targetWords: ['technology', 'education', 'learning', 'computers'] },
-        { id: 7, section: 'C. Expression of Personal Experiences', type: 'personal', text: 'Describe a memorable experience you had during the holidays.', instruction: 'Share a detailed personal experience', targetWords: ['memorable', 'experience', 'holidays', 'family'] },
-        { id: 8, section: 'C. Expression of Personal Experiences', type: 'future', text: 'What are your plans for secondary school?', instruction: 'Discuss your academic and personal goals', targetWords: ['plans', 'secondary', 'school', 'future'] }
-      ]
-    };
-
-    return examQuestions[grade as keyof typeof examQuestions] || examQuestions['P3'];
-  };
-
-  const questions = getQuestionsForGrade(grade);
+  // Get questions from the comprehensive question bank
+  const questions: Question[] = getRandomQuestionSet(grade);
   const currentQ = questions[currentQuestion];
   const progress = ((currentQuestion + 1) / questions.length) * 100;
 
@@ -376,9 +334,6 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <Badge variant="secondary" className="mb-2">
-                    {currentQ.section}
-                  </Badge>
                   <CardTitle className="text-lg">
                     {currentQ.instruction}
                   </CardTitle>
@@ -490,15 +445,15 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
 
           <Card className="bg-blue-50 border-blue-200">
             <CardContent className="p-4">
-              <h4 className="font-semibold text-blue-800 mb-2">🤖 AI驅動評測說明:</h4>
+              <h4 className="font-semibold text-blue-800 mb-2">🤖 Production級AI評測系統:</h4>
               <ul className="text-sm text-blue-700 space-y-1">
-                <li>• <strong>真實對話模式</strong>: 題目會自動朗讀，然後自動開始錄音</li>
-                <li>• <strong>AI專業分析</strong>: 使用先進AI模型評估發音、詞彙、流暢度和自信程度</li>
-                <li>• <strong>反應速度評分</strong>: 請盡快開始回應以獲得更好的自信分數</li>
+                <li>• <strong>專業題庫</strong>: 根據香港教育局標準設計，涵蓋K1-S6各年級</li>
+                <li>• <strong>真實對話模式</strong>: 題目自動朗讀，模擬真實口試環境</li>
+                <li>• <strong>AI專業分析</strong>: 使用頂級AI模型評估發音、詞彙、流暢度和自信程度</li>
+                <li>• <strong>響應速度評分</strong>: 3秒内開始回應獲得更高的自信分數</li>
                 <li>• <strong>針對香港學生</strong>: AI專門針對香港學生的英語學習特點進行評估</li>
-                <li>• <strong>個人化建議</strong>: 完成後將獲得詳細的改進建議和學習計劃</li>
-                <li>• 如需要可以重新錄音</li>
-                <li>• <strong>所有錄音將在最後進行AI統合分析</strong></li>
+                <li>• <strong>個人化學習計劃</strong>: 完成後將獲得詳細的改進建議和學習計劃</li>
+                <li>• <strong>最終統合分析</strong>: 所有錄音將在最後進行AI統合分析</li>
               </ul>
             </CardContent>
           </Card>
@@ -507,3 +462,4 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
     </div>
   );
 };
+
