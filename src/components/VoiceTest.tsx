@@ -534,21 +534,6 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
               </div>
             </CardContent>
           </Card>
-
-          <Card className="bg-blue-50 border-blue-200">
-            <CardContent className="p-4">
-              <h4 className="font-semibold text-blue-800 mb-2">🤖 Production級AI評測系統:</h4>
-              <ul className="text-sm text-blue-700 space-y-1">
-                <li>• <strong>專業題庫</strong>: 根據香港教育局標準設計，涵蓋K1-S6各年級</li>
-                <li>• <strong>真實對話模式</strong>: 題目自動朗讀，模擬真實口試環境</li>
-                <li>• <strong>AI專業分析</strong>: 使用頂級AI模型評估發音、詞彙、流暢度和自信程度</li>
-                <li>• <strong>響應速度評分</strong>: 3秒内開始回應獲得更高的自信分數</li>
-                <li>• <strong>針對香港學生</strong>: AI專門針對香港學生的英語學習特點進行評估</li>
-                <li>• <strong>個人化學習計劃</strong>: 完成後將獲得詳細的改進建議和學習計劃</li>
-                <li>• <strong>最終統合分析</strong>: 所有錄音將在最後進行AI統合分析</li>
-              </ul>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>

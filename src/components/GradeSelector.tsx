@@ -74,20 +74,20 @@ export const GradeSelector = ({ onGradeSelect, onBack }: GradeSelectorProps) => 
                   className="cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105"
                   onClick={() => setSelectedCategory(category.id)}
                 >
-                  <CardHeader className="text-center">
-                    <div className={`w-16 h-16 bg-gradient-to-r ${category.color} rounded-full flex items-center justify-center mx-auto mb-4`}>
-                      <IconComponent className="w-8 h-8 text-white" />
+                  <CardHeader className="text-center pb-4">
+                    <div className={`w-12 h-12 bg-gradient-to-r ${category.color} rounded-full flex items-center justify-center mx-auto mb-3`}>
+                      <IconComponent className="w-6 h-6 text-white" />
                     </div>
-                    <CardTitle className="text-xl">{category.title}</CardTitle>
-                    <CardDescription className="text-lg font-semibold text-gray-700">
+                    <CardTitle className="text-lg">{category.title}</CardTitle>
+                    <CardDescription className="text-base font-semibold text-gray-700">
                       {category.subtitle}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="text-center">
-                    <p className="text-gray-600 mb-4">{category.description}</p>
-                    <div className="flex flex-wrap justify-center gap-2">
+                  <CardContent className="text-center pt-0">
+                    <p className="text-gray-600 mb-3 text-sm">{category.description}</p>
+                    <div className="flex flex-wrap justify-center gap-1">
                       {category.features.map((feature, index) => (
-                        <Badge key={index} variant="secondary" className="text-xs">
+                        <Badge key={index} variant="secondary" className="text-xs px-2 py-1">
                           {feature}
                         </Badge>
                       ))}
