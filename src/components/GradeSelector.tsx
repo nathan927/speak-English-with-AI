@@ -1,9 +1,11 @@
+
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
-import { ArrowLeft, Mic, BookOpen, Users, Volume2 } from 'lucide-react';
+import { ArrowLeft, Mic, Volume2 } from 'lucide-react';
+import { logger } from '@/services/logService';
 
 interface GradeSelectorProps {
   onGradeSelect: (grade: string, speechRate: number) => void;
@@ -11,75 +13,63 @@ interface GradeSelectorProps {
 }
 
 export const GradeSelector = ({ onGradeSelect, onBack }: GradeSelectorProps) => {
-  const [selectedGrade, setSelectedGrade] = useState<string>('');
-  const [speechRate, setSpeechRate] = useState<number>(0.9);
+  const [speechRate, setSpeechRate] = useState(0.9);
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
-  const gradeCategories = [
+  const handleGradeSelect = (grade: string) => {
+    logger.info('Grade selected in GradeSelector', { grade, speechRate });
+    onGradeSelect(grade, speechRate);
+  };
+
+  const testSpeechRate = () => {
+    const testText = "Hello, this is a test of the speech rate. How does this sound to you?";
+    setIsSpeaking(true);
+    
+    if ('speechSynthesis' in window) {
+      if (speechSynthesis.speaking) {
+        speechSynthesis.cancel();
+      }
+      
+      const utterance = new SpeechSynthesisUtterance(testText);
+      utterance.lang = 'en-US';
+      utterance.rate = speechRate;
+      utterance.volume = 1.0;
+      
+      utterance.onend = () => setIsSpeaking(false);
+      utterance.onerror = () => setIsSpeaking(false);
+      
+      speechSynthesis.speak(utterance);
+    } else {
+      setTimeout(() => setIsSpeaking(false), 3000);
+    }
+  };
+
+  const gradeGroups = [
     {
-      title: '幼稚園',
-      description: '遊戲化設計，大按鈕介面',
-      icon: <BookOpen className="w-6 h-6" />,
-      color: 'bg-green-100 text-green-800',
-      grades: [
-        { id: 'K1', name: 'K1', description: '3-4歲，基礎詞彙' },
-        { id: 'K2', name: 'K2', description: '4-5歲，簡單句子' },
-        { id: 'K3', name: 'K3', description: '5-6歲，基本對話' }
-      ]
+      title: "幼稚園",
+      subtitle: "Kindergarten (K1-K3)",
+      description: "遊戲化設計，大按鈕介面，鮮豔色彩",
+      grades: ["K1", "K2", "K3"],
+      bgColor: "bg-pink-50",
+      borderColor: "border-pink-200"
     },
     {
-      title: '小學',
-      description: '4級評分制，成就徽章系統',
-      icon: <Users className="w-6 h-6" />,
-      color: 'bg-blue-100 text-blue-800',
-      grades: [
-        { id: 'P1', name: 'P1', description: '基礎發音與詞彙' },
-        { id: 'P2', name: 'P2', description: '簡單對話技巧' },
-        { id: 'P3', name: 'P3', description: '流暢度提升' },
-        { id: 'P4', name: 'P4', description: '表達能力發展' },
-        { id: 'P5', name: 'P5', description: '進階口語技巧' },
-        { id: 'P6', name: 'P6', description: '升中準備' }
-      ]
+      title: "小學",
+      subtitle: "Primary School (P1-P6)", 
+      description: "成就徽章，進度追蹤，互動元素",
+      grades: ["P1", "P2", "P3", "P4", "P5", "P6"],
+      bgColor: "bg-blue-50",
+      borderColor: "border-blue-200"
     },
     {
-      title: '中學',
-      description: '6級評分制，專業分析報告',
-      icon: <Mic className="w-6 h-6" />,
-      color: 'bg-purple-100 text-purple-800',
-      grades: [
-        { id: 'S1', name: 'S1', description: '中一適應期評估' },
-        { id: 'S2', name: 'S2', description: '基礎中學口語' },
-        { id: 'S3', name: 'S3', description: '中等程度評測' },
-        { id: 'S4', name: 'S4', description: '高中準備' },
-        { id: 'S5', name: 'S5', description: 'DSE預備' },
-        { id: 'S6', name: 'S6', description: 'DSE衝刺' }
-      ]
+      title: "中學",
+      subtitle: "Secondary School (S1-S6)",
+      description: "專業分析，詳細報告，自主學習",
+      grades: ["S1", "S2", "S3", "S4", "S5", "S6"],
+      bgColor: "bg-green-50", 
+      borderColor: "border-green-200"
     }
   ];
-
-  const handleGradeSelect = (gradeId: string) => {
-    setSelectedGrade(gradeId);
-    
-    // Auto-scroll to bottom after grade selection
-    setTimeout(() => {
-      window.scrollTo({
-        top: document.documentElement.scrollHeight,
-        behavior: 'smooth'
-      });
-    }, 300);
-  };
-
-  const handleStartTest = () => {
-    if (selectedGrade) {
-      onGradeSelect(selectedGrade, speechRate);
-    }
-  };
-
-  const getSpeechRateLabel = (rate: number) => {
-    if (rate <= 0.7) return '慢速';
-    if (rate <= 0.9) return '正常';
-    if (rate <= 1.1) return '快速';
-    return '極快';
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -88,109 +78,91 @@ export const GradeSelector = ({ onGradeSelect, onBack }: GradeSelectorProps) => 
           <Button 
             variant="ghost" 
             onClick={onBack}
-            className="group relative overflow-hidden bg-gradient-to-r from-gray-100 to-gray-200 hover:from-blue-100 hover:to-purple-100 border border-gray-300 hover:border-blue-300 text-gray-700 hover:text-blue-700 font-medium px-6 py-3 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-105 mb-6"
+            className="mb-6 group relative overflow-hidden bg-gradient-to-r from-gray-100 to-gray-200 hover:from-blue-100 hover:to-purple-100 border border-gray-300 hover:border-blue-300 text-gray-700 hover:text-blue-700 font-medium px-6 py-3 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-105"
           >
             <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
             <ArrowLeft className="w-4 h-4 mr-2 transition-transform duration-300 group-hover:-translate-x-1" />
             <span className="relative z-10">返回首頁</span>
           </Button>
           
-          <div className="text-center">
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">選擇年級</h1>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              請選擇您的年級，系統將根據香港教育局標準為您量身定制評測內容
-            </p>
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">選擇您的年級</h1>
+            <p className="text-gray-600 text-lg">根據香港教育體系設計的分級評測</p>
           </div>
         </div>
 
-        <div className="max-w-6xl mx-auto">
-          <div className="grid gap-8 mb-8">
-            {gradeCategories.map((category) => (
-              <Card key={category.title} className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
-                <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center shadow-sm">
-                      {category.icon}
-                    </div>
-                    <div>
-                      <CardTitle className="text-xl">{category.title}</CardTitle>
-                      <p className="text-gray-600 text-sm">{category.description}</p>
-                    </div>
-                    <Badge className={category.color}>{category.title}</Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-                    {category.grades.map((grade) => (
-                      <Button
-                        key={grade.id}
-                        variant={selectedGrade === grade.id ? 'default' : 'outline'}
-                        className={`h-auto p-4 flex flex-col items-center space-y-2 text-center transition-all duration-200 ${
-                          selectedGrade === grade.id
-                            ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg scale-105'
-                            : 'hover:bg-blue-50 hover:border-blue-300'
-                        }`}
-                        onClick={() => handleGradeSelect(grade.id)}
-                      >
-                        <span className="font-bold text-lg">{grade.name}</span>
-                        <span className="text-xs opacity-80 leading-tight">
-                          {grade.description}
-                        </span>
-                      </Button>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* 語速設定 */}
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Volume2 className="w-5 h-5" />
-                <span>語速</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">調整問題播放的語速</span>
-                  <Badge variant="outline">{getSpeechRateLabel(speechRate)}</Badge>
-                </div>
-                <Slider
-                  value={[speechRate]}
-                  onValueChange={(value) => setSpeechRate(value[0])}
-                  max={1.5}
-                  min={0.5}
-                  step={0.1}
-                  className="w-full"
-                />
-                <div className="flex justify-between text-xs text-gray-500">
-                  <span>慢速 (0.5x)</span>
-                  <span>正常 (1.0x)</span>
-                  <span>快速 (1.5x)</span>
-                </div>
+        {/* Speech Rate Control */}
+        <Card className="mb-8 max-w-2xl mx-auto">
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Volume2 className="w-5 h-5 mr-2" />
+              語速調節
+            </CardTitle>
+            <CardDescription>
+              調整系統語音播放速度，讓您更舒適地進行測驗
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm text-gray-600">
+                <span>慢速</span>
+                <span>正常</span>
+                <span>快速</span>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* 開始測試按鈕 */}
-          {selectedGrade && (
-            <div className="text-center">
-              <Button
-                size="lg"
-                onClick={handleStartTest}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-12 py-6 text-2xl font-semibold rounded-2xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
-              >
-                <Mic className="w-12 h-12 mr-4" strokeWidth={3} />
-                開始 {selectedGrade} 測驗
-              </Button>
-              <p className="text-gray-600 mt-4">
-                已選擇：{selectedGrade} • 語速：{getSpeechRateLabel(speechRate)}
-              </p>
+              <Slider
+                value={[speechRate]}
+                onValueChange={(value) => setSpeechRate(value[0])}
+                min={0.5}
+                max={1.5}
+                step={0.1}
+                className="w-full"
+              />
+              <div className="text-center">
+                <Badge variant="outline">{speechRate.toFixed(1)}x</Badge>
+              </div>
             </div>
-          )}
+            <Button 
+              onClick={testSpeechRate}
+              disabled={isSpeaking}
+              variant="outline"
+              className="w-full"
+            >
+              {isSpeaking ? '播放中...' : '測試語速'}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Grade Selection */}
+        <div className="max-w-6xl mx-auto space-y-8">
+          {gradeGroups.map((group) => (
+            <Card key={group.title} className={`${group.bgColor} ${group.borderColor} border-2`}>
+              <CardHeader className="text-center">
+                <CardTitle className="text-2xl">{group.title}</CardTitle>
+                <CardDescription className="text-lg font-medium">
+                  {group.subtitle}
+                </CardDescription>
+                <p className="text-sm text-gray-600 mt-2">
+                  {group.description}
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+                  {group.grades.map((grade) => (
+                    <Button
+                      key={grade}
+                      onClick={() => handleGradeSelect(grade)}
+                      className="h-16 text-lg font-semibold bg-white hover:bg-gradient-to-r hover:from-blue-600 hover:to-purple-600 hover:text-white border-2 border-gray-200 hover:border-transparent transition-all duration-300 transform hover:scale-105 shadow-sm hover:shadow-md"
+                    >
+                      <div className="flex flex-col items-center">
+                        <Mic className="w-8 h-8 mb-1" strokeWidth={2.5} />
+                        {grade}
+                      </div>
+                    </Button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </div>
     </div>

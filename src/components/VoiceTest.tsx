@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ArrowLeft, Mic, MicOff, Play, Pause, RotateCcw, Volume2, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { performAIEvaluation } from '@/services/aiEvaluationService';
@@ -40,6 +41,7 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
   const [responseStartTime, setResponseStartTime] = useState<number | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [hasSpokenTransition, setHasSpokenTransition] = useState(false);
+  const [showBackConfirmDialog, setShowBackConfirmDialog] = useState(false);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -102,6 +104,23 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
     }
   }, [currentQuestion, hasRecorded]);
 
+  const handleBackClick = () => {
+    if (isRecording || recordings.length > 0) {
+      setShowBackConfirmDialog(true);
+    } else {
+      onBack();
+    }
+  };
+
+  const confirmBack = () => {
+    setShowBackConfirmDialog(false);
+    onBack();
+  };
+
+  const cancelBack = () => {
+    setShowBackConfirmDialog(false);
+  };
+
   const handleListen = () => {
     logger.info('Listen button clicked', {
       currentQuestion,
@@ -152,15 +171,15 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
           currentQuestion
         }, 'VoiceTest', 'speechCompleted');
         
-        // Auto-start recording after speech completes (EXCLUDE Reading questions)
+        // Auto-start recording after speech completes with shorter delay (EXCLUDE Reading questions)
         if (!isReadingQuestion) {
           setTimeout(() => {
             logger.debug('Auto-starting recording after speech', {
-              delay: 1000,
+              delay: 300,
               currentQuestion
             }, 'VoiceTest', 'autoRecord');
             startRecording();
-          }, 1000); // Small delay before starting recording
+          }, 300); // Reduced delay from 1000ms to 300ms for faster conversation
         }
       });
     }
@@ -515,7 +534,7 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
           <div className="flex items-center justify-between mb-4">
             <Button 
               variant="ghost" 
-              onClick={onBack}
+              onClick={handleBackClick}
               className="group relative overflow-hidden bg-gradient-to-r from-gray-100 to-gray-200 hover:from-blue-100 hover:to-purple-100 border border-gray-300 hover:border-blue-300 text-gray-700 hover:text-blue-700 font-medium px-6 py-3 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-105"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
@@ -682,6 +701,26 @@ export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestPr
           </Card>
         </div>
       </div>
+
+      {/* Back Confirmation Dialog */}
+      <Dialog open={showBackConfirmDialog} onOpenChange={setShowBackConfirmDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>確認離開測驗</DialogTitle>
+            <DialogDescription>
+              您正在進行測驗中，如果現在離開，您的進度將會遺失。確定要離開嗎？
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={cancelBack}>
+              繼續測驗
+            </Button>
+            <Button variant="destructive" onClick={confirmBack}>
+              確定離開
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
