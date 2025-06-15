@@ -3,15 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Mic, MicOff, Play, Pause, RotateCcw, Volume2, Settings2 } from 'lucide-react';
+import { ArrowLeft, Mic, MicOff, Play, Pause, RotateCcw, Volume2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { performAIEvaluation } from '@/services/aiEvaluationService';
 import { getRandomQuestionSet, type Question } from '@/data/questionBank';
 import { buildNaturalQuestion, getCompletionPhrase } from '@/services/conversationService';
-import { Slider } from '@/components/ui/slider';
 
 interface VoiceTestProps {
   grade: string;
+  speechRate: number;
   onComplete: (results: any) => void;
   onBack: () => void;
 }
@@ -27,7 +27,7 @@ interface RecordingData {
   responseTime: number;
 }
 
-export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
+export const VoiceTest = ({ grade, speechRate, onComplete, onBack }: VoiceTestProps) => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -39,7 +39,6 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
   const [responseStartTime, setResponseStartTime] = useState<number | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [pendingCompletionPhrase, setPendingCompletionPhrase] = useState('');
-  const [speechRate, setSpeechRate] = useState(1.1);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -431,19 +430,6 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
               <ArrowLeft className="w-4 h-4 mr-2 transition-transform duration-300 group-hover:-translate-x-1" />
               <span className="relative z-10">Back to Selection</span>
             </Button>
-            <div className="flex items-center space-x-2 w-full max-w-xs">
-                <Settings2 className="w-5 h-5 text-gray-600" />
-                <span className="text-sm font-medium text-gray-700">Speed</span>
-                <Slider
-                    value={[speechRate]}
-                    onValueChange={(value) => setSpeechRate(value[0])}
-                    min={0.7}
-                    max={2.5}
-                    step={0.1}
-                    className="w-[120px] md:w-[150px]"
-                />
-                <span className="text-sm font-mono text-gray-800 w-10 text-center">{speechRate.toFixed(1)}x</span>
-            </div>
           </div>
           
           <div className="flex items-center justify-between mb-4">

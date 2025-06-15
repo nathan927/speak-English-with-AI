@@ -1,4 +1,3 @@
-
 // Conversation service for natural dialogue transitions
 export interface ConversationPhrase {
   opening: string[];
@@ -125,10 +124,27 @@ const conversationPhrases: ConversationPhrase = {
   ]
 };
 
+// Track last used phrases to prevent repetition
+let lastUsedPhrases: { [key: string]: string } = {};
+
 export const getRandomPhrase = (type: keyof ConversationPhrase): string => {
   const phrases = conversationPhrases[type];
-  const randomIndex = Math.floor(Math.random() * phrases.length);
-  return phrases[randomIndex];
+  let selectedPhrase: string;
+  
+  // Filter out the last used phrase for this type
+  const availablePhrases = phrases.filter(phrase => phrase !== lastUsedPhrases[type]);
+  
+  // If all phrases have been used, reset and use all phrases
+  if (availablePhrases.length === 0) {
+    selectedPhrase = phrases[Math.floor(Math.random() * phrases.length)];
+  } else {
+    selectedPhrase = availablePhrases[Math.floor(Math.random() * availablePhrases.length)];
+  }
+  
+  // Store the selected phrase to avoid repetition
+  lastUsedPhrases[type] = selectedPhrase;
+  
+  return selectedPhrase;
 };
 
 export const buildNaturalQuestion = (questionText: string, isFirst: boolean = false, isLast: boolean = false): string => {

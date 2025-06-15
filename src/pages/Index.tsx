@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,14 +12,16 @@ import { ResultsAnalysis } from '@/components/ResultsAnalysis';
 const Index = () => {
   const [currentView, setCurrentView] = useState<'home' | 'gradeSelect' | 'test' | 'results'>('home');
   const [selectedGrade, setSelectedGrade] = useState<string>('');
+  const [speechRate, setSpeechRate] = useState<number>(0.9);
   const [testResults, setTestResults] = useState<any>(null);
 
   const handleStartTest = () => {
     setCurrentView('gradeSelect');
   };
 
-  const handleGradeSelect = (grade: string) => {
+  const handleGradeSelect = (grade: string, rate: number) => {
     setSelectedGrade(grade);
+    setSpeechRate(rate);
     setCurrentView('test');
   };
 
@@ -40,7 +43,8 @@ const Index = () => {
   if (currentView === 'test') {
     return (
       <VoiceTest 
-        grade={selectedGrade} 
+        grade={selectedGrade}
+        speechRate={speechRate}
         onComplete={handleTestComplete}
         onBack={() => setCurrentView('gradeSelect')}
       />

@@ -1,17 +1,18 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Users, BookOpen, GraduationCap } from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
+import { ArrowLeft, Users, BookOpen, GraduationCap, Settings2 } from 'lucide-react';
 
 interface GradeSelectorProps {
-  onGradeSelect: (grade: string) => void;
+  onGradeSelect: (grade: string, speechRate: number) => void;
   onBack: () => void;
 }
 
 export const GradeSelector = ({ onGradeSelect, onBack }: GradeSelectorProps) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [speechRate, setSpeechRate] = useState(0.9); // 調整默認速度為 0.9
 
   const gradeCategories = [
     {
@@ -52,15 +53,33 @@ export const GradeSelector = ({ onGradeSelect, onBack }: GradeSelectorProps) => 
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <div className="container mx-auto px-2 py-6">
         <div className="mb-6">
-          <Button
-            variant="ghost"
-            onClick={onBack}
-            className="group relative overflow-hidden bg-gradient-to-r from-gray-100 to-gray-200 hover:from-blue-100 hover:to-purple-100 border border-gray-300 hover:border-blue-300 text-gray-700 hover:text-blue-700 font-medium px-6 py-3 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-105 mb-4"
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
-            <ArrowLeft className="w-4 h-4 mr-2 transition-transform duration-300 group-hover:-translate-x-1" />
-            <span className="relative z-10">Back to Home</span>
-          </Button>
+          <div className="flex items-center justify-between mb-4">
+            <Button
+              variant="ghost"
+              onClick={onBack}
+              className="group relative overflow-hidden bg-gradient-to-r from-gray-100 to-gray-200 hover:from-blue-100 hover:to-purple-100 border border-gray-300 hover:border-blue-300 text-gray-700 hover:text-blue-700 font-medium px-6 py-3 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-105"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+              <ArrowLeft className="w-4 h-4 mr-2 transition-transform duration-300 group-hover:-translate-x-1" />
+              <span className="relative z-10">Back to Home</span>
+            </Button>
+            
+            {/* 語音速度控制 */}
+            <div className="flex items-center space-x-3 bg-white/80 backdrop-blur-sm rounded-lg px-4 py-2 border border-gray-200">
+              <Settings2 className="w-4 h-4 text-gray-600" />
+              <span className="text-sm font-medium text-gray-700">語音速度</span>
+              <Slider
+                value={[speechRate]}
+                onValueChange={(value) => setSpeechRate(value[0])}
+                min={0.7}
+                max={2.5}
+                step={0.1}
+                className="w-[100px]"
+              />
+              <span className="text-sm font-mono text-gray-800 w-8 text-center">{speechRate.toFixed(1)}x</span>
+            </div>
+          </div>
+          
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Select Grade</h1>
           <p className="text-gray-600">Please choose your grade level for tailored test content</p>
         </div>
@@ -117,7 +136,7 @@ export const GradeSelector = ({ onGradeSelect, onBack }: GradeSelectorProps) => 
                 <Card
                   key={grade}
                   className="cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105 text-center"
-                  onClick={() => onGradeSelect(grade)}
+                  onClick={() => onGradeSelect(grade, speechRate)}
                 >
                   <CardContent className="p-4">
                     <div className={`w-10 h-10 bg-gradient-to-r ${selectedCategoryData.color} rounded-lg flex items-center justify-center mx-auto mb-2`}>
