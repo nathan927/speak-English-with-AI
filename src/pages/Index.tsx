@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,6 +14,7 @@ const Index = () => {
   const [selectedGrade, setSelectedGrade] = useState<string>('');
   const [speechRate, setSpeechRate] = useState<number>(0.9);
   const [testResults, setTestResults] = useState<any>(null);
+  const [showQuestions, setShowQuestions] = useState<boolean>(false);
 
   const handleStartTest = () => {
     logger.info('User started test from homepage');
@@ -39,6 +39,11 @@ const Index = () => {
     setCurrentView('home');
     setSelectedGrade('');
     setTestResults(null);
+    setShowQuestions(false);
+  };
+
+  const handleShowQuestionsChange = (checked: boolean) => {
+    setShowQuestions(checked);
   };
 
   // Helper function to render stars based on level
@@ -71,8 +76,10 @@ const Index = () => {
       <VoiceTest 
         grade={selectedGrade}
         speechRate={speechRate}
+        showQuestions={showQuestions}
         onComplete={handleTestComplete}
         onBack={() => setCurrentView('gradeSelect')}
+        onShowQuestionsChange={handleShowQuestionsChange}
       />
     );
   }
