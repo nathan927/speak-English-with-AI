@@ -66,13 +66,13 @@ export const GradeSelector = ({ onGradeSelect, onBack }: GradeSelectorProps) => 
         </div>
 
         {!selectedCategory ? (
-          <div className="grid md:grid-cols-3 gap-4 max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-4 max-w-4xl mx-auto">
             {gradeCategories.map((category) => {
               const IconComponent = category.icon;
               return (
                 <Card 
                   key={category.id}
-                  className="cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105 h-fit"
+                  className="cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105 h-full"
                   onClick={() => setSelectedCategory(category.id)}
                 >
                   <CardHeader className="text-center pb-3">
@@ -85,10 +85,10 @@ export const GradeSelector = ({ onGradeSelect, onBack }: GradeSelectorProps) => 
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="text-center pt-0 pb-4">
-                    <p className="text-gray-600 mb-2 text-sm">{category.description}</p>
-                    <div className="flex flex-wrap justify-center gap-1">
+                    <p className="text-gray-600 mb-3 text-sm">{category.description}</p>
+                    <div className="flex flex-wrap justify-center gap-1.5">
                       {category.features.map((feature, index) => (
-                        <Badge key={index} variant="secondary" className="text-xs px-2 py-0.5">
+                        <Badge key={index} variant="secondary" className="text-xs px-2 py-1">
                           {feature}
                         </Badge>
                       ))}

@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -66,9 +65,9 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
     };
   }, []);
 
-  // Auto-trigger LISTEN when question changes (ONLY for non-Reading questions)
+  // Auto-trigger LISTEN when question changes (EXCLUDE Reading questions completely)
   useEffect(() => {
-    if (currentQ && currentQ.section.toLowerCase() !== 'reading') {
+    if (currentQ && currentQ.section.toLowerCase() !== 'reading' && !currentQ.instruction.toLowerCase().includes('read')) {
       // Small delay to ensure UI is ready
       const timer = setTimeout(() => {
         handleListen();
@@ -89,8 +88,8 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
         questionReadTimeRef.current = Date.now();
         setIsSpeaking(false);
         console.log('Speech completed, question read time set');
-        // Auto-start recording after speech completes (NOT for reading questions)
-        if (currentQ.section.toLowerCase() !== 'reading') {
+        // Auto-start recording after speech completes (EXCLUDE Reading questions)
+        if (currentQ.section.toLowerCase() !== 'reading' && !currentQ.instruction.toLowerCase().includes('read')) {
           setTimeout(() => {
             startRecording();
           }, 1000); // Small delay before starting recording
@@ -390,6 +389,9 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
     );
   }
 
+  // Check if current question is a reading question
+  const isReadingQuestion = currentQ?.section.toLowerCase() === 'reading' || currentQ?.instruction.toLowerCase().includes('read');
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <div className="container mx-auto px-4 py-8">
@@ -454,7 +456,7 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
                     {!isRecording ? (
                       <div className="space-y-4">
                         {/* Only show Listen button for non-Reading questions */}
-                        {currentQ.section.toLowerCase() !== 'reading' && (
+                        {!isReadingQuestion && (
                           <Button
                             size="lg"
                             onClick={handleListen}
