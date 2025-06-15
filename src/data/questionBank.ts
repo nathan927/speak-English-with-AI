@@ -426,7 +426,7 @@ export const questionSets: GradeQuestionSets = {
     }
   ],
 
-  // P3 Question Sets - Completely redesigned based on provided sample
+  // P3 Question Sets - Updated to match the exact content from the attachment
   "P3": [
     {
       id: "p3_assessment_1",
@@ -470,7 +470,7 @@ export const questionSets: GradeQuestionSets = {
           type: "speaking"
         },
 
-        // B. Reading Aloud
+        // B. Reading Aloud - Updated with exact content from attachment
         {
           id: 305,
           text: "Please read aloud the passage.",
