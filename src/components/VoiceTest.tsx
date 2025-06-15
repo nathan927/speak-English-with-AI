@@ -7,6 +7,7 @@ import { ArrowLeft, Mic, MicOff, Play, Pause, RotateCcw, Volume2 } from 'lucide-
 import { useToast } from '@/hooks/use-toast';
 import { performAIEvaluation } from '@/services/aiEvaluationService';
 import { getRandomQuestionSet, type Question } from '@/data/questionBank';
+import { buildNaturalQuestion, getCompletionPhrase } from '@/services/conversationService';
 
 interface VoiceTestProps {
   grade: string;
@@ -84,7 +85,13 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
     
     if (currentQ) {
       setIsSpeaking(true);
-      speakText(currentQ.text, () => {
+      
+      // Build natural conversation text
+      const isFirst = currentQuestion === 0;
+      const isLast = currentQuestion === questions.length - 1;
+      const naturalText = buildNaturalQuestion(currentQ.text, isFirst, isLast);
+      
+      speakText(naturalText, () => {
         questionReadTimeRef.current = Date.now();
         setIsSpeaking(false);
         console.log('Speech completed, question read time set');
@@ -202,6 +209,22 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
   };
 
   const nextQuestion = () => {
+    if (audioBlob) {
+      // Play completion phrase before moving to next question
+      if (currentQuestion < questions.length - 1) {
+        const completionPhrase = getCompletionPhrase();
+        speakText(completionPhrase, () => {
+          // Continue with normal flow after completion phrase
+          proceedToNextQuestion();
+        });
+      } else {
+        // Last question - proceed directly
+        proceedToNextQuestion();
+      }
+    }
+  };
+
+  const proceedToNextQuestion = () => {
     if (audioBlob) {
       // Calculate response time
       const responseTime = responseStartTime && questionReadTimeRef.current > 0 
