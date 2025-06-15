@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,6 +7,8 @@ import { Mic, BookOpen, Award, TrendingUp, Users, Globe } from 'lucide-react';
 import { GradeSelector } from '@/components/GradeSelector';
 import { VoiceTest } from '@/components/VoiceTest';
 import { ResultsAnalysis } from '@/components/ResultsAnalysis';
+import LogViewer from '@/components/LogViewer';
+import { logger } from '@/services/logService';
 
 const Index = () => {
   const [currentView, setCurrentView] = useState<'home' | 'gradeSelect' | 'test' | 'results'>('home');
@@ -16,21 +17,25 @@ const Index = () => {
   const [testResults, setTestResults] = useState<any>(null);
 
   const handleStartTest = () => {
+    logger.info('User started test from homepage');
     setCurrentView('gradeSelect');
   };
 
   const handleGradeSelect = (grade: string, rate: number) => {
+    logger.info('Grade selected', { grade, speechRate: rate });
     setSelectedGrade(grade);
     setSpeechRate(rate);
     setCurrentView('test');
   };
 
   const handleTestComplete = (results: any) => {
+    logger.info('Test completed', { grade: selectedGrade, results });
     setTestResults(results);
     setCurrentView('results');
   };
 
   const handleReturnHome = () => {
+    logger.info('User returned to homepage');
     setCurrentView('home');
     setSelectedGrade('');
     setTestResults(null);
@@ -290,6 +295,9 @@ const Index = () => {
           </div>
         </div>
       </footer>
+
+      {/* Log Viewer - Fixed position component */}
+      <LogViewer />
     </div>
   );
 };
