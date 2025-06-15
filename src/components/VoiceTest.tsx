@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -70,21 +71,36 @@ export const VoiceTest = ({ grade, speechRate, showQuestions, onComplete, onBack
   // Get questions from the comprehensive question bank
   const questions: Question[] = useMemo(() => getRandomQuestionSet(grade), [grade]);
   
-  // Generate a random seed for DSE content to ensure different content each time
-  const [randomSeed] = useState(() => Math.random());
+  // Generate a TRULY random seed that changes every time the component mounts
+  const [randomSeed] = useState(() => {
+    const seed = Math.random() * 1000000;
+    console.log(`🎲 Generated new random seed: ${seed}`);
+    return seed;
+  });
   
-  // For senior secondary, generate DSE content from the questions with randomization
+  // For senior secondary, generate DSE content from the questions with PROPER randomization
   const randomDseContent = useMemo(() => {
     if (!isSeniorSecondary) return null;
     
     const questionList = getRandomQuestionSet(grade);
+    console.log(`📚 Total questions for grade ${grade}:`, questionList.length);
+    
     if (questionList.length === 0) return null;
     
     // Find Part A and Part B questions from the question list
     const partAQuestions = questionList.filter(q => q.section === 'A. Group Interaction');
     const partBQuestions = questionList.filter(q => q.section === 'B. Individual Response');
     
+    console.log(`📝 Part A questions found: ${partAQuestions.length}`);
+    console.log(`📝 Part B questions found: ${partBQuestions.length}`);
+    
+    // Log all Part A questions for debugging
+    partAQuestions.forEach((q, index) => {
+      console.log(`Part A Question ${index}: ${q.text.substring(0, 100)}...`);
+    });
+    
     if (partAQuestions.length === 0 || partBQuestions.length === 0) {
+      console.log('⚠️ No proper DSE structure found, using fallback content');
       // Fallback to default content if no proper DSE structure found
       return {
         partA: {
@@ -123,17 +139,20 @@ There have been multiple complaints from residents about noise from bars and res
       };
     }
     
-    // Use the random seed to ensure consistent but randomized selection within this component instance
-    const seededRandom = (seed: number, index: number) => {
-      const x = Math.sin(seed * index) * 10000;
-      return x - Math.floor(x);
+    // Use a better random selection method that actually uses current time + seed
+    const timeBasedSeed = randomSeed + Date.now();
+    const seededRandom = (seed: number, min: number = 0, max: number = 1) => {
+      const x = Math.sin(seed) * 10000;
+      const normalized = x - Math.floor(x);
+      return min + normalized * (max - min);
     };
     
-    // Extract article content and discussion points from a RANDOM Part A question using seeded random
-    const randomIndex = Math.floor(seededRandom(randomSeed, 1) * partAQuestions.length);
+    // Extract article content and discussion points from a TRULY RANDOM Part A question
+    const randomIndex = Math.floor(seededRandom(timeBasedSeed, 0, partAQuestions.length));
     const partAQuestion = partAQuestions[randomIndex];
     
-    console.log(`🎲 Randomly selected Part A question index: ${randomIndex} out of ${partAQuestions.length} questions`);
+    console.log(`🎲 FINAL random selection - Index: ${randomIndex} out of ${partAQuestions.length} questions`);
+    console.log(`📝 Selected question ID: ${partAQuestion.id}`);
     console.log(`📝 Selected question text preview: ${partAQuestion.text.substring(0, 100)}...`);
     
     const articleMatch = partAQuestion.text.match(/Article:\s*(.+?)(?:\n\nDiscussion:|$)/s);
@@ -165,12 +184,14 @@ There have been multiple complaints from residents about noise from bars and res
       }
     }
     
-    // Randomize Part B questions selection using seeded random
+    // Randomize Part B questions selection using different seed
     const shuffledPartBQuestions = [...partBQuestions];
     for (let i = shuffledPartBQuestions.length - 1; i > 0; i--) {
-      const j = Math.floor(seededRandom(randomSeed, i + 10) * (i + 1));
+      const j = Math.floor(seededRandom(timeBasedSeed + i + 100, 0, i + 1));
       [shuffledPartBQuestions[i], shuffledPartBQuestions[j]] = [shuffledPartBQuestions[j], shuffledPartBQuestions[i]];
     }
+    
+    console.log(`✅ DSE content generated successfully with random seed: ${timeBasedSeed}`);
     
     return {
       partA: {
