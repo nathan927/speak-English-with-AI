@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Mic, BookOpen, Award, TrendingUp, Users, Globe, Star } from 'lucide-react';
 import { GradeSelector } from '@/components/GradeSelector';
-import VoiceTest from '@/components/VoiceTest';
+import { VoiceTest } from '@/components/VoiceTest';
 import { ResultsAnalysis } from '@/components/ResultsAnalysis';
 import LogViewer from '@/components/LogViewer';
 import { logger } from '@/services/logService';
