@@ -52,10 +52,10 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
   const currentQ = questions[currentQuestion];
   const progress = ((currentQuestion + 1) / questions.length) * 100;
 
-  // Auto-read question when question changes
+  // Auto-trigger listen when question changes
   useEffect(() => {
     if (currentQ && !hasRecorded && !hasListened) {
-      // Automatically trigger the listen function
+      // Auto-trigger the listen function after a short delay
       setTimeout(() => {
         handleListen();
       }, 500);
@@ -78,7 +78,7 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
       speakText(currentQ.text, () => {
         setIsReadingQuestion(false);
         questionReadTimeRef.current = Date.now();
-        // Auto start recording after question is read
+        // Auto-trigger recording after question is read
         setTimeout(() => {
           startRecording();
         }, 500);
@@ -345,11 +345,12 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
           <Card className="mb-6">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-lg">
-                    {currentQ.instruction}
-                  </CardTitle>
-                </div>
+                <CardTitle className="text-lg">
+                  {currentQ.instruction}
+                </CardTitle>
+                <Badge variant="secondary" className="text-xs">
+                  {currentQ.section}
+                </Badge>
               </div>
             </CardHeader>
             <CardContent>
@@ -373,7 +374,7 @@ export const VoiceTest = ({ grade, onComplete, onBack }: VoiceTestProps) => {
                         <Button
                           size="lg"
                           onClick={handleListen}
-                          className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg mr-4"
+                          className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg"
                         >
                           <Volume2 className="w-6 h-6 mr-2" />
                           Listen
