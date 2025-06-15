@@ -1,4 +1,3 @@
-
 // Hong Kong English Oral Assessment Question Bank
 // Production-level questions designed for each grade level
 
@@ -17,6 +16,11 @@ export interface QuestionSet {
   setId: number;
   name: string;
   questions: Question[];
+  dsePartA?: {
+    title: string;
+    article: string;
+    discussionPoints: string[];
+  };
 }
 
 // K1 Question Sets (Age 3-4): Basic vocabulary, simple responses
@@ -311,6 +315,126 @@ export const S6_QUESTIONS: QuestionSet[] = [
       { id: 24, section: 'B. 深度問答', type: 'current_affairs', text: 'What are the most pressing issues facing Hong Kong youth today, and how should they be addressed?', instruction: '香港青年今天面臨的最緊迫問題是什麼？應該如何解決？', targetWords: ['pressing', 'issues', 'facing', 'hong', 'kong', 'youth', 'today', 'addressed', 'solutions'], difficulty: 'advanced' },
       { id: 25, section: 'C. 小組辯論', type: 'discussion', text: 'Is it the responsibility of individuals or governments to solve social problems? Discuss the balance between personal responsibility and institutional action.', instruction: '解決社會問題是個人還是政府的責任？討論個人責任與制度行動之間的平衡', targetWords: ['responsibility', 'individuals', 'governments', 'solve', 'social', 'problems', 'balance', 'personal', 'institutional', 'action'], timeLimit: 600, difficulty: 'advanced' }
     ]
+  },
+  {
+    setId: 6,
+    name: "無人便利店 (Unmanned Convenience Store)",
+    dsePartA: {
+      title: "Family Mart’s first “unmanned convenience store” in Japan",
+      article: `We paid a visit to a Tokyo convenience store where there’s no human clerk to pay.\n\nOn Thursday, Family Mart opened a new branch inside Tokyo Station. It has the sort of food and beverages you’d expect in a Japanese convenience store, but there aren’t any employees at the check-out counters. That’s because the payments are all done through a slick, unmanned system.\n\nOne difference you’ll notice right away is that there’s a gate you pass through when entering the shop. As we stepped through, a recorded voice called out, “Irasshaimase!” (“Welcome!”).\n\nThe total selection of products isn’t quite as wide as it is at some Family Marts, but customers can still get toiletries and face masks.\n\nThere actually is one Family Mart employee on the premises, who only handles shelf-stocking and customer inquiries. When we walked up to the check-out counters with our purchases, no human cashier was present. We didn’t even have to scan anything. The terminal already knew what we had in our hand to buy and it made an electronic beep to draw our attention to the screen, where the total amount to be paid was displayed. You can pay with an e-money card, credit card or cash.\n\nOh, and by the way, there’s also a gate you have to pass through in order to leave the store, and if you have an unpaid bill, it won’t open up until you settle your account.`,
+      discussionPoints: [
+        "the benefits of unmanned convenience stores",
+        "the limitations of unmanned convenience stores",
+        "whether unmanned convenience stores are a good idea for Hong Kong",
+        "anything else you think is important",
+      ]
+    },
+    questions: [
+      { id: 26, section: 'B. Individual Response', type: 'question', text: 'Do you often shop at convenience stores?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 27, section: 'B. Individual Response', type: 'question', text: 'What do people usually buy at a convenience store?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 28, section: 'B. Individual Response', type: 'question', text: 'Do you prefer self-checkout or paying at the cashier?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 29, section: 'B. Individual Response', type: 'question', text: 'Is customer service important to you when shopping?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 30, section: 'B. Individual Response', type: 'question', text: 'Do you think there will be more theft in unmanned stores?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 31, section: 'B. Individual Response', type: 'question', text: 'Would you find shopping at an unmanned store too impersonal?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 32, section: 'B. Individual Response', type: 'question', text: 'Do you think the trend of unmanned stores will continue to grow?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 33, section: 'B. Individual Response', type: 'question', text: 'Do you think automation is making life too convenient?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+    ]
+  },
+  {
+    setId: 7,
+    name: "戲院與串流服務 (Cinemas vs Movie Streaming)",
+    dsePartA: {
+      title: "Cinemas vs Movie Streaming Services",
+      article: `Technology is changing the way young people consume entertainment. Many youngsters are choosing to use online movie streaming services instead of going to the cinema to watch films.\n\nThe popularity of streaming services such as Netflix, Disney Plus, and Apple TV further increased during the COVID pandemic because cinemas were shut down everywhere. Now, more than 200 million people use Netflix to watch movies and TV shows. This is due to four main advantages it has over cinemas.\n\n1. You can choose from thousands of movies and TV shows to watch.\n2. The monthly price of Netflix is cheaper than one movie ticket.\n3. There is original content on Netflix you cannot watch in cinemas.\n4. You can watch movies anywhere on your phone and laptop.\n\nA study also shows that after joining Netflix, 30% of people go to cinemas less often and 15% of them don’t go to cinemas anymore. While this is good news for movie streaming services, cinemas are closing down due to a lack of demand, and a number of the biggest cinema chains around the world have filed for bankruptcy.\n\nThis brings up the question: Is this the end of cinemas?`,
+      discussionPoints: [
+        "whether going to cinemas is a popular pastime in Hong Kong",
+        "what cinemas can do to compete with movie streaming services",
+        "any disadvantages of movie streaming services",
+        "anything else you think is important",
+      ]
+    },
+    questions: [
+      { id: 34, section: 'B. Individual Response', type: 'question', text: 'Do you like watching movies?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 35, section: 'B. Individual Response', type: 'question', text: 'Do you go to the cinema often?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 36, section: 'B. Individual Response', type: 'question', text: 'Which do you prefer: watching a movie in the cinema or at home?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 37, section: 'B. Individual Response', type: 'question', text: 'Would you pay for a movie streaming service?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 38, section: 'B. Individual Response', type: 'question', text: 'What can people learn from watching movies?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 39, section: 'B. Individual Response', type: 'question', text: 'What is your most memorable experience of going to the cinema?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 40, section: 'B. Individual Response', type: 'question', text: 'Do you think movie streaming services make people less social?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 41, section: 'B. Individual Response', type: 'question', text: 'Do you think movie streaming services will eventually replace cinemas?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+    ]
+  },
+  {
+    setId: 8,
+    name: "植物性肉類 (Plant-based meats)",
+    dsePartA: {
+      title: "Plant-based meats",
+      article: `Impossible Foods and OmniFoods are two of the best-known names in Hong Kong offering plant-based fake meat. While you’re more likely to have seen them on the menus of Western restaurants, both brands have taken a step into traditional Chinese cooking, creating plant-based tasting menus at Chinese fine dining restaurants.\n\nChef Tsang is a restaurant industry veteran who works at Ming Court, a Michelin-starred restaurant on Hong Kong Island. “Meat is indispensable in Chinese cuisine and fresh pork is the soul of Cantonese cuisine. But the arrival of plant-based meat offers vegetarian options to diners and encourages them to make diet changes.”\n\nThe rise of vegetarianism, increasing concerns about health and the very real threat of climate change have inspired the chefs in the restaurant to provide more vegetarian options to diners. They would also like to demonstrate how plant-based meat can be used in Cantonese cuisine – including Cantonese fine-dining – and make it just as delicious.\n\nChef Tsang has started experimenting with the new OmniSeafood series. “The Omni Classic Fillet from the OmniSeafood series can be used in most of the traditional dishes in Cantonese cuisine. One of our popular dishes is Fried Omni Classic Fillet, Kung Po style.”`,
+      discussionPoints: [
+        "why plant-based meats are gaining popularity",
+        "whether your school should encourage students to take up a vegetarian diet",
+        "whether people will eat less meat in the future",
+        "anything else you think is important",
+      ]
+    },
+    questions: [
+      { id: 42, section: 'B. Individual Response', type: 'question', text: 'Do you prefer meat or vegetables?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 43, section: 'B. Individual Response', type: 'question', text: 'Have you been to a vegetarian restaurant?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 44, section: 'B. Individual Response', type: 'question', text: 'Do most teenagers eat healthily?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 45, section: 'B. Individual Response', type: 'question', text: 'Do you think you could only eat vegetarian food?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 46, section: 'B. Individual Response', type: 'question', text: 'Why is it difficult for people to change their eating habits?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 47, section: 'B. Individual Response', type: 'question', text: 'How could vegetarianism be promoted in Hong Kong?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 48, section: 'B. Individual Response', type: 'question', text: 'Do you think the combination of fine dining and fake-meat will be successful?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 49, section: 'B. Individual Response', type: 'question', text: 'Do you agree that meat is essential in Chinese cuisine?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+    ]
+  },
+  {
+    setId: 9,
+    name: "夜貓子 (Night Owls)",
+    dsePartA: {
+      title: "Night Owls",
+      article: `‘Night owls’ are people who are naturally more awake and active at night and tend to go to bed late. Research has found that night owls face higher rates of poor health, including having a 10 percent higher risk of dying younger than ‘early birds’ or people who get up early and feel more energetic first thing in the day. Night owls often suffer from long-term lack of sleep, and this can increase the chance of diabetes, heart disease and obesity. Not having enough sleep even for just one night can make us moody; when it happens every single night for an extended period, depression can develop.\n\nAssociate professor Kristen Knutson at Northwestern University said: “This is a public health issue that cannot be ignored. We need to recognise that people have different body clocks which regulate the time we feel sleepy and wakeful throughout the day. Some people naturally wake up early while others feel more awake at night. All of this comes down to a combination of genes and the person’s environment.”\n\nEmployers can benefit from adjusting start times to suit individual employees’ needs. Another study found that when companies let night owls start work later in the day or allowed them to work from home, there was an estimated US$277m gain in productivity. It argues that people who are more awake at night should be allowed to start and finish work later. Not everyone is suited to get up for an 8am start.`,
+      discussionPoints: [
+        "the advantages of being a night owl",
+        "the advantages of getting up early",
+        "whether companies should have flexible working hours for people with different sleeping patterns",
+        "anything else you think is important",
+      ]
+    },
+    questions: [
+      { id: 50, section: 'B. Individual Response', type: 'question', text: 'Do you wake up early on weekends?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 51, section: 'B. Individual Response', type: 'question', text: 'Do you often have problems waking up in the morning?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 52, section: 'B. Individual Response', type: 'question', text: 'Do you often fall asleep?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 53, section: 'B. Individual Response', type: 'question', text: 'What do you do to keep yourself awake when you are sleepy?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 54, section: 'B. Individual Response', type: 'question', text: 'Have you ever overslept for something important?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 55, section: 'B. Individual Response', type: 'question', text: 'What time of the day are you most productive?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 56, section: 'B. Individual Response', type: 'question', text: 'Would you consider a job that requires working at night?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 57, section: 'B. Individual Response', type: 'question', text: 'Do you envy people who only need a few hours of sleep?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+    ]
+  },
+  {
+    setId: 10,
+    name: "師生社交媒體關係 (Teachers & Students on Social Media)",
+    dsePartA: {
+      title: "Should teachers and students be friends on social media?",
+      article: `A majority of teens are online and most of them use social networking apps such as Facebook, Twitter, Instagram and Snapchat. This makes social media a convenient way for teachers to connect with students. Some teachers think that as Instagram is what most teenagers use these days, it is a good idea for teachers to connect with students in this way to maintain their interest. Some parents agree that this allows teachers to be leaders and role models for their students online.\n\nBut at the same time, students should learn to know the difference between personal and professional communication. At school, students do not talk to their teachers as if they were friends, so when interacting with teachers on social media, the line between personal and professional communication is less clear. Therefore, it is recommended that students should not talk to their teachers like their friends on Instagram. Otherwise, they may cross the line.\n\nRecently, a number of parents have also complained about seeing teachers wearing swimsuits and gym clothes on their Instagram accounts. These parents claimed the photos were inappropriate. In order to avoid such problems and complaints, some schools are proposing a new policy not to allow teachers and students to be friends on social media.`,
+      discussionPoints: [
+        "why students like to connect with teachers on social media",
+        "problems with connecting with teachers on social media",
+        "whether you agree with the proposed policy",
+        "anything else you think is important",
+      ]
+    },
+    questions: [
+      { id: 58, section: 'B. Individual Response', type: 'question', text: 'What do you like to share on social media?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 59, section: 'B. Individual Response', type: 'question', text: 'Do young people spend too much time on social media?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 60, section: 'B. Individual Response', type: 'question', text: 'Do you think many Hong Kong teachers are active on social media?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 61, section: 'B. Individual Response', type: 'question', text: 'Why do you think Instagram is so popular?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 62, section: 'B. Individual Response', type: 'question', text: 'Should schools teach students how to use social media safely?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 63, section: 'B. Individual Response', type: 'question', text: 'Should parents monitor their children’s friends on social media?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 64, section: 'B. Individual Response', type: 'question', text: 'Does social media negatively affect your learning?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+      { id: 65, section: 'B. Individual Response', type: 'question', text: 'Should schools monitor their students’ social media activities?', instruction: '請回答問題', targetWords: [], difficulty: 'advanced' },
+    ]
   }
 ];
 
@@ -332,4 +456,3 @@ export function getRandomQuestionSet(grade: string): Question[] {
   const randomSet = questionSets[Math.floor(Math.random() * questionSets.length)];
   return randomSet.questions;
 }
-
