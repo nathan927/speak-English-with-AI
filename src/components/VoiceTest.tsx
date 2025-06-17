@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { Mic, MicOff, ArrowLeft, Volume2, Play, Pause, RotateCcw, CheckCircle, AlertCircle } from 'lucide-react';
+import { Mic, MicOff, ArrowLeft, Volume2, Play, Pause, RotateCcw, CheckCircle, AlertCircle, Headphones } from 'lucide-react';
 import { getRandomQuestionSet, Question } from '@/data/questionBank';
 import { logger } from '@/services/logService';
 
@@ -36,10 +35,11 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
   const [speechInitialized, setSpeechInitialized] = useState(false);
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(true);
+  const [playingRecordingId, setPlayingRecordingId] = useState<number | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const speechTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const requestIdRef = useRef(0);
+  const recordingAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Load questions on component mount
   useEffect(() => {
@@ -151,6 +151,50 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
     }
   };
 
+  // New function to play recorded audio
+  const handlePlayRecording = (questionId: number) => {
+    const audioBlob = responses[questionId];
+    if (!audioBlob) {
+      logger.warn('No recording found for question', { questionId });
+      return;
+    }
+
+    // Stop any currently playing recording
+    if (recordingAudioRef.current) {
+      recordingAudioRef.current.pause();
+      recordingAudioRef.current = null;
+      setPlayingRecordingId(null);
+    }
+
+    const audioUrl = URL.createObjectURL(audioBlob);
+    const audio = new Audio(audioUrl);
+    recordingAudioRef.current = audio;
+
+    audio.onplay = () => {
+      setPlayingRecordingId(questionId);
+      logger.info('Recording playback started', { questionId });
+    };
+
+    audio.onended = () => {
+      setPlayingRecordingId(null);
+      URL.revokeObjectURL(audioUrl);
+      recordingAudioRef.current = null;
+      logger.info('Recording playback ended', { questionId });
+    };
+
+    audio.onerror = (error) => {
+      logger.error('Recording playback error', { error, questionId });
+      setPlayingRecordingId(null);
+      URL.revokeObjectURL(audioUrl);
+      recordingAudioRef.current = null;
+    };
+
+    audio.play().catch(error => {
+      logger.error('Failed to play recording', { error, questionId });
+      setPlayingRecordingId(null);
+    });
+  };
+
   // Handle start recording
   const handleStartRecording = async () => {
     logger.info('Start recording');
@@ -218,19 +262,34 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
     logger.info('Recording state reset for question navigation');
   };
 
-  // Handle next question
+  // Updated handleNextQuestion to properly format data for AI evaluation
   const handleNextQuestion = () => {
     logger.info('Next question');
-    resetRecordingState(); // Use the new reset function
+    resetRecordingState();
 
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     } else {
-      // Test is complete
-      const results = Object.entries(responses).map(([questionId, audioBlob]) => ({
-        questionId: parseInt(questionId),
-        audioBlob,
-      }));
+      // Test is complete - format results for AI evaluation
+      const results = Object.entries(responses).map(([questionId, audioBlob]) => {
+        const question = questions.find(q => q.id === parseInt(questionId));
+        return {
+          questionId: parseInt(questionId),
+          section: question?.section || 'Unknown',
+          question: question?.text || 'Unknown',
+          audioBlob,
+          timestamp: new Date().toISOString(),
+          duration: 0, // This would need to be calculated if needed
+          wordCount: 0, // This would need to be calculated if needed
+          responseTime: 0 // This would need to be calculated if needed
+        };
+      });
+      
+      logger.info('Test completed, sending results for AI evaluation', { 
+        totalRecordings: results.length,
+        questionsAttempted: questions.length 
+      });
+      
       onComplete(results);
     }
   };
@@ -238,7 +297,7 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
   // Handle previous question
   const handlePreviousQuestion = () => {
     logger.info('Previous question');
-    resetRecordingState(); // Use the new reset function
+    resetRecordingState();
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex(currentQuestionIndex - 1);
     }
@@ -386,6 +445,22 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
                 >
                   <MicOff className="w-4 h-4" />
                   <span>Stop Recording</span>
+                </Button>
+              )}
+
+              {/* Listen to Recording Button */}
+              {responses[currentQuestion.id] && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePlayRecording(currentQuestion.id)}
+                  disabled={playingRecordingId === currentQuestion.id}
+                  className="flex items-center space-x-2"
+                >
+                  <Headphones className="w-4 h-4" />
+                  <span>
+                    {playingRecordingId === currentQuestion.id ? 'Playing...' : 'Listen to Recording'}
+                  </span>
                 </Button>
               )}
             </div>

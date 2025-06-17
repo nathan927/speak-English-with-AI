@@ -6,13 +6,18 @@ import { createSystemPrompt, createUserPrompt } from './prompts/promptGenerator'
 
 // 主要AI評估函數
 export async function performAIEvaluation(recordings: RecordingData[], grade: string): Promise<AIEvaluationResult> {
-  console.log('開始AI真實音頻評估...');
+  console.log('開始AI真實音頻評估...', { recordingCount: recordings.length, grade });
   
   try {
     // 轉換所有音頻為base64
     const base64AudioList: string[] = [];
     for (const recording of recordings) {
       try {
+        if (!recording.audioBlob) {
+          console.warn(`錄音 ${recording.questionId} 沒有音頻數據，跳過`);
+          continue;
+        }
+        
         const base64Audio = await audioToBase64(recording.audioBlob);
         base64AudioList.push(base64Audio);
         console.log(`成功轉換錄音 ${recording.questionId} 為Base64格式`);
@@ -25,6 +30,8 @@ export async function performAIEvaluation(recordings: RecordingData[], grade: st
       throw new Error('沒有可用的音頻數據進行評估');
     }
     
+    console.log(`準備發送 ${base64AudioList.length} 個音頻到AI進行評估`);
+    
     const systemPrompt = createSystemPrompt(grade);
     const userPrompt = createUserPrompt(recordings, grade);
     
@@ -33,7 +40,13 @@ export async function performAIEvaluation(recordings: RecordingData[], grade: st
     
     console.log('AI音頻評估完成，正在解析結果...');
     
-    const evaluationResult = JSON.parse(aiResponse);
+    let evaluationResult;
+    try {
+      evaluationResult = JSON.parse(aiResponse);
+    } catch (parseError) {
+      console.error('AI回應解析失敗:', parseError, 'Raw response:', aiResponse);
+      throw new Error('AI回應格式無效');
+    }
     
     // 確保返回完整的結果結構
     const finalResult: AIEvaluationResult = {
@@ -52,7 +65,7 @@ export async function performAIEvaluation(recordings: RecordingData[], grade: st
       questionsAttempted: recordings.length,
       strengths: evaluationResult.strengths || ['完成了音頻錄製'],
       improvements: evaluationResult.improvements || ['持續練習提升表現'],
-      avgResponseTime: recordings.reduce((sum, rec) => sum + rec.responseTime, 0) / recordings.length,
+      avgResponseTime: recordings.reduce((sum, rec) => sum + (rec.responseTime || 0), 0) / recordings.length,
       personalizedPlan: evaluationResult.personalizedPlan || {
         weeklyFocus: '基於AI分析的學習重點',
         shortTermGoals: ['根據音頻評估制定的短期目標'],
