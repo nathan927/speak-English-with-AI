@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -196,14 +197,31 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
       mediaRecorderRef.current.stop();
       mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
-      clearTimeout(speechTimeoutRef.current); // Clear the timeout
     }
+    if (speechTimeoutRef.current) {
+      clearTimeout(speechTimeoutRef.current);
+      speechTimeoutRef.current = null;
+    }
+    setIsRecording(false);
+    logger.info('Recording stopped and state reset');
+  };
+
+  // Reset recording state - helper function
+  const resetRecordingState = () => {
+    stopRecording();
+    // Cancel any ongoing speech
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    setIsPlaying(false);
+    setIsPaused(false);
+    logger.info('Recording state reset for question navigation');
   };
 
   // Handle next question
   const handleNextQuestion = () => {
     logger.info('Next question');
-    stopRecording(); // Ensure recording is stopped
+    resetRecordingState(); // Use the new reset function
 
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
@@ -220,7 +238,7 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
   // Handle previous question
   const handlePreviousQuestion = () => {
     logger.info('Previous question');
-    stopRecording(); // Ensure recording is stopped
+    resetRecordingState(); // Use the new reset function
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex(currentQuestionIndex - 1);
     }
@@ -355,7 +373,7 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
                 <Button
                   size="sm"
                   onClick={handleStartRecording}
-                  className="flex items-center space-x-2 bg-red-500 hover:bg-red-600 text-white"
+                  className="flex items-center space-x-2 bg-blue-500 hover:bg-blue-600 text-white"
                 >
                   <Mic className="w-4 h-4" />
                   <span>Start Recording</span>
