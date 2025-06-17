@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -83,7 +82,7 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
   const getShortSectionName = (section: string) => {
     switch (section.toLowerCase()) {
       case 'picture description':
-        return 'A. Spontaneous';
+        return 'A. Spontaneous Talk';
       case 'reading aloud':
         return 'B. 朗讀';
       case 'expression of personal experiences':
@@ -186,10 +185,10 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
     }
   };
 
-  // Handle stop recording
+  // Handle stop recording (user initiated)
   const handleStopRecording = () => {
-    logger.info('Recording stopped');
-    setIsRecording(false);
+    logger.info('User stopped recording');
+    stopRecording();
   };
 
   // Stop recording function
@@ -352,28 +351,25 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
                 )}
               </Button>
 
-              <Button
-                size="sm"
-                onClick={handleStartRecording}
-                disabled={isRecording}
-                className={`flex items-center space-x-2 ${
-                  isRecording 
-                    ? 'bg-red-600 hover:bg-red-700' 
-                    : 'bg-red-500 hover:bg-red-600'
-                } text-white`}
-              >
-                {isRecording ? (
-                  <>
-                    <MicOff className="w-4 h-4" />
-                    <span>Recording...</span>
-                  </>
-                ) : (
-                  <>
-                    <Mic className="w-4 h-4" />
-                    <span>Start Recording</span>
-                  </>
-                )}
-              </Button>
+              {!isRecording ? (
+                <Button
+                  size="sm"
+                  onClick={handleStartRecording}
+                  className="flex items-center space-x-2 bg-red-500 hover:bg-red-600 text-white"
+                >
+                  <Mic className="w-4 h-4" />
+                  <span>Start Recording</span>
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  onClick={handleStopRecording}
+                  className="flex items-center space-x-2 bg-red-600 hover:bg-red-700 text-white"
+                >
+                  <MicOff className="w-4 h-4" />
+                  <span>Stop Recording</span>
+                </Button>
+              )}
             </div>
 
             {/* Response indicator */}
