@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -56,6 +55,20 @@ interface ResultsAnalysisProps {
 export const ResultsAnalysis = ({ results, grade, onReturnHome, onRetakeTest }: ResultsAnalysisProps) => {
   const [activeTab, setActiveTab] = useState('overview');
 
+  // Add null checks and default values to prevent undefined errors
+  const safeResults = {
+    ...results,
+    strengths: results.strengths || [],
+    improvements: results.improvements || [],
+    detailedAnalysis: results.detailedAnalysis || [],
+    personalizedPlan: results.personalizedPlan ? {
+      ...results.personalizedPlan,
+      shortTermGoals: results.personalizedPlan.shortTermGoals || [],
+      longTermGoals: results.personalizedPlan.longTermGoals || [],
+      practiceActivities: results.personalizedPlan.practiceActivities || []
+    } : undefined
+  };
+
   const getGradeLevel = (score: number, grade: string) => {
     if (grade.startsWith('K')) {
       if (score >= 85) return { level: '表現良好', color: 'bg-green-500', description: '優秀表現' };
@@ -76,13 +89,13 @@ export const ResultsAnalysis = ({ results, grade, onReturnHome, onRetakeTest }: 
     }
   };
 
-  const overallLevel = getGradeLevel(results.overallScore, grade);
+  const overallLevel = getGradeLevel(safeResults.overallScore, grade);
   
   const skillsData = [
-    { name: '發音準確度', score: results.pronunciation, icon: Mic, color: 'text-blue-600' },
-    { name: '詞彙運用', score: results.vocabulary, icon: BookOpen, color: 'text-green-600' },
-    { name: '流暢度', score: results.fluency, icon: MessageSquare, color: 'text-purple-600' },
-    { name: '自信程度', score: results.confidence, icon: Heart, color: 'text-red-600' }
+    { name: '發音準確度', score: safeResults.pronunciation, icon: Mic, color: 'text-blue-600' },
+    { name: '詞彙運用', score: safeResults.vocabulary, icon: BookOpen, color: 'text-green-600' },
+    { name: '流暢度', score: safeResults.fluency, icon: MessageSquare, color: 'text-purple-600' },
+    { name: '自信程度', score: safeResults.confidence, icon: Heart, color: 'text-red-600' }
   ];
 
   const getMotivationalMessage = (score: number) => {
@@ -106,7 +119,7 @@ export const ResultsAnalysis = ({ results, grade, onReturnHome, onRetakeTest }: 
             <Brain className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">🤖 AI分析報告完成！</h1>
-          <p className="text-gray-600 mb-4">{getMotivationalMessage(results.overallScore)}</p>
+          <p className="text-gray-600 mb-4">{getMotivationalMessage(safeResults.overallScore)}</p>
           <div className="flex justify-center space-x-4">
             <Button onClick={onReturnHome} variant="outline">
               <Home className="w-4 h-4 mr-2" />
@@ -122,16 +135,16 @@ export const ResultsAnalysis = ({ results, grade, onReturnHome, onRetakeTest }: 
         {/* Overall Score Card */}
         <Card className="mb-8 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
           <CardContent className="p-8 text-center">
-            <div className="text-6xl font-bold mb-4">{results.overallScore}</div>
+            <div className="text-6xl font-bold mb-4">{safeResults.overallScore}</div>
             <div className="text-xl mb-2">AI總體評分</div>
             <Badge className={`${overallLevel.color} text-white border-0 text-lg px-4 py-2`}>
               {overallLevel.level}
             </Badge>
             <p className="mt-2 text-blue-100">{overallLevel.description}</p>
-            {results.avgResponseTime && (
+            {safeResults.avgResponseTime && (
               <div className="mt-4 flex items-center justify-center space-x-2">
                 <Clock className="w-4 h-4" />
-                <span className="text-sm">平均反應時間: {formatResponseTime(results.avgResponseTime)}</span>
+                <span className="text-sm">平均反應時間: {formatResponseTime(safeResults.avgResponseTime)}</span>
               </div>
             )}
           </CardContent>
@@ -176,7 +189,7 @@ export const ResultsAnalysis = ({ results, grade, onReturnHome, onRetakeTest }: 
               <Card>
                 <CardContent className="p-6 text-center">
                   <Target className="w-8 h-8 text-blue-600 mx-auto mb-3" />
-                  <div className="text-2xl font-bold text-gray-900">{results.questionsAttempted}</div>
+                  <div className="text-2xl font-bold text-gray-900">{safeResults.questionsAttempted}</div>
                   <p className="text-gray-600">題目完成</p>
                 </CardContent>
               </Card>
@@ -184,7 +197,7 @@ export const ResultsAnalysis = ({ results, grade, onReturnHome, onRetakeTest }: 
               <Card>
                 <CardContent className="p-6 text-center">
                   <TrendingUp className="w-8 h-8 text-green-600 mx-auto mb-3" />
-                  <div className="text-2xl font-bold text-gray-900">{results.strengths.length}</div>
+                  <div className="text-2xl font-bold text-gray-900">{safeResults.strengths.length}</div>
                   <p className="text-gray-600">AI識別優勢</p>
                 </CardContent>
               </Card>
@@ -192,7 +205,7 @@ export const ResultsAnalysis = ({ results, grade, onReturnHome, onRetakeTest }: 
               <Card>
                 <CardContent className="p-6 text-center">
                   <Brain className="w-8 h-8 text-purple-600 mx-auto mb-3" />
-                  <div className="text-2xl font-bold text-gray-900">{results.improvements.length}</div>
+                  <div className="text-2xl font-bold text-gray-900">{safeResults.improvements.length}</div>
                   <p className="text-gray-600">AI改進建議</p>
                 </CardContent>
               </Card>
@@ -246,7 +259,7 @@ export const ResultsAnalysis = ({ results, grade, onReturnHome, onRetakeTest }: 
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {results.detailedAnalysis.map((analysis, index) => (
+                  {safeResults.detailedAnalysis.map((analysis, index) => (
                     <div key={index} className="border rounded-lg p-4 space-y-3">
                       <div className="flex items-center justify-between">
                         <h4 className="font-semibold">題目 {index + 1}</h4>
@@ -307,7 +320,7 @@ export const ResultsAnalysis = ({ results, grade, onReturnHome, onRetakeTest }: 
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2">
-                    {results.strengths.map((strength, index) => (
+                    {safeResults.strengths.map((strength, index) => (
                       <li key={index} className="flex items-center text-green-700">
                         <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
                         {strength}
@@ -326,7 +339,7 @@ export const ResultsAnalysis = ({ results, grade, onReturnHome, onRetakeTest }: 
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2">
-                    {results.improvements.map((improvement, index) => (
+                    {safeResults.improvements.map((improvement, index) => (
                       <li key={index} className="flex items-center text-blue-700">
                         <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
                         {improvement}
@@ -337,7 +350,7 @@ export const ResultsAnalysis = ({ results, grade, onReturnHome, onRetakeTest }: 
               </Card>
             </div>
 
-            {results.personalizedPlan && (
+            {safeResults.personalizedPlan && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center">
@@ -350,13 +363,13 @@ export const ResultsAnalysis = ({ results, grade, onReturnHome, onRetakeTest }: 
                   <div className="space-y-4">
                     <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg">
                       <h4 className="font-semibold mb-2">📚 本週學習重點</h4>
-                      <p className="text-gray-700">{results.personalizedPlan.weeklyFocus}</p>
+                      <p className="text-gray-700">{safeResults.personalizedPlan.weeklyFocus}</p>
                     </div>
                     
                     <div className="p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg">
                       <h4 className="font-semibold mb-2">🎯 短期目標</h4>
                       <ul className="text-gray-700 list-disc list-inside space-y-1">
-                        {results.personalizedPlan.shortTermGoals.map((goal, index) => (
+                        {safeResults.personalizedPlan.shortTermGoals.map((goal, index) => (
                           <li key={index}>{goal}</li>
                         ))}
                       </ul>
@@ -365,7 +378,7 @@ export const ResultsAnalysis = ({ results, grade, onReturnHome, onRetakeTest }: 
                     <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg">
                       <h4 className="font-semibold mb-2">🚀 長期目標</h4>
                       <ul className="text-gray-700 list-disc list-inside space-y-1">
-                        {results.personalizedPlan.longTermGoals.map((goal, index) => (
+                        {safeResults.personalizedPlan.longTermGoals.map((goal, index) => (
                           <li key={index}>{goal}</li>
                         ))}
                       </ul>
@@ -374,7 +387,7 @@ export const ResultsAnalysis = ({ results, grade, onReturnHome, onRetakeTest }: 
                     <div className="p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg">
                       <h4 className="font-semibold mb-2">🎪 推薦練習活動</h4>
                       <ul className="text-gray-700 list-disc list-inside space-y-1">
-                        {results.personalizedPlan.practiceActivities.map((activity, index) => (
+                        {safeResults.personalizedPlan.practiceActivities.map((activity, index) => (
                           <li key={index}>{activity}</li>
                         ))}
                       </ul>
