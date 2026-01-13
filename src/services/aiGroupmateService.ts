@@ -175,6 +175,13 @@ Remember: This is a REAL exam. Show the examiner you can think critically, use e
   }
 }
 
+// Stop any ongoing speech
+export function stopSpeaking(): void {
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+  }
+}
+
 // Text-to-Speech for groupmate responses with natural speed
 export async function speakGroupmateResponse(text: string, gender: 'male' | 'female' = 'female'): Promise<void> {
   return new Promise((resolve, reject) => {
