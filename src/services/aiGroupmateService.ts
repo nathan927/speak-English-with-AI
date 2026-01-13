@@ -24,6 +24,89 @@ function getRandomProvider() {
   return provider;
 }
 
+// Generate AI-powered natural discussion opening
+export async function generateDiscussionOpening(
+  topic: string,
+  supporterName: string,
+  opposerName: string,
+  userName?: string,
+  grade?: string
+): Promise<string> {
+  const provider = getRandomProvider();
+  
+  const systemPrompt = `You are ${supporterName}, a friendly and confident student about to lead a group discussion in a speaking exam.
+
+YOUR TASK: Create a NATURAL, conversational opening that:
+1. Briefly introduces yourself and ${opposerName}${userName ? ` and welcome ${userName}` : ''}
+2. REPHRASE the topic in your own words - DO NOT quote it verbatim
+3. Highlight the KEY QUESTION or dilemma in an engaging way
+4. Invite everyone to share their views
+
+STYLE REQUIREMENTS:
+- Sound like a real student, NOT a robot or moderator
+- Be warm, casual but appropriate for an exam setting
+- Show genuine interest in the topic
+- Use varied expressions - don't always start the same way
+- Keep it 3-5 sentences, concise but inviting
+
+NEVER:
+- Read the topic word-for-word
+- Sound scripted or formal like "Today's discussion topic is..."
+- Use bullet points or numbered lists
+
+Examples of good openers:
+- "Hey everyone! I'm Alex, and this is Emma. So, we're here to talk about something pretty relevant to all of us..."
+- "Hi! I'm Sophie, joined by Jake today. You know, I've been thinking a lot about this issue lately..."
+- "What's up everyone! I'm Chris, and Emma's here too. So basically, we need to figure out..."`;
+
+  const userPrompt = `Create a discussion opening for:
+
+TOPIC: "${topic}"
+GRADE LEVEL: ${grade || 'Secondary'}
+YOUR NAME: ${supporterName}
+PARTNER: ${opposerName}
+${userName ? `PARTICIPANT: ${userName}` : ''}
+
+Remember: Rephrase the topic naturally, don't quote it. Sound like a real student starting a conversation with friends.`;
+
+  try {
+    const response = await fetch(provider.url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${provider.apiKey}`,
+        'HTTP-Referer': 'https://lovable.dev',
+        'X-Title': 'English Speaking Practice'
+      },
+      body: JSON.stringify({
+        model: provider.model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        max_tokens: 200,
+        temperature: 0.95 // Higher for more variety
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+    let text = data.choices?.[0]?.message?.content?.trim() || '';
+    text = text.replace(/^["']|["']$/g, '').trim();
+    
+    if (!text) throw new Error('Empty response');
+    
+    logger.info('Generated AI discussion opening', { preview: text.substring(0, 50) });
+    return text;
+  } catch (error) {
+    logger.error('Failed to generate AI opening', { error });
+    throw error;
+  }
+}
+
 interface GroupmateResponse {
   text: string;
   stance: 'support' | 'oppose';
@@ -68,8 +151,33 @@ export async function generateGroupmateResponse(
     ? `IMPORTANT: The speaker's name is ${userAddress}. Naturally use their name occasionally (e.g., "I agree with ${userAddress}..." or "That's a great point, ${userAddress}...") but don't overuse it.`
     : '';
   
-  // Detailed exam-style prompts with reasoning and examples
-  const stanceInstruction = stance === 'support' 
+  // Detect if user input is off-topic, testing, or irrelevant
+  const isIrrelevantInput = (text: string): boolean => {
+    const lowerText = text.toLowerCase().trim();
+    const irrelevantPatterns = [
+      /^(hello|hi|hey|yo)\b/,
+      /can you hear me/,
+      /testing/,
+      /is this working/,
+      /check.*mic/,
+      /^(yes|no|ok|okay|um|uh|hmm|huh)\s*$/,
+      /^[^a-zA-Z]*$/, // Only punctuation/numbers
+      /^.{1,10}$/ // Very short responses
+    ];
+    return irrelevantPatterns.some(pattern => pattern.test(lowerText)) || lowerText.split(' ').length < 4;
+  };
+
+  const inputIsIrrelevant = isIrrelevantInput(userTranscript);
+  
+  // Dynamic response strategy based on input relevance
+  const stanceInstruction = inputIsIrrelevant
+    ? `The previous speaker said something brief or off-topic ("${userTranscript}"). You should:
+       - Respond NATURALLY and warmly, like a real person would
+       - Gently acknowledge what they said without being condescending
+       - Then smoothly steer the conversation back to the topic
+       - Share YOUR OWN opinion on the topic to get discussion going
+       DO NOT pretend they made a substantive point. Be genuine and helpful.`
+    : stance === 'support' 
     ? `You AGREE with and BUILD UPON the speaker's argument. You must:
        - First, explicitly acknowledge their KEY POINT by paraphrasing it
        - Then provide 1-2 STRONG supporting reasons with logical explanation
@@ -94,23 +202,39 @@ YOUR ROLE: ${stanceInstruction}
 
 ${addressInstruction}
 
+CRITICAL: Be HUMAN and NATURAL. If someone says something off-topic like "hello can you hear me", DON'T pretend they made a point about the topic. Instead, acknowledge warmly and redirect.
+
 RESPONSE STRUCTURE (4-6 sentences):
-1. ACKNOWLEDGE: Reference the speaker's specific point
+${inputIsIrrelevant 
+  ? `1. ACKNOWLEDGE: Respond naturally to what they said (e.g., "Yes, I can hear you perfectly!" or "Hey there!")
+2. REDIRECT: Smoothly transition to the topic
+3. OPINION: Share your own view on the topic with a reason
+4. INVITE: Ask a follow-up question or invite their thoughts`
+  : `1. ACKNOWLEDGE: Reference the speaker's specific point
 2. RESPOND: State your position with clear reasoning  
 3. EXAMPLE: Give a concrete, relevant example
-4. INSIGHT: Add depth with further analysis or implications
-
-DISCOURSE MARKERS TO USE:
-- Agreement: "I completely agree with your point about...", "Building on what you said...", "That's exactly what I was thinking..."
-- Disagreement: "While I understand your perspective on...", "That's a fair point, but we should also consider...", "I see where you're coming from, however..."
-- Adding examples: "For instance...", "Take for example...", "A good case in point would be..."
-- Showing insight: "What's interesting is...", "This also relates to...", "Looking at the bigger picture..."
+4. INSIGHT: Add depth with further analysis or implications`}
 
 SPEAK NATURALLY but SUBSTANTIVELY. Show you are actively listening and THINKING CRITICALLY.
 
 RESPOND IN ENGLISH ONLY.`;
 
-  const userPrompt = `=== DSE GROUP DISCUSSION ===
+  const userPrompt = inputIsIrrelevant
+    ? `=== DSE GROUP DISCUSSION ===
+
+TOPIC: "${topic}"
+
+${userAddress ? `SPEAKER'S NAME: ${userAddress}` : ''}
+
+THE PREVIOUS SPEAKER SAID (off-topic or brief): "${userTranscript}"
+
+YOUR TASK as ${groupmate.name}:
+1. Respond naturally and warmly - don't pretend this was a topic-related point
+2. Smoothly redirect to the discussion topic
+3. Share YOUR OWN initial thoughts on the topic to get discussion going
+4. Keep it natural, 4-5 sentences
+${userAddress ? `5. Use their name "${userAddress}" naturally` : ''}`
+    : `=== DSE GROUP DISCUSSION ===
 
 TOPIC: "${topic}"
 

@@ -11,7 +11,8 @@ import {
   speakGroupmateResponse, 
   createSpeechRecognition,
   generateRandomGroupmate,
-  stopSpeaking
+  stopSpeaking,
+  generateDiscussionOpening
 } from '@/services/aiGroupmateService';
 import { getRandomQuestionByType, Question } from '@/data/questionBank';
 import { getRandomOpening, getRandomClosing } from '@/services/discussionVariationsService';
@@ -236,32 +237,60 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Start the discussion with intro
+  // Start the discussion with intro - use AI to generate natural opening
   const startDiscussion = useCallback(async () => {
     if (!topic || !groupmates) return;
 
     setDiscussionPhase('discussion');
     setDiscussionStartTime(new Date());
+    setIsProcessing(true);
     
-    // Use varied, humanized opening
-    const introMessage = getRandomOpening(
-      groupmates.supporter.name,
-      groupmates.opposer.name,
-      topic.text,
-      userName.trim() || undefined
-    );
-    
-    addMessage('system', introMessage);
-    
-    // Speak the introduction
-    setIsSpeaking(true);
     try {
-      await speakGroupmateResponse(introMessage, groupmates.supporter.gender);
+      // Generate AI-powered natural opening
+      const openingResponse = await generateDiscussionOpening(
+        topic.text,
+        groupmates.supporter.name,
+        groupmates.opposer.name,
+        userName.trim() || undefined,
+        grade
+      );
+      
+      // Add as first groupmate speaking (not "Moderator")
+      addMessage(
+        'groupmate1',
+        openingResponse,
+        groupmates.supporter.name,
+        groupmates.supporter.avatar,
+        'support'
+      );
+      
+      // Speak the introduction
+      setIsSpeaking(true);
+      await speakGroupmateResponse(openingResponse, groupmates.supporter.gender);
     } catch (e) {
-      logger.warn('Could not speak intro');
+      logger.warn('Could not generate AI opening, using fallback');
+      // Fallback to static opening
+      const fallbackOpening = getRandomOpening(
+        groupmates.supporter.name,
+        groupmates.opposer.name,
+        topic.text,
+        userName.trim() || undefined
+      );
+      addMessage(
+        'groupmate1',
+        fallbackOpening,
+        groupmates.supporter.name,
+        groupmates.supporter.avatar,
+        'support'
+      );
+      setIsSpeaking(true);
+      try {
+        await speakGroupmateResponse(fallbackOpening, groupmates.supporter.gender);
+      } catch {}
     }
     setIsSpeaking(false);
-  }, [topic, groupmates]);
+    setIsProcessing(false);
+  }, [topic, groupmates, userName, grade]);
 
   const addMessage = (
     speaker: DiscussionMessage['speaker'], 
