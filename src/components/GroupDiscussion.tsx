@@ -11,8 +11,12 @@ import {
   speakGroupmateResponse, 
   createSpeechRecognition,
   generateRandomGroupmate,
+  generateRandomMediator,
   stopSpeaking,
-  generateDiscussionOpening
+  generateDiscussionOpening,
+  analyzeArgumentStrength,
+  generateMediatorResponse,
+  ArgumentFeedback
 } from '@/services/aiGroupmateService';
 import { getRandomQuestionByType, Question } from '@/data/questionBank';
 import { getRandomOpening, getRandomClosing } from '@/services/discussionVariationsService';
@@ -34,15 +38,15 @@ interface GroupmateIdentity {
   name: string;
   gender: 'male' | 'female';
   avatar: string;
-  stance: 'support' | 'oppose';
+  stance: 'support' | 'oppose' | 'mediator';
 }
 
 interface DiscussionMessage {
   id: number;
-  speaker: 'user' | 'groupmate1' | 'groupmate2' | 'system';
+  speaker: 'user' | 'groupmate1' | 'groupmate2' | 'groupmate3' | 'system';
   speakerName?: string;
   speakerAvatar?: string;
-  stance?: 'support' | 'oppose';
+  stance?: 'support' | 'oppose' | 'mediator';
   text: string;
   timestamp: Date;
 }
@@ -61,9 +65,17 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
   const [discussionScore, setDiscussionScore] = useState<DiscussionScore | null>(null);
   const [discussionStartTime, setDiscussionStartTime] = useState<Date | null>(null);
   const [savedDiscussions, setSavedDiscussions] = useState<SavedDiscussion[]>([]);
+  const [argumentFeedback, setArgumentFeedback] = useState<ArgumentFeedback | null>(null);
   
-  // Random groupmates - regenerated each session
-  const [groupmates, setGroupmates] = useState<{ supporter: GroupmateIdentity; opposer: GroupmateIdentity } | null>(null);
+  // Random groupmates - regenerated each session (including mediator)
+  const [groupmates, setGroupmates] = useState<{ 
+    supporter: GroupmateIdentity; 
+    opposer: GroupmateIdentity;
+    mediator: GroupmateIdentity;
+  } | null>(null);
+  
+  // Dynamic max turns (base 3 + random 1-3)
+  const [maxTurns, setMaxTurns] = useState(3);
   
   const recognitionRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -72,24 +84,35 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
   const transcriptRef = useRef('');
   const MAX_TURNS = 6; // 6 turns total (user speaks 3 times, AI responds each time)
 
-  // Generate random groupmates on mount
+  // Generate random groupmates on mount (including mediator)
   useEffect(() => {
     const supporter = generateRandomGroupmate();
     let opposer = generateRandomGroupmate();
+    let mediator = generateRandomMediator();
     
-    // Make sure they have different names
+    // Make sure they all have different names
     while (opposer.name === supporter.name) {
       opposer = generateRandomGroupmate();
     }
+    while (mediator.name === supporter.name || mediator.name === opposer.name) {
+      mediator = generateRandomMediator();
+    }
+    
+    // Randomize max turns: base 3 + random 1-3 = 4-6 turns
+    const randomExtraTurns = Math.floor(Math.random() * 3) + 1;
+    setMaxTurns(3 + randomExtraTurns);
     
     setGroupmates({
       supporter: { ...supporter, stance: 'support' },
-      opposer: { ...opposer, stance: 'oppose' }
+      opposer: { ...opposer, stance: 'oppose' },
+      mediator: { ...mediator, stance: 'mediator' }
     });
     
     logger.info('Generated random groupmates', {
       supporter: supporter.name,
-      opposer: opposer.name
+      opposer: opposer.name,
+      mediator: mediator.name,
+      maxTurns: 3 + randomExtraTurns
     });
   }, []);
 
@@ -297,7 +320,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
     text: string,
     speakerName?: string,
     speakerAvatar?: string,
-    stance?: 'support' | 'oppose'
+    stance?: 'support' | 'oppose' | 'mediator'
   ) => {
     messageIdRef.current += 1;
     setMessages(prev => [...prev, {
@@ -372,20 +395,29 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
     const conversationHistory = messages.map(m => `${m.speakerName || m.speaker}: ${m.text}`);
 
     try {
+      // Analyze user's argument and provide feedback
+      const feedback = await analyzeArgumentStrength(userTranscript, topic.text);
+      setArgumentFeedback(feedback);
+      
       // Randomly decide order of AI responses
       const supporterFirst = Math.random() > 0.5;
       const firstGroupmate = supporterFirst ? groupmates.supporter : groupmates.opposer;
       const secondGroupmate = supporterFirst ? groupmates.opposer : groupmates.supporter;
+
+      // Randomly decide if groupmates should ask questions (30% chance)
+      const shouldAskQuestion = Math.random() < 0.3;
+      const questionTarget = Math.random() > 0.5 ? 'user' : 'other';
 
       // Generate and speak first AI response
       setIsSpeaking(true);
       const firstResponse = await generateGroupmateResponse(
         topic.text,
         userTranscript,
-        firstGroupmate.stance,
+        firstGroupmate.stance as 'support' | 'oppose',
         conversationHistory,
         { name: firstGroupmate.name, gender: firstGroupmate.gender, avatar: firstGroupmate.avatar },
-        userName.trim() || undefined
+        userName.trim() || undefined,
+        shouldAskQuestion && questionTarget === 'user'
       );
       
       addMessage(
@@ -405,10 +437,11 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
       const secondResponse = await generateGroupmateResponse(
         topic.text,
         userTranscript + ' ' + firstResponse.text,
-        secondGroupmate.stance,
+        secondGroupmate.stance as 'support' | 'oppose',
         [...conversationHistory, `${firstResponse.groupmateName}: ${firstResponse.text}`],
         { name: secondGroupmate.name, gender: secondGroupmate.gender, avatar: secondGroupmate.avatar },
-        userName.trim() || undefined
+        userName.trim() || undefined,
+        shouldAskQuestion && questionTarget === 'other'
       );
       
       addMessage(
@@ -421,10 +454,35 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
       
       await speakGroupmateResponse(secondResponse.text, secondResponse.gender);
 
+      // Occasionally (40% chance) add mediator response
+      if (Math.random() < 0.4) {
+        await new Promise(resolve => setTimeout(resolve, 600));
+        
+        const mediatorResponse = await generateMediatorResponse(
+          topic.text,
+          [...conversationHistory, 
+           `${firstResponse.groupmateName}: ${firstResponse.text}`,
+           `${secondResponse.groupmateName}: ${secondResponse.text}`],
+          { name: groupmates.mediator.name, gender: groupmates.mediator.gender, avatar: groupmates.mediator.avatar },
+          userName.trim() || undefined,
+          true
+        );
+        
+        addMessage(
+          'groupmate3',
+          mediatorResponse.text,
+          mediatorResponse.groupmateName,
+          mediatorResponse.avatar,
+          'mediator'
+        );
+        
+        await speakGroupmateResponse(mediatorResponse.text, mediatorResponse.gender);
+      }
+
       setIsSpeaking(false);
 
-      // Check if discussion should end
-      if (turnCount + 1 >= MAX_TURNS / 2) {
+      // Check if discussion should end (using dynamic maxTurns)
+      if (turnCount + 1 >= maxTurns) {
         // Use varied closing message
         const closingMessage = getRandomClosing(userName.trim() || undefined);
         addMessage('system', closingMessage);
@@ -484,13 +542,14 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
     });
   };
 
-  const getSpeakerColor = (speaker: DiscussionMessage['speaker'], stance?: 'support' | 'oppose') => {
+  const getSpeakerColor = (speaker: DiscussionMessage['speaker'], stance?: 'support' | 'oppose' | 'mediator') => {
     if (speaker === 'user') return 'bg-blue-100 dark:bg-blue-900/50 border-blue-300 dark:border-blue-700';
     if (speaker === 'system') return 'bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600';
     
     // For groupmates, color by stance
     if (stance === 'support') return 'bg-green-100 dark:bg-green-900/50 border-green-300 dark:border-green-700';
     if (stance === 'oppose') return 'bg-orange-100 dark:bg-orange-900/50 border-orange-300 dark:border-orange-700';
+    if (stance === 'mediator') return 'bg-purple-100 dark:bg-purple-900/50 border-purple-300 dark:border-purple-700';
     
     return 'bg-gray-100 dark:bg-gray-700';
   };
@@ -499,7 +558,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
     if (message.speaker === 'user') return '🎤 You';
     if (message.speaker === 'system') return '📢 Moderator';
     
-    const stanceLabel = message.stance === 'support' ? 'Supportive' : 'Critical';
+    const stanceLabel = message.stance === 'support' ? 'Supportive' : message.stance === 'mediator' ? 'Mediator' : 'Critical';
     return `${message.speakerAvatar || '👤'} ${message.speakerName || 'Groupmate'} (${stanceLabel})`;
   };
 
@@ -542,10 +601,10 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
           <div className="flex justify-between items-center mb-2">
             <h1 className="text-xl font-bold text-gray-900 dark:text-white">AI Group Discussion</h1>
             <span className="text-sm text-gray-600 dark:text-gray-300">
-              Turn {Math.min(turnCount + 1, MAX_TURNS / 2)} / {MAX_TURNS / 2}
+              Turn {Math.min(turnCount + 1, maxTurns)} / {maxTurns}
             </span>
           </div>
-          <Progress value={(turnCount / (MAX_TURNS / 2)) * 100} className="h-2" />
+          <Progress value={(turnCount / maxTurns) * 100} className="h-2" />
         </div>
 
         {/* Topic Card */}
@@ -566,7 +625,6 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
                 <span>
                   <strong>{groupmates.supporter.name}</strong> 
                   <span className="text-green-600 dark:text-green-400"> - Supportive</span>
-                  <span className="text-xs ml-1">({groupmates.supporter.gender})</span>
                 </span>
               </div>
               <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 bg-orange-50 dark:bg-orange-900/30 px-3 py-2 rounded-lg">
@@ -574,7 +632,13 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
                 <span>
                   <strong>{groupmates.opposer.name}</strong>
                   <span className="text-orange-600 dark:text-orange-400"> - Critical Thinker</span>
-                  <span className="text-xs ml-1">({groupmates.opposer.gender})</span>
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 bg-purple-50 dark:bg-purple-900/30 px-3 py-2 rounded-lg">
+                <span className="text-xl">{groupmates.mediator.avatar}</span>
+                <span>
+                  <strong>{groupmates.mediator.name}</strong>
+                  <span className="text-purple-600 dark:text-purple-400"> - Mediator</span>
                 </span>
               </div>
             </div>
@@ -655,12 +719,56 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
                 </div>
               )}
 
+              {/* Real-time Argument Feedback */}
+              {argumentFeedback && !isRecording && !isProcessing && !isSpeaking && discussionPhase === 'discussion' && (
+                <div className={`p-4 rounded-lg border-2 ${
+                  argumentFeedback.strength === 'strong' 
+                    ? 'bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700' 
+                    : argumentFeedback.strength === 'moderate'
+                    ? 'bg-yellow-50 dark:bg-yellow-900/30 border-yellow-300 dark:border-yellow-700'
+                    : 'bg-red-50 dark:bg-red-900/30 border-red-300 dark:border-red-700'
+                }`}>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="font-semibold text-sm text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                      📊 Argument Feedback
+                    </span>
+                    <Badge className={`${
+                      argumentFeedback.strength === 'strong' 
+                        ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100' 
+                        : argumentFeedback.strength === 'moderate'
+                        ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100'
+                        : 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100'
+                    }`}>
+                      {argumentFeedback.strength.toUpperCase()} ({argumentFeedback.score}/10)
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <p className="font-medium text-green-700 dark:text-green-400 mb-1">✓ Good points:</p>
+                      <ul className="list-disc list-inside text-gray-600 dark:text-gray-400">
+                        {argumentFeedback.positives.map((p, i) => (
+                          <li key={i}>{p}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div>
+                      <p className="font-medium text-orange-700 dark:text-orange-400 mb-1">💡 To improve:</p>
+                      <ul className="list-disc list-inside text-gray-600 dark:text-gray-400">
+                        {argumentFeedback.improvements.map((imp, i) => (
+                          <li key={i}>{imp}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Processing indicator */}
               {isProcessing && (
                 <div className="flex items-center justify-center py-4">
                   <Loader2 className="w-6 h-6 animate-spin text-purple-600 mr-2" />
                   <span className="text-gray-600 dark:text-gray-400">
-                    {groupmates.supporter.name} and {groupmates.opposer.name} are thinking...
+                    {groupmates.supporter.name}, {groupmates.opposer.name}, and {groupmates.mediator.name} are thinking...
                   </span>
                 </div>
               )}
