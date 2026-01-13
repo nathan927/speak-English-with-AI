@@ -111,21 +111,21 @@ export const ResultsAnalysis = ({ results, grade, onReturnHome, onRetakeTest }: 
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="w-20 h-20 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
             <Brain className="w-10 h-10 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">🤖 AI分析報告完成！</h1>
-          <p className="text-gray-600 mb-4">{getMotivationalMessage(safeResults.overallScore)}</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">🤖 AI分析報告完成！</h1>
+          <p className="text-gray-600 dark:text-gray-300 mb-4">{getMotivationalMessage(safeResults.overallScore)}</p>
           <div className="flex justify-center space-x-4">
-            <Button onClick={onReturnHome} variant="outline">
+            <Button onClick={onReturnHome} variant="outline" className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
               <Home className="w-4 h-4 mr-2" />
               返回首頁
             </Button>
-            <Button onClick={onRetakeTest} variant="outline">
+            <Button onClick={onRetakeTest} variant="outline" className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
               <RotateCcw className="w-4 h-4 mr-2" />
               重新測試
             </Button>
@@ -151,11 +151,11 @@ export const ResultsAnalysis = ({ results, grade, onReturnHome, onRetakeTest }: 
         </Card>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-8">
-            <TabsTrigger value="overview">AI總覽</TabsTrigger>
-            <TabsTrigger value="skills">技能分析</TabsTrigger>
-            <TabsTrigger value="detailed">詳細報告</TabsTrigger>
-            <TabsTrigger value="plan">學習計劃</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4 mb-8 bg-gray-100 dark:bg-gray-800">
+            <TabsTrigger value="overview" className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 dark:text-gray-300">AI總覽</TabsTrigger>
+            <TabsTrigger value="skills" className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 dark:text-gray-300">技能分析</TabsTrigger>
+            <TabsTrigger value="detailed" className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 dark:text-gray-300">詳細報告</TabsTrigger>
+            <TabsTrigger value="plan" className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 dark:text-gray-300">學習計劃</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -165,15 +165,15 @@ export const ResultsAnalysis = ({ results, grade, onReturnHome, onRetakeTest }: 
                 const IconComponent = skill.icon;
                 const skillLevel = getGradeLevel(skill.score, grade);
                 return (
-                  <Card key={skill.name} className="text-center hover:shadow-lg transition-shadow">
+                  <Card key={skill.name} className="text-center hover:shadow-lg transition-shadow bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                     <CardHeader className="pb-3">
-                      <div className={`w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center mx-auto mb-3`}>
+                      <div className={`w-12 h-12 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center mx-auto mb-3`}>
                         <IconComponent className={`w-6 h-6 ${skill.color}`} />
                       </div>
-                      <CardTitle className="text-lg">{skill.name}</CardTitle>
+                      <CardTitle className="text-lg text-gray-900 dark:text-white">{skill.name}</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-3xl font-bold text-gray-900 mb-2">{skill.score}</div>
+                      <div className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{skill.score}</div>
                       <Progress value={skill.score} className="mb-3" />
                       <Badge className={`${skillLevel.color} text-white border-0`}>
                         {skillLevel.level}
@@ -186,40 +186,40 @@ export const ResultsAnalysis = ({ results, grade, onReturnHome, onRetakeTest }: 
 
             {/* Quick Stats */}
             <div className="grid md:grid-cols-3 gap-6">
-              <Card>
+              <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                 <CardContent className="p-6 text-center">
                   <Target className="w-8 h-8 text-blue-600 mx-auto mb-3" />
-                  <div className="text-2xl font-bold text-gray-900">{safeResults.questionsAttempted}</div>
-                  <p className="text-gray-600">題目完成</p>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-white">{safeResults.questionsAttempted}</div>
+                  <p className="text-gray-600 dark:text-gray-300">題目完成</p>
                 </CardContent>
               </Card>
               
-              <Card>
+              <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                 <CardContent className="p-6 text-center">
                   <TrendingUp className="w-8 h-8 text-green-600 mx-auto mb-3" />
-                  <div className="text-2xl font-bold text-gray-900">{safeResults.strengths.length}</div>
-                  <p className="text-gray-600">AI識別優勢</p>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-white">{safeResults.strengths.length}</div>
+                  <p className="text-gray-600 dark:text-gray-300">AI識別優勢</p>
                 </CardContent>
               </Card>
               
-              <Card>
+              <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                 <CardContent className="p-6 text-center">
                   <Brain className="w-8 h-8 text-purple-600 mx-auto mb-3" />
-                  <div className="text-2xl font-bold text-gray-900">{safeResults.improvements.length}</div>
-                  <p className="text-gray-600">AI改進建議</p>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-white">{safeResults.improvements.length}</div>
+                  <p className="text-gray-600 dark:text-gray-300">AI改進建議</p>
                 </CardContent>
               </Card>
             </div>
           </TabsContent>
 
           <TabsContent value="skills" className="space-y-6">
-            <Card>
+            <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
               <CardHeader>
-                <CardTitle className="flex items-center">
+                <CardTitle className="flex items-center text-gray-900 dark:text-white">
                   <Brain className="w-5 h-5 mr-2 text-blue-600" />
                   AI技能詳細分析
                 </CardTitle>
-                <CardDescription>基於先進AI模型的專業評估</CardDescription>
+                <CardDescription className="dark:text-gray-300">基於先進AI模型的專業評估</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
@@ -230,12 +230,12 @@ export const ResultsAnalysis = ({ results, grade, onReturnHome, onRetakeTest }: 
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
                             <IconComponent className={`w-5 h-5 ${skill.color}`} />
-                            <span className="font-medium">{skill.name}</span>
+                            <span className="font-medium text-gray-900 dark:text-white">{skill.name}</span>
                           </div>
-                          <span className="text-2xl font-bold">{skill.score}</span>
+                          <span className="text-2xl font-bold text-gray-900 dark:text-white">{skill.score}</span>
                         </div>
                         <Progress value={skill.score} className="h-3" />
-                        <div className="flex justify-between text-sm text-gray-500">
+                        <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400">
                           <span>需要改進</span>
                           <span>良好</span>
                           <span>卓越</span>
@@ -249,37 +249,37 @@ export const ResultsAnalysis = ({ results, grade, onReturnHome, onRetakeTest }: 
           </TabsContent>
 
           <TabsContent value="detailed" className="space-y-6">
-            <Card>
+            <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
               <CardHeader>
-                <CardTitle className="flex items-center">
+                <CardTitle className="flex items-center text-gray-900 dark:text-white">
                   <Brain className="w-5 h-5 mr-2 text-blue-600" />
                   AI逐題詳細分析
                 </CardTitle>
-                <CardDescription>每個問題的AI專業評估與建議</CardDescription>
+                <CardDescription className="dark:text-gray-300">每個問題的AI專業評估與建議</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {safeResults.detailedAnalysis.map((analysis, index) => (
-                    <div key={index} className="border rounded-lg p-4 space-y-3">
+                    <div key={index} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 space-y-3 bg-gray-50 dark:bg-gray-700">
                       <div className="flex items-center justify-between">
-                        <h4 className="font-semibold">題目 {index + 1}</h4>
+                        <h4 className="font-semibold text-gray-900 dark:text-white">題目 {index + 1}</h4>
                         <div className="flex items-center space-x-2">
                           <Badge variant={analysis.score >= 80 ? "default" : analysis.score >= 60 ? "secondary" : "destructive"}>
                             AI評分: {analysis.score}
                           </Badge>
                           {analysis.responseTime && (
-                            <Badge variant="outline" className="text-xs">
+                            <Badge variant="outline" className="text-xs dark:border-gray-500 dark:text-gray-300">
                               反應: {formatResponseTime(analysis.responseTime)}
                             </Badge>
                           )}
                         </div>
                       </div>
-                      <p className="text-gray-700 italic">"{analysis.question}"</p>
+                      <p className="text-gray-700 dark:text-gray-300 italic">"{analysis.question}"</p>
                       <div className="space-y-2">
                         <Progress value={analysis.score} />
-                        <div className="bg-gray-50 p-3 rounded">
-                          <p className="text-sm font-medium text-gray-900 mb-1">AI評估反饋:</p>
-                          <p className="text-sm text-gray-700">{analysis.feedback}</p>
+                        <div className="bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-600">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">AI評估反饋:</p>
+                          <p className="text-sm text-gray-700 dark:text-gray-300">{analysis.feedback}</p>
                         </div>
                         {analysis.specificIssues && analysis.specificIssues.length > 0 && (
                           <div className="bg-red-50 p-3 rounded">
