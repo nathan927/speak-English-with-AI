@@ -568,12 +568,13 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 p-4">
-      <div className="max-w-4xl mx-auto">
+    <div className="h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 p-3 flex flex-col overflow-hidden">
+      <div className="max-w-4xl mx-auto w-full flex flex-col flex-1 min-h-0">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-3">
           <Button 
             variant="outline" 
+            size="sm"
             onClick={() => {
               stopSpeaking(); // Stop speech when clicking back
               onBack();
@@ -584,52 +585,52 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
             Back
           </Button>
           
-          <Badge className="bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-300 px-4 py-2">
+          <Badge className="bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-300 px-3 py-1">
             <Users className="w-4 h-4 mr-2" />
             Group Discussion - {grade}
           </Badge>
         </div>
 
         {/* Progress */}
-        <div className="mb-6">
-          <div className="flex justify-between items-center mb-2">
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white">AI Group Discussion</h1>
+        <div className="mb-3">
+          <div className="flex justify-between items-center mb-1">
+            <h1 className="text-lg font-bold text-gray-900 dark:text-white">AI Group Discussion</h1>
             <span className="text-sm text-gray-600 dark:text-gray-300">
               Turn {Math.min(turnCount + 1, maxTurns)} / {maxTurns}
             </span>
           </div>
-          <Progress value={(turnCount / maxTurns) * 100} className="h-2" />
+          <Progress value={(turnCount / maxTurns) * 100} className="h-1.5" />
         </div>
 
-        {/* Topic Card */}
-        <Card className="mb-6 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-          <CardHeader>
-            <CardTitle className="text-lg text-gray-900 dark:text-white flex items-center gap-2">
-              <MessageCircle className="w-5 h-5 text-purple-600" />
+        {/* Topic Card - Compact */}
+        <Card className="mb-3 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shrink-0">
+          <CardHeader className="py-3 px-4">
+            <CardTitle className="text-base text-gray-900 dark:text-white flex items-center gap-2">
+              <MessageCircle className="w-4 h-4 text-purple-600" />
               Discussion Topic
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-lg font-medium text-gray-800 dark:text-gray-200">{topic?.text}</p>
+          <CardContent className="py-2 px-4">
+            <p className="text-base font-medium text-gray-800 dark:text-gray-200">{topic?.text}</p>
             
-            {/* Groupmates Info - Now with random identities */}
-            <div className="mt-4 flex flex-wrap gap-4">
-              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 bg-green-50 dark:bg-green-900/30 px-3 py-2 rounded-lg">
-                <span className="text-xl">{groupmates.supporter.avatar}</span>
+            {/* Groupmates Info - Compact */}
+            <div className="mt-3 flex flex-wrap gap-2">
+              <div className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400 bg-green-50 dark:bg-green-900/30 px-2 py-1 rounded-md">
+                <span>{groupmates.supporter.avatar}</span>
                 <span>
                   <strong>{groupmates.supporter.name}</strong> 
                   <span className="text-green-600 dark:text-green-400"> - Supportive</span>
                 </span>
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 bg-orange-50 dark:bg-orange-900/30 px-3 py-2 rounded-lg">
-                <span className="text-xl">{groupmates.opposer.avatar}</span>
+              <div className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400 bg-orange-50 dark:bg-orange-900/30 px-2 py-1 rounded-md">
+                <span>{groupmates.opposer.avatar}</span>
                 <span>
                   <strong>{groupmates.opposer.name}</strong>
                   <span className="text-orange-600 dark:text-orange-400"> - Critical Thinker</span>
                 </span>
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 bg-purple-50 dark:bg-purple-900/30 px-3 py-2 rounded-lg">
-                <span className="text-xl">{groupmates.mediator.avatar}</span>
+              <div className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400 bg-purple-50 dark:bg-purple-900/30 px-2 py-1 rounded-md">
+                <span>{groupmates.mediator.avatar}</span>
                 <span>
                   <strong>{groupmates.mediator.name}</strong>
                   <span className="text-purple-600 dark:text-purple-400"> - Mediator</span>
@@ -639,25 +640,25 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
           </CardContent>
         </Card>
 
-        {/* Discussion Messages */}
-        <Card className="mb-6 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-          <CardHeader>
-            <CardTitle className="text-lg text-gray-900 dark:text-white">Discussion</CardTitle>
+        {/* Discussion Messages - Flexible Height */}
+        <Card className="mb-3 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 flex-1 flex flex-col min-h-0">
+          <CardHeader className="py-2 px-4 shrink-0">
+            <CardTitle className="text-base text-gray-900 dark:text-white">Discussion</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
+          <CardContent className="flex-1 overflow-auto py-2 px-4">
+            <div className="space-y-3">
               {messages.length === 0 && discussionPhase === 'intro' && (
-                <div className="text-center py-8">
-                  <Users className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-                  <p className="text-gray-500 dark:text-gray-400 mb-4">
+                <div className="text-center py-4">
+                  <Users className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                  <p className="text-gray-500 dark:text-gray-400 mb-3 text-sm">
                     Ready to start the group discussion with {groupmates.supporter.name} and {groupmates.opposer.name}?
                   </p>
                   
-                  {/* Name Input Field */}
-                  <div className="max-w-xs mx-auto mb-6">
-                    <div className="flex items-center gap-2 mb-2">
-                      <User className="w-4 h-4 text-gray-400" />
-                      <label htmlFor="userName" className="text-sm text-gray-600 dark:text-gray-400">
+                  {/* Name Input Field - Compact */}
+                  <div className="max-w-xs mx-auto mb-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <User className="w-3 h-3 text-gray-400" />
+                      <label htmlFor="userName" className="text-xs text-gray-600 dark:text-gray-400">
                         Your English name (optional)
                       </label>
                     </div>
@@ -667,7 +668,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
                       placeholder="e.g., Michael, Emily..."
                       value={userName}
                       onChange={(e) => setUserName(e.target.value)}
-                      className="text-center bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+                      className="text-center text-sm h-9 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
                     />
                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                       AI groupmates will use your name naturally in conversation
@@ -676,6 +677,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
                   
                   <Button 
                     onClick={startDiscussion}
+                    size="sm"
                     className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
                   >
                     <Volume2 className="w-4 h-4 mr-2" />
@@ -687,38 +689,38 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
               {messages.map((message) => (
                 <div 
                   key={message.id}
-                  className={`p-4 rounded-lg border-2 ${getSpeakerColor(message.speaker, message.stance)}`}
+                  className={`p-3 rounded-lg border-2 ${getSpeakerColor(message.speaker, message.stance)}`}
                 >
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="font-semibold text-sm text-gray-700 dark:text-gray-300">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-semibold text-xs text-gray-700 dark:text-gray-300">
                       {getSpeakerLabel(message)}
                     </span>
                     <span className="text-xs text-gray-500 dark:text-gray-500">
                       {message.timestamp.toLocaleTimeString()}
                     </span>
                   </div>
-                  <p className="text-gray-800 dark:text-gray-200">{message.text}</p>
+                  <p className="text-sm text-gray-800 dark:text-gray-200">{message.text}</p>
                 </div>
               ))}
 
               {/* Current transcript preview */}
               {isRecording && currentTranscript && (
-                <div className="p-4 rounded-lg border-2 border-dashed border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/30">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="font-semibold text-sm text-blue-700 dark:text-blue-300">
+                <div className="p-3 rounded-lg border-2 border-dashed border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/30">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-semibold text-xs text-blue-700 dark:text-blue-300">
                       🎤 You (recording...)
                     </span>
                   </div>
-                  <p className="text-gray-600 dark:text-gray-400 italic">{currentTranscript}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 italic">{currentTranscript}</p>
                 </div>
               )}
 
 
               {/* Processing indicator */}
               {isProcessing && (
-                <div className="flex items-center justify-center py-4">
-                  <Loader2 className="w-6 h-6 animate-spin text-purple-600 mr-2" />
-                  <span className="text-gray-600 dark:text-gray-400">
+                <div className="flex items-center justify-center py-2">
+                  <Loader2 className="w-5 h-5 animate-spin text-purple-600 mr-2" />
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
                     {groupmates.supporter.name}, {groupmates.opposer.name}, and {groupmates.mediator.name} are thinking...
                   </span>
                 </div>
@@ -726,9 +728,9 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
 
               {/* Speaking indicator */}
               {isSpeaking && !isProcessing && (
-                <div className="flex items-center justify-center py-4">
-                  <Volume2 className="w-6 h-6 text-green-600 animate-pulse mr-2" />
-                  <span className="text-gray-600 dark:text-gray-400">AI groupmate is speaking...</span>
+                <div className="flex items-center justify-center py-2">
+                  <Volume2 className="w-5 h-5 text-green-600 animate-pulse mr-2" />
+                  <span className="text-sm text-gray-600 dark:text-gray-400">AI groupmate is speaking...</span>
                 </div>
               )}
 
@@ -737,26 +739,26 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
           </CardContent>
         </Card>
 
-        {/* Controls */}
+        {/* Controls - Fixed at bottom */}
         {discussionPhase === 'discussion' && (
-          <div className="flex justify-center gap-4">
+          <div className="flex justify-center gap-4 shrink-0 pb-2">
             {!isRecording ? (
               <Button
-                size="lg"
+                size="default"
                 onClick={startRecording}
                 disabled={isProcessing || isSpeaking}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-6 text-lg"
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3"
               >
-                <Mic className="w-6 h-6" />
+                <Mic className="w-5 h-5" />
                 Start Speaking
               </Button>
             ) : (
               <Button
-                size="lg"
+                size="default"
                 onClick={stopRecording}
-                className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-8 py-6 text-lg animate-pulse"
+                className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-6 py-3 animate-pulse"
               >
-                <MicOff className="w-6 h-6" />
+                <MicOff className="w-5 h-5" />
                 Stop & Submit
               </Button>
             )}
