@@ -6,12 +6,13 @@ import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Volume2, Play, Check, Settings as SettingsIcon, Mic } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { ArrowLeft, Volume2, Play, Check, Settings as SettingsIcon, Mic, Moon, Sun } from 'lucide-react';
 import { logger } from '@/services/logService';
 
 interface VoiceOption {
-  id: string;
-  name: string;
+  id: string; // Use voice.name as unique ID
+  displayName: string;
   description: string;
   voice: SpeechSynthesisVoice | null;
   category: 'female' | 'male' | 'regional';
@@ -29,6 +30,20 @@ const Settings = () => {
     return localStorage.getItem('selectedVoiceId') || 'default';
   });
   const [previewingVoiceId, setPreviewingVoiceId] = useState<string | null>(null);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const saved = localStorage.getItem('darkMode');
+    return saved === 'true';
+  });
+
+  // Apply dark mode
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('darkMode', isDarkMode.toString());
+  }, [isDarkMode]);
 
   // Save settings to localStorage whenever they change
   useEffect(() => {
@@ -37,6 +52,7 @@ const Settings = () => {
 
   useEffect(() => {
     localStorage.setItem('selectedVoiceId', selectedVoiceId);
+    logger.info('Voice saved to localStorage', { selectedVoiceId });
   }, [selectedVoiceId]);
 
   // Load available voices
@@ -44,6 +60,8 @@ const Settings = () => {
     const loadVoices = () => {
       const voices = window.speechSynthesis.getVoices();
       const englishVoices = voices.filter(v => v.lang.startsWith('en'));
+      
+      logger.info('Loading voices', { totalVoices: voices.length, englishVoices: englishVoices.length });
       
       // Enhanced preferred voice names for elegant female voices
       const preferredFemale = [
@@ -60,52 +78,61 @@ const Settings = () => {
       ];
       
       const voiceOptions: VoiceOption[] = [];
+      const addedVoiceNames = new Set<string>();
       
       // Find all available female voices
       const femaleVoices: SpeechSynthesisVoice[] = [];
       for (const name of preferredFemale) {
-        const found = englishVoices.find(v => v.name.includes(name) && !femaleVoices.includes(v));
+        const found = englishVoices.find(v => v.name.includes(name) && !addedVoiceNames.has(v.name));
         if (found) {
           femaleVoices.push(found);
+          addedVoiceNames.add(found.name);
         }
       }
       // Also add any with 'female' in name
       const otherFemale = englishVoices.filter(v => 
-        v.name.toLowerCase().includes('female') && !femaleVoices.includes(v)
+        v.name.toLowerCase().includes('female') && !addedVoiceNames.has(v.name)
       );
-      femaleVoices.push(...otherFemale);
+      otherFemale.forEach(v => {
+        femaleVoices.push(v);
+        addedVoiceNames.add(v.name);
+      });
       
       // Find all available male voices
       const maleVoices: SpeechSynthesisVoice[] = [];
       for (const name of preferredMale) {
-        const found = englishVoices.find(v => v.name.includes(name) && !maleVoices.includes(v));
+        const found = englishVoices.find(v => v.name.includes(name) && !addedVoiceNames.has(v.name));
         if (found) {
           maleVoices.push(found);
+          addedVoiceNames.add(found.name);
         }
       }
       // Also add any with 'male' in name (but not 'female')
       const otherMale = englishVoices.filter(v => 
         v.name.toLowerCase().includes('male') && 
         !v.name.toLowerCase().includes('female') && 
-        !maleVoices.includes(v)
+        !addedVoiceNames.has(v.name)
       );
-      maleVoices.push(...otherMale);
+      otherMale.forEach(v => {
+        maleVoices.push(v);
+        addedVoiceNames.add(v.name);
+      });
       
       // Add default option (system will choose best female)
       voiceOptions.push({
         id: 'default',
-        name: '自動選擇 (Auto)',
+        displayName: '自動選擇 (Auto)',
         description: '系統自動選擇最佳女聲',
         voice: femaleVoices[0] || englishVoices[0] || null,
         category: 'female'
       });
       
-      // Add all female voices
-      femaleVoices.forEach((voice, index) => {
+      // Add all female voices - use voice.name as ID for consistency
+      femaleVoices.forEach((voice) => {
         const shortName = voice.name.split(' ').slice(0, 2).join(' ');
         voiceOptions.push({
-          id: `female-${index}`,
-          name: `👩 ${shortName}`,
+          id: voice.name, // Use full voice name as unique ID
+          displayName: `👩 ${shortName}`,
           description: `${voice.name} (${voice.lang})`,
           voice: voice,
           category: 'female'
@@ -113,76 +140,81 @@ const Settings = () => {
       });
       
       // Add all male voices
-      maleVoices.forEach((voice, index) => {
+      maleVoices.forEach((voice) => {
         const shortName = voice.name.split(' ').slice(0, 2).join(' ');
         voiceOptions.push({
-          id: `male-${index}`,
-          name: `👨 ${shortName}`,
+          id: voice.name, // Use full voice name as unique ID
+          displayName: `👨 ${shortName}`,
           description: `${voice.name} (${voice.lang})`,
           voice: voice,
           category: 'male'
         });
       });
       
-      // Add regional accent voices
-      const ukVoices = englishVoices.filter(v => v.lang === 'en-GB' && !femaleVoices.includes(v) && !maleVoices.includes(v));
-      const usVoices = englishVoices.filter(v => v.lang === 'en-US' && !femaleVoices.includes(v) && !maleVoices.includes(v));
-      const auVoices = englishVoices.filter(v => v.lang === 'en-AU' && !femaleVoices.includes(v) && !maleVoices.includes(v));
-      const ieVoices = englishVoices.filter(v => v.lang === 'en-IE' && !femaleVoices.includes(v) && !maleVoices.includes(v));
-      const inVoices = englishVoices.filter(v => v.lang === 'en-IN' && !femaleVoices.includes(v) && !maleVoices.includes(v));
+      // Add regional accent voices (that weren't already added)
+      const ukVoices = englishVoices.filter(v => v.lang === 'en-GB' && !addedVoiceNames.has(v.name));
+      const usVoices = englishVoices.filter(v => v.lang === 'en-US' && !addedVoiceNames.has(v.name));
+      const auVoices = englishVoices.filter(v => v.lang === 'en-AU' && !addedVoiceNames.has(v.name));
+      const ieVoices = englishVoices.filter(v => v.lang === 'en-IE' && !addedVoiceNames.has(v.name));
+      const inVoices = englishVoices.filter(v => v.lang === 'en-IN' && !addedVoiceNames.has(v.name));
       
-      ukVoices.slice(0, 3).forEach((voice, index) => {
+      ukVoices.slice(0, 3).forEach((voice) => {
         voiceOptions.push({
-          id: `uk-${index}`,
-          name: `🇬🇧 英式 ${index + 1}`,
+          id: voice.name,
+          displayName: `🇬🇧 ${voice.name.split(' ').slice(0, 2).join(' ')}`,
           description: `${voice.name}`,
           voice: voice,
           category: 'regional'
         });
+        addedVoiceNames.add(voice.name);
       });
       
-      usVoices.slice(0, 3).forEach((voice, index) => {
+      usVoices.slice(0, 3).forEach((voice) => {
         voiceOptions.push({
-          id: `us-${index}`,
-          name: `🇺🇸 美式 ${index + 1}`,
+          id: voice.name,
+          displayName: `🇺🇸 ${voice.name.split(' ').slice(0, 2).join(' ')}`,
           description: `${voice.name}`,
           voice: voice,
           category: 'regional'
         });
+        addedVoiceNames.add(voice.name);
       });
       
-      auVoices.slice(0, 2).forEach((voice, index) => {
+      auVoices.slice(0, 2).forEach((voice) => {
         voiceOptions.push({
-          id: `au-${index}`,
-          name: `🇦🇺 澳洲 ${index + 1}`,
+          id: voice.name,
+          displayName: `🇦🇺 ${voice.name.split(' ').slice(0, 2).join(' ')}`,
           description: `${voice.name}`,
           voice: voice,
           category: 'regional'
         });
+        addedVoiceNames.add(voice.name);
       });
       
-      ieVoices.slice(0, 1).forEach((voice, index) => {
+      ieVoices.slice(0, 1).forEach((voice) => {
         voiceOptions.push({
-          id: `ie-${index}`,
-          name: `🇮🇪 愛爾蘭`,
+          id: voice.name,
+          displayName: `🇮🇪 ${voice.name.split(' ').slice(0, 2).join(' ')}`,
           description: `${voice.name}`,
           voice: voice,
           category: 'regional'
         });
+        addedVoiceNames.add(voice.name);
       });
       
-      inVoices.slice(0, 1).forEach((voice, index) => {
+      inVoices.slice(0, 1).forEach((voice) => {
         voiceOptions.push({
-          id: `in-${index}`,
-          name: `🇮🇳 印度`,
+          id: voice.name,
+          displayName: `🇮🇳 ${voice.name.split(' ').slice(0, 2).join(' ')}`,
           description: `${voice.name}`,
           voice: voice,
           category: 'regional'
         });
+        addedVoiceNames.add(voice.name);
       });
       
       setAvailableVoices(voiceOptions);
-      logger.info('Loaded voices for settings', { count: voiceOptions.length });
+      logger.info('Loaded voices for settings', { count: voiceOptions.length, voiceIds: voiceOptions.map(v => v.id) });
     };
 
     loadVoices();
@@ -214,6 +246,7 @@ const Settings = () => {
       
       if (voice) {
         utterance.voice = voice;
+        logger.info('Previewing voice', { voiceId, voiceName: voice.name });
       }
       
       utterance.lang = 'en-US';
@@ -277,14 +310,14 @@ const Settings = () => {
   const regionalVoices = availableVoices.filter(v => v.category === 'regional');
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <div className="container mx-auto px-4 py-4 md:py-8">
         {/* Header */}
         <div className="mb-6 md:mb-8">
           <Button 
             variant="ghost" 
             onClick={() => navigate('/')}
-            className="mb-4 group relative overflow-hidden bg-gradient-to-r from-gray-100 to-gray-200 hover:from-blue-100 hover:to-purple-100 border border-gray-300 hover:border-blue-300 text-gray-700 hover:text-blue-700 font-medium px-4 md:px-6 py-2 md:py-3 rounded-xl shadow-sm hover:shadow-md transition-all duration-300"
+            className="mb-4 group relative overflow-hidden bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 hover:from-blue-100 hover:to-purple-100 dark:hover:from-blue-900 dark:hover:to-purple-900 border border-gray-300 dark:border-gray-600 hover:border-blue-300 text-gray-700 dark:text-gray-200 hover:text-blue-700 dark:hover:text-blue-300 font-medium px-4 md:px-6 py-2 md:py-3 rounded-xl shadow-sm hover:shadow-md transition-all duration-300"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             返回首頁
@@ -296,26 +329,55 @@ const Settings = () => {
                 <SettingsIcon className="w-6 h-6 text-white" />
               </div>
             </div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">設定</h1>
-            <p className="text-gray-600">調整語音和語速設定</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">設定</h1>
+            <p className="text-gray-600 dark:text-gray-400">調整語音和顯示設定</p>
           </div>
         </div>
 
         <div className="max-w-2xl mx-auto space-y-6">
-          {/* Speech Rate Control */}
-          <Card className="border-2 border-blue-200 bg-blue-50/50">
+          {/* Dark Mode Toggle */}
+          <Card className="border-2 border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80">
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center text-lg md:text-xl">
+              <CardTitle className="flex items-center text-lg md:text-xl text-gray-900 dark:text-white">
+                {isDarkMode ? <Moon className="w-5 h-5 mr-2 text-purple-600" /> : <Sun className="w-5 h-5 mr-2 text-yellow-500" />}
+                顯示模式
+              </CardTitle>
+              <CardDescription className="dark:text-gray-400">
+                切換淺色或深色主題
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between p-4 rounded-lg border-2 border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
+                <div className="flex items-center space-x-3">
+                  <Sun className="w-5 h-5 text-yellow-500" />
+                  <span className="font-medium text-gray-700 dark:text-gray-200">淺色模式</span>
+                </div>
+                <Switch
+                  checked={isDarkMode}
+                  onCheckedChange={setIsDarkMode}
+                />
+                <div className="flex items-center space-x-3">
+                  <span className="font-medium text-gray-700 dark:text-gray-200">深色模式</span>
+                  <Moon className="w-5 h-5 text-purple-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Speech Rate Control */}
+          <Card className="border-2 border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/20">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center text-lg md:text-xl text-gray-900 dark:text-white">
                 <Volume2 className="w-5 h-5 mr-2 text-blue-600" />
                 語速調節
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="dark:text-gray-400">
                 調整系統語音播放速度
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <div className="flex justify-between text-sm text-gray-600">
+                <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
                   <span>慢速 (0.5x)</span>
                   <span>正常 (1.0x)</span>
                   <span>快速 (1.5x)</span>
@@ -343,13 +405,13 @@ const Settings = () => {
           </Card>
 
           {/* Voice Selection - Female */}
-          <Card className="border-2 border-pink-200 bg-pink-50/50">
+          <Card className="border-2 border-pink-200 dark:border-pink-800 bg-pink-50/50 dark:bg-pink-900/20">
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center text-lg md:text-xl">
+              <CardTitle className="flex items-center text-lg md:text-xl text-gray-900 dark:text-white">
                 <Mic className="w-5 h-5 mr-2 text-pink-600" />
                 選擇語音 - 女聲
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="dark:text-gray-400">
                 點擊試聽按鈕預覽語音效果
               </CardDescription>
             </CardHeader>
@@ -364,15 +426,15 @@ const Settings = () => {
                     key={voiceOption.id}
                     className={`flex items-center justify-between p-3 rounded-lg border-2 transition-all duration-200 ${
                       selectedVoiceId === voiceOption.id 
-                        ? 'border-pink-500 bg-white shadow-sm' 
-                        : 'border-gray-200 bg-white/50 hover:border-pink-300'
+                        ? 'border-pink-500 bg-white dark:bg-gray-800 shadow-sm' 
+                        : 'border-gray-200 dark:border-gray-600 bg-white/50 dark:bg-gray-800/50 hover:border-pink-300'
                     }`}
                   >
                     <div className="flex items-center space-x-3 flex-1 min-w-0">
                       <RadioGroupItem value={voiceOption.id} id={voiceOption.id} />
                       <Label htmlFor={voiceOption.id} className="cursor-pointer flex-1 min-w-0">
-                        <div className="font-medium text-gray-900 truncate">{voiceOption.name}</div>
-                        <div className="text-xs text-gray-500 truncate">{voiceOption.description}</div>
+                        <div className="font-medium text-gray-900 dark:text-white truncate">{voiceOption.displayName}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{voiceOption.description}</div>
                       </Label>
                     </div>
                     <Button
@@ -402,9 +464,9 @@ const Settings = () => {
 
           {/* Voice Selection - Male */}
           {maleVoices.length > 0 && (
-            <Card className="border-2 border-blue-200 bg-blue-50/50">
+            <Card className="border-2 border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/20">
               <CardHeader className="pb-3">
-                <CardTitle className="flex items-center text-lg md:text-xl">
+                <CardTitle className="flex items-center text-lg md:text-xl text-gray-900 dark:text-white">
                   <Mic className="w-5 h-5 mr-2 text-blue-600" />
                   選擇語音 - 男聲
                 </CardTitle>
@@ -420,15 +482,15 @@ const Settings = () => {
                       key={voiceOption.id}
                       className={`flex items-center justify-between p-3 rounded-lg border-2 transition-all duration-200 ${
                         selectedVoiceId === voiceOption.id 
-                          ? 'border-blue-500 bg-white shadow-sm' 
-                          : 'border-gray-200 bg-white/50 hover:border-blue-300'
+                          ? 'border-blue-500 bg-white dark:bg-gray-800 shadow-sm' 
+                          : 'border-gray-200 dark:border-gray-600 bg-white/50 dark:bg-gray-800/50 hover:border-blue-300'
                       }`}
                     >
                       <div className="flex items-center space-x-3 flex-1 min-w-0">
                         <RadioGroupItem value={voiceOption.id} id={voiceOption.id} />
                         <Label htmlFor={voiceOption.id} className="cursor-pointer flex-1 min-w-0">
-                          <div className="font-medium text-gray-900 truncate">{voiceOption.name}</div>
-                          <div className="text-xs text-gray-500 truncate">{voiceOption.description}</div>
+                          <div className="font-medium text-gray-900 dark:text-white truncate">{voiceOption.displayName}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{voiceOption.description}</div>
                         </Label>
                       </div>
                       <Button
@@ -459,9 +521,9 @@ const Settings = () => {
 
           {/* Voice Selection - Regional */}
           {regionalVoices.length > 0 && (
-            <Card className="border-2 border-green-200 bg-green-50/50">
+            <Card className="border-2 border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-900/20">
               <CardHeader className="pb-3">
-                <CardTitle className="flex items-center text-lg md:text-xl">
+                <CardTitle className="flex items-center text-lg md:text-xl text-gray-900 dark:text-white">
                   <Mic className="w-5 h-5 mr-2 text-green-600" />
                   選擇語音 - 地區口音
                 </CardTitle>
@@ -477,15 +539,15 @@ const Settings = () => {
                       key={voiceOption.id}
                       className={`flex items-center justify-between p-3 rounded-lg border-2 transition-all duration-200 ${
                         selectedVoiceId === voiceOption.id 
-                          ? 'border-green-500 bg-white shadow-sm' 
-                          : 'border-gray-200 bg-white/50 hover:border-green-300'
+                          ? 'border-green-500 bg-white dark:bg-gray-800 shadow-sm' 
+                          : 'border-gray-200 dark:border-gray-600 bg-white/50 dark:bg-gray-800/50 hover:border-green-300'
                       }`}
                     >
                       <div className="flex items-center space-x-3 flex-1 min-w-0">
                         <RadioGroupItem value={voiceOption.id} id={voiceOption.id} />
                         <Label htmlFor={voiceOption.id} className="cursor-pointer flex-1 min-w-0">
-                          <div className="font-medium text-gray-900 truncate">{voiceOption.name}</div>
-                          <div className="text-xs text-gray-500 truncate">{voiceOption.description}</div>
+                          <div className="font-medium text-gray-900 dark:text-white truncate">{voiceOption.displayName}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{voiceOption.description}</div>
                         </Label>
                       </div>
                       <Button
@@ -516,14 +578,14 @@ const Settings = () => {
 
           {/* Current Selection */}
           {selectedVoiceId && (
-            <Card className="border-2 border-purple-300 bg-purple-100/50">
+            <Card className="border-2 border-purple-300 dark:border-purple-700 bg-purple-100/50 dark:bg-purple-900/30">
               <CardContent className="py-4">
-                <div className="flex items-center justify-center text-purple-700">
-                  <Check className="w-5 h-5 mr-2" />
+                <div className="flex items-center justify-center text-purple-700 dark:text-purple-300 flex-wrap gap-2">
+                  <Check className="w-5 h-5" />
                   <span className="font-medium">
-                    已選擇：{availableVoices.find(v => v.id === selectedVoiceId)?.name || '自動選擇'}
+                    已選擇：{availableVoices.find(v => v.id === selectedVoiceId)?.displayName || '自動選擇'}
                   </span>
-                  <Badge variant="outline" className="ml-3">{speechRate.toFixed(1)}x 語速</Badge>
+                  <Badge variant="outline" className="ml-2">{speechRate.toFixed(1)}x 語速</Badge>
                 </div>
               </CardContent>
             </Card>
