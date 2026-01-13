@@ -12,6 +12,7 @@ import { logger } from '@/services/logService';
 interface VoiceTestProps {
   grade: string;
   speechRate: number;
+  voiceId: string;
   showQuestions: boolean;
   onComplete: (results: any) => void;
   onBack: () => void;
@@ -21,6 +22,7 @@ interface VoiceTestProps {
 const VoiceTest: React.FC<VoiceTestProps> = ({ 
   grade, 
   speechRate, 
+  voiceId,
   showQuestions, 
   onComplete, 
   onBack, 
@@ -99,60 +101,47 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
     }
   };
 
-  // Function to get an elegant female voice
-  const getElegantFemaleVoice = (): SpeechSynthesisVoice | null => {
+  // Function to get the selected voice by voiceId
+  const getVoiceBySelection = (): SpeechSynthesisVoice | null => {
     const voices = window.speechSynthesis.getVoices();
+    const englishVoices = voices.filter(v => v.lang.startsWith('en'));
     
-    // Prioritized list of elegant female voices (most natural sounding)
-    const preferredVoices = [
-      'Samantha', // macOS - very natural
-      'Karen', // macOS Australian
-      'Moira', // macOS Irish
-      'Tessa', // macOS South African
-      'Google UK English Female',
-      'Google US English Female', 
-      'Microsoft Zira',
-      'Microsoft Hazel',
-      'Microsoft Susan',
-      'Fiona', // macOS Scottish
-      'Victoria', // macOS
-      'Allison', // macOS
-    ];
+    // Preferred voice lists
+    const preferredFemale = ['Samantha', 'Karen', 'Moira', 'Tessa', 'Google UK English Female', 'Google US English Female', 'Microsoft Zira', 'Microsoft Hazel', 'Fiona', 'Victoria', 'Allison'];
+    const preferredMale = ['Daniel', 'Alex', 'Google UK English Male', 'Google US English Male', 'Microsoft David', 'Microsoft Mark'];
     
-    // Try to find a preferred voice
-    for (const voiceName of preferredVoices) {
-      const voice = voices.find(v => 
-        v.name.includes(voiceName) && v.lang.startsWith('en')
-      );
-      if (voice) {
-        logger.info('Selected voice', { name: voice.name, lang: voice.lang });
-        return voice;
+    const findPreferredVoice = (preferredList: string[]): SpeechSynthesisVoice | null => {
+      for (const name of preferredList) {
+        const found = englishVoices.find(v => v.name.includes(name));
+        if (found) return found;
       }
+      return null;
+    };
+    
+    switch (voiceId) {
+      case 'female':
+        const femaleVoice = findPreferredVoice(preferredFemale);
+        if (femaleVoice) return femaleVoice;
+        return englishVoices.find(v => v.name.toLowerCase().includes('female')) || null;
+        
+      case 'male':
+        const maleVoice = findPreferredVoice(preferredMale);
+        if (maleVoice) return maleVoice;
+        return englishVoices.find(v => v.name.toLowerCase().includes('male') && !v.name.toLowerCase().includes('female')) || null;
+        
+      case 'uk':
+        return englishVoices.find(v => v.lang === 'en-GB') || null;
+        
+      case 'au':
+        return englishVoices.find(v => v.lang === 'en-AU') || null;
+        
+      case 'default':
+      default:
+        // Default to best female voice
+        const defaultFemale = findPreferredVoice(preferredFemale);
+        if (defaultFemale) return defaultFemale;
+        return englishVoices.find(v => v.name.toLowerCase().includes('female')) || englishVoices[0] || null;
     }
-    
-    // Fallback: find any female English voice
-    const femaleVoice = voices.find(v => 
-      v.lang.startsWith('en') && 
-      (v.name.toLowerCase().includes('female') || 
-       v.name.includes('Samantha') ||
-       v.name.includes('Karen') ||
-       v.name.includes('Zira') ||
-       v.name.includes('Hazel'))
-    );
-    
-    if (femaleVoice) {
-      logger.info('Using fallback female voice', { name: femaleVoice.name });
-      return femaleVoice;
-    }
-    
-    // Last resort: any English voice
-    const englishVoice = voices.find(v => v.lang.startsWith('en'));
-    if (englishVoice) {
-      logger.info('Using English voice', { name: englishVoice.name });
-      return englishVoice;
-    }
-    
-    return null;
   };
 
   // Function to speak the current question
@@ -167,10 +156,11 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
 
     const utterance = new SpeechSynthesisUtterance(text);
     
-    // Get elegant female voice
-    const voice = getElegantFemaleVoice();
+    // Get voice based on user selection
+    const voice = getVoiceBySelection();
     if (voice) {
       utterance.voice = voice;
+      logger.info('Using selected voice', { voiceId, voiceName: voice.name });
     }
     
     // Natural speech settings
