@@ -9,7 +9,7 @@ import {
   generateGroupmateResponse, 
   speakGroupmateResponse, 
   createSpeechRecognition,
-  GROUPMATE_INFO 
+  generateRandomGroupmate
 } from '@/services/aiGroupmateService';
 import { getRandomQuestionByType, Question } from '@/data/questionBank';
 
@@ -19,9 +19,19 @@ interface GroupDiscussionProps {
   onBack: () => void;
 }
 
+interface GroupmateIdentity {
+  name: string;
+  gender: 'male' | 'female';
+  avatar: string;
+  stance: 'support' | 'oppose';
+}
+
 interface DiscussionMessage {
   id: number;
-  speaker: 'user' | 'alex' | 'jordan' | 'system';
+  speaker: 'user' | 'groupmate1' | 'groupmate2' | 'system';
+  speakerName?: string;
+  speakerAvatar?: string;
+  stance?: 'support' | 'oppose';
   text: string;
   timestamp: Date;
 }
@@ -37,11 +47,35 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
   const [turnCount, setTurnCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   
+  // Random groupmates - regenerated each session
+  const [groupmates, setGroupmates] = useState<{ supporter: GroupmateIdentity; opposer: GroupmateIdentity } | null>(null);
+  
   const recognitionRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageIdRef = useRef(0);
 
   const MAX_TURNS = 6; // 6 turns total (user speaks 3 times, AI responds each time)
+
+  // Generate random groupmates on mount
+  useEffect(() => {
+    const supporter = generateRandomGroupmate();
+    let opposer = generateRandomGroupmate();
+    
+    // Make sure they have different names
+    while (opposer.name === supporter.name) {
+      opposer = generateRandomGroupmate();
+    }
+    
+    setGroupmates({
+      supporter: { ...supporter, stance: 'support' },
+      opposer: { ...opposer, stance: 'oppose' }
+    });
+    
+    logger.info('Generated random groupmates', {
+      supporter: supporter.name,
+      opposer: opposer.name
+    });
+  }, []);
 
   // Load a discussion topic
   useEffect(() => {
@@ -78,7 +112,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
     recognitionRef.current = createSpeechRecognition();
     
     if (recognitionRef.current) {
-      recognitionRef.current.onresult = (event) => {
+      recognitionRef.current.onresult = (event: any) => {
         let transcript = '';
         for (let i = event.resultIndex; i < event.results.length; i++) {
           transcript += event.results[i][0].transcript;
@@ -86,7 +120,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
         setCurrentTranscript(transcript);
       };
 
-      recognitionRef.current.onerror = (event) => {
+      recognitionRef.current.onerror = (event: any) => {
         logger.error('Speech recognition error', { error: event.error });
         setIsRecording(false);
       };
@@ -115,29 +149,38 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
 
   // Start the discussion with intro
   const startDiscussion = useCallback(async () => {
-    if (!topic) return;
+    if (!topic || !groupmates) return;
 
     setDiscussionPhase('discussion');
     
-    const introMessage = `Welcome to our group discussion! Today's topic is: "${topic.text}". I'm Alex, and this is Jordan. We'll take turns sharing our thoughts. Why don't you start by sharing your opinion?`;
+    const introMessage = `Welcome to our group discussion! Today's topic is: "${topic.text}". I'm ${groupmates.supporter.name}, and this is ${groupmates.opposer.name}. We'll take turns sharing our thoughts. Why don't you start by sharing your opinion?`;
     
     addMessage('system', introMessage);
     
-    // Speak the introduction
+    // Speak the introduction with random gender
     setIsSpeaking(true);
     try {
-      await speakGroupmateResponse(introMessage, 'female');
+      await speakGroupmateResponse(introMessage, groupmates.supporter.gender);
     } catch (e) {
       logger.warn('Could not speak intro');
     }
     setIsSpeaking(false);
-  }, [topic]);
+  }, [topic, groupmates]);
 
-  const addMessage = (speaker: DiscussionMessage['speaker'], text: string) => {
+  const addMessage = (
+    speaker: DiscussionMessage['speaker'], 
+    text: string,
+    speakerName?: string,
+    speakerAvatar?: string,
+    stance?: 'support' | 'oppose'
+  ) => {
     messageIdRef.current += 1;
     setMessages(prev => [...prev, {
       id: messageIdRef.current,
       speaker,
+      speakerName,
+      speakerAvatar,
+      stance,
       text,
       timestamp: new Date()
     }]);
@@ -184,50 +227,58 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
   };
 
   const processAIResponses = async (userTranscript: string) => {
-    if (!topic) return;
+    if (!topic || !groupmates) return;
 
     setIsProcessing(true);
-    const conversationHistory = messages.map(m => `${m.speaker}: ${m.text}`);
+    const conversationHistory = messages.map(m => `${m.speakerName || m.speaker}: ${m.text}`);
 
     try {
       // Randomly decide order of AI responses
       const supporterFirst = Math.random() > 0.5;
-      const firstStance = supporterFirst ? 'support' : 'oppose';
-      const secondStance = supporterFirst ? 'oppose' : 'support';
+      const firstGroupmate = supporterFirst ? groupmates.supporter : groupmates.opposer;
+      const secondGroupmate = supporterFirst ? groupmates.opposer : groupmates.supporter;
 
       // Generate and speak first AI response
       setIsSpeaking(true);
       const firstResponse = await generateGroupmateResponse(
         topic.text,
         userTranscript,
-        firstStance,
-        conversationHistory
+        firstGroupmate.stance,
+        conversationHistory,
+        { name: firstGroupmate.name, gender: firstGroupmate.gender, avatar: firstGroupmate.avatar }
       );
       
-      addMessage(firstResponse.groupmateName.toLowerCase() as 'alex' | 'jordan', firstResponse.text);
-      
-      await speakGroupmateResponse(
-        firstResponse.text, 
-        firstResponse.groupmateName === 'Alex' ? 'female' : 'male'
+      addMessage(
+        'groupmate1', 
+        firstResponse.text,
+        firstResponse.groupmateName,
+        firstResponse.avatar,
+        firstResponse.stance
       );
+      
+      await speakGroupmateResponse(firstResponse.text, firstResponse.gender);
 
       // Small pause between responses
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise(resolve => setTimeout(resolve, 600));
 
       // Generate and speak second AI response
       const secondResponse = await generateGroupmateResponse(
         topic.text,
         userTranscript + ' ' + firstResponse.text,
-        secondStance,
-        [...conversationHistory, `${firstResponse.groupmateName}: ${firstResponse.text}`]
+        secondGroupmate.stance,
+        [...conversationHistory, `${firstResponse.groupmateName}: ${firstResponse.text}`],
+        { name: secondGroupmate.name, gender: secondGroupmate.gender, avatar: secondGroupmate.avatar }
       );
       
-      addMessage(secondResponse.groupmateName.toLowerCase() as 'alex' | 'jordan', secondResponse.text);
-      
-      await speakGroupmateResponse(
+      addMessage(
+        'groupmate2', 
         secondResponse.text,
-        secondResponse.groupmateName === 'Alex' ? 'female' : 'male'
+        secondResponse.groupmateName,
+        secondResponse.avatar,
+        secondResponse.stance
       );
+      
+      await speakGroupmateResponse(secondResponse.text, secondResponse.gender);
 
       setIsSpeaking(false);
 
@@ -236,7 +287,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
         setDiscussionPhase('complete');
         const closingMessage = "That was a great discussion! Thank you for sharing your thoughts with us.";
         addMessage('system', closingMessage);
-        await speakGroupmateResponse(closingMessage, 'female');
+        await speakGroupmateResponse(closingMessage, groupmates.supporter.gender);
       }
 
     } catch (error) {
@@ -252,31 +303,31 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
       topic: topic?.text,
       messages,
       turnCount,
-      grade
+      grade,
+      groupmates
     });
   };
 
-  const getSpeakerColor = (speaker: DiscussionMessage['speaker']) => {
-    switch (speaker) {
-      case 'user': return 'bg-blue-100 dark:bg-blue-900/50 border-blue-300 dark:border-blue-700';
-      case 'alex': return 'bg-green-100 dark:bg-green-900/50 border-green-300 dark:border-green-700';
-      case 'jordan': return 'bg-orange-100 dark:bg-orange-900/50 border-orange-300 dark:border-orange-700';
-      case 'system': return 'bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600';
-      default: return 'bg-gray-100 dark:bg-gray-700';
-    }
+  const getSpeakerColor = (speaker: DiscussionMessage['speaker'], stance?: 'support' | 'oppose') => {
+    if (speaker === 'user') return 'bg-blue-100 dark:bg-blue-900/50 border-blue-300 dark:border-blue-700';
+    if (speaker === 'system') return 'bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600';
+    
+    // For groupmates, color by stance
+    if (stance === 'support') return 'bg-green-100 dark:bg-green-900/50 border-green-300 dark:border-green-700';
+    if (stance === 'oppose') return 'bg-orange-100 dark:bg-orange-900/50 border-orange-300 dark:border-orange-700';
+    
+    return 'bg-gray-100 dark:bg-gray-700';
   };
 
-  const getSpeakerLabel = (speaker: DiscussionMessage['speaker']) => {
-    switch (speaker) {
-      case 'user': return '🎤 You';
-      case 'alex': return `${GROUPMATE_INFO.supporter.avatar} Alex (Supportive)`;
-      case 'jordan': return `${GROUPMATE_INFO.opposer.avatar} Jordan (Critical)`;
-      case 'system': return '📢 Moderator';
-      default: return speaker;
-    }
+  const getSpeakerLabel = (message: DiscussionMessage) => {
+    if (message.speaker === 'user') return '🎤 You';
+    if (message.speaker === 'system') return '📢 Moderator';
+    
+    const stanceLabel = message.stance === 'support' ? 'Supportive' : 'Critical';
+    return `${message.speakerAvatar || '👤'} ${message.speakerName || 'Groupmate'} (${stanceLabel})`;
   };
 
-  if (isLoading) {
+  if (isLoading || !groupmates) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
         <div className="text-center">
@@ -329,15 +380,23 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
           <CardContent>
             <p className="text-lg font-medium text-gray-800 dark:text-gray-200">{topic?.text}</p>
             
-            {/* Groupmates Info */}
-            <div className="mt-4 flex gap-4">
-              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                <span className="text-xl">{GROUPMATE_INFO.supporter.avatar}</span>
-                <span><strong>Alex</strong> - Supportive</span>
+            {/* Groupmates Info - Now with random identities */}
+            <div className="mt-4 flex flex-wrap gap-4">
+              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 bg-green-50 dark:bg-green-900/30 px-3 py-2 rounded-lg">
+                <span className="text-xl">{groupmates.supporter.avatar}</span>
+                <span>
+                  <strong>{groupmates.supporter.name}</strong> 
+                  <span className="text-green-600 dark:text-green-400"> - Supportive</span>
+                  <span className="text-xs ml-1">({groupmates.supporter.gender})</span>
+                </span>
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                <span className="text-xl">{GROUPMATE_INFO.opposer.avatar}</span>
-                <span><strong>Jordan</strong> - Critical Thinker</span>
+              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 bg-orange-50 dark:bg-orange-900/30 px-3 py-2 rounded-lg">
+                <span className="text-xl">{groupmates.opposer.avatar}</span>
+                <span>
+                  <strong>{groupmates.opposer.name}</strong>
+                  <span className="text-orange-600 dark:text-orange-400"> - Critical Thinker</span>
+                  <span className="text-xs ml-1">({groupmates.opposer.gender})</span>
+                </span>
               </div>
             </div>
           </CardContent>
@@ -354,7 +413,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
                 <div className="text-center py-8">
                   <Users className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
                   <p className="text-gray-500 dark:text-gray-400 mb-4">
-                    Ready to start the group discussion?
+                    Ready to start the group discussion with {groupmates.supporter.name} and {groupmates.opposer.name}?
                   </p>
                   <Button 
                     onClick={startDiscussion}
@@ -369,11 +428,11 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
               {messages.map((message) => (
                 <div 
                   key={message.id}
-                  className={`p-4 rounded-lg border-2 ${getSpeakerColor(message.speaker)}`}
+                  className={`p-4 rounded-lg border-2 ${getSpeakerColor(message.speaker, message.stance)}`}
                 >
                   <div className="flex items-center gap-2 mb-2">
                     <span className="font-semibold text-sm text-gray-700 dark:text-gray-300">
-                      {getSpeakerLabel(message.speaker)}
+                      {getSpeakerLabel(message)}
                     </span>
                     <span className="text-xs text-gray-500 dark:text-gray-500">
                       {message.timestamp.toLocaleTimeString()}
@@ -399,7 +458,9 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
               {isProcessing && (
                 <div className="flex items-center justify-center py-4">
                   <Loader2 className="w-6 h-6 animate-spin text-purple-600 mr-2" />
-                  <span className="text-gray-600 dark:text-gray-400">AI groupmates are thinking...</span>
+                  <span className="text-gray-600 dark:text-gray-400">
+                    {groupmates.supporter.name} and {groupmates.opposer.name} are thinking...
+                  </span>
                 </div>
               )}
 
@@ -407,7 +468,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
               {isSpeaking && !isProcessing && (
                 <div className="flex items-center justify-center py-4">
                   <Volume2 className="w-6 h-6 text-green-600 animate-pulse mr-2" />
-                  <span className="text-gray-600 dark:text-gray-400">AI is speaking...</span>
+                  <span className="text-gray-600 dark:text-gray-400">AI groupmate is speaking...</span>
                 </div>
               )}
 
