@@ -558,7 +558,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
             <CardTitle className="text-lg text-gray-900 dark:text-white">Discussion</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+            <div className="space-y-4">
               {messages.length === 0 && discussionPhase === 'intro' && (
                 <div className="text-center py-8">
                   <Users className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
@@ -776,7 +776,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
                   );
                 }
                 return (
-                  <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                  <div className="space-y-3">
                     {history.map((disc) => (
                       <div
                         key={disc.id}
