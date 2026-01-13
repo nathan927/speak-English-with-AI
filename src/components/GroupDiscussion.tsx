@@ -14,9 +14,7 @@ import {
   generateRandomMediator,
   stopSpeaking,
   generateDiscussionOpening,
-  analyzeArgumentStrength,
-  generateMediatorResponse,
-  ArgumentFeedback
+  generateMediatorResponse
 } from '@/services/aiGroupmateService';
 import { getRandomQuestionByType, Question } from '@/data/questionBank';
 import { getRandomOpening, getRandomClosing } from '@/services/discussionVariationsService';
@@ -65,7 +63,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
   const [discussionScore, setDiscussionScore] = useState<DiscussionScore | null>(null);
   const [discussionStartTime, setDiscussionStartTime] = useState<Date | null>(null);
   const [savedDiscussions, setSavedDiscussions] = useState<SavedDiscussion[]>([]);
-  const [argumentFeedback, setArgumentFeedback] = useState<ArgumentFeedback | null>(null);
+  
   
   // Random groupmates - regenerated each session (including mediator)
   const [groupmates, setGroupmates] = useState<{ 
@@ -395,10 +393,6 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
     const conversationHistory = messages.map(m => `${m.speakerName || m.speaker}: ${m.text}`);
 
     try {
-      // Analyze user's argument and provide feedback
-      const feedback = await analyzeArgumentStrength(userTranscript, topic.text);
-      setArgumentFeedback(feedback);
-      
       // Randomly decide order of AI responses
       const supporterFirst = Math.random() > 0.5;
       const firstGroupmate = supporterFirst ? groupmates.supporter : groupmates.opposer;
@@ -719,49 +713,6 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
                 </div>
               )}
 
-              {/* Real-time Argument Feedback */}
-              {argumentFeedback && !isRecording && !isProcessing && !isSpeaking && discussionPhase === 'discussion' && (
-                <div className={`p-4 rounded-lg border-2 ${
-                  argumentFeedback.strength === 'strong' 
-                    ? 'bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700' 
-                    : argumentFeedback.strength === 'moderate'
-                    ? 'bg-yellow-50 dark:bg-yellow-900/30 border-yellow-300 dark:border-yellow-700'
-                    : 'bg-red-50 dark:bg-red-900/30 border-red-300 dark:border-red-700'
-                }`}>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="font-semibold text-sm text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                      📊 Argument Feedback
-                    </span>
-                    <Badge className={`${
-                      argumentFeedback.strength === 'strong' 
-                        ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100' 
-                        : argumentFeedback.strength === 'moderate'
-                        ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100'
-                        : 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100'
-                    }`}>
-                      {argumentFeedback.strength.toUpperCase()} ({argumentFeedback.score}/10)
-                    </Badge>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                    <div>
-                      <p className="font-medium text-green-700 dark:text-green-400 mb-1">✓ Good points:</p>
-                      <ul className="list-disc list-inside text-gray-600 dark:text-gray-400">
-                        {argumentFeedback.positives.map((p, i) => (
-                          <li key={i}>{p}</li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div>
-                      <p className="font-medium text-orange-700 dark:text-orange-400 mb-1">💡 To improve:</p>
-                      <ul className="list-disc list-inside text-gray-600 dark:text-gray-400">
-                        {argumentFeedback.improvements.map((imp, i) => (
-                          <li key={i}>{imp}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* Processing indicator */}
               {isProcessing && (
