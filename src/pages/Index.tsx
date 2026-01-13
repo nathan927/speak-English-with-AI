@@ -152,7 +152,7 @@ const Index = () => {
                 <Mic className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900 dark:text-white">SpeakCheck HK</h1>
+                <h1 className="text-xl font-bold text-gray-900 dark:text-white">Speak English with AI</h1>
                 <p className="text-sm text-gray-600 dark:text-gray-400">AI英語口試即時評測</p>
               </div>
             </div>
@@ -353,10 +353,10 @@ const Index = () => {
             <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
               <Mic className="w-4 h-4 text-white" />
             </div>
-            <span className="text-xl font-bold">SpeakCheck HK</span>
+            <span className="text-xl font-bold">Speak English with AI</span>
           </div>
           <p className="text-gray-400 mb-4">
-            © 2025 SpeakCheck HK. 專為香港學生設計的AI英語口語評測系統
+            © 2025 Speak English with AI. 專為香港學生設計的AI英語口語評測系統
           </p>
           <div className="text-sm text-gray-400">
             Powered by Nathan Yuen
