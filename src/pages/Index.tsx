@@ -292,9 +292,6 @@ const Index = () => {
                     <Badge className="bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300">Support</Badge>
                   </div>
                 </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400 mt-4">
-                  遊戲化設計 • 大按鈕介面 • 鮮豔色彩
-                </div>
               </CardContent>
             </Card>
 
@@ -305,9 +302,6 @@ const Index = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 {renderStars(4)}
-                <div className="text-xs text-gray-500 dark:text-gray-400 mt-4">
-                  成就徽章 • 進度追蹤 • 互動元素
-                </div>
               </CardContent>
             </Card>
 
@@ -318,9 +312,6 @@ const Index = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 {renderStars(6)}
-                <div className="text-xs text-gray-500 dark:text-gray-400 mt-4">
-                  專業分析 • 詳細報告 • 自主學習
-                </div>
               </CardContent>
             </Card>
           </div>
