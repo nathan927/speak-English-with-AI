@@ -9,7 +9,8 @@ import {
   generateGroupmateResponse, 
   speakGroupmateResponse, 
   createSpeechRecognition,
-  generateRandomGroupmate
+  generateRandomGroupmate,
+  stopSpeaking
 } from '@/services/aiGroupmateService';
 import { getRandomQuestionByType, Question } from '@/data/questionBank';
 
@@ -146,8 +147,16 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
 
     return () => {
       recognition?.stop();
+      stopSpeaking(); // Stop any ongoing speech when unmounting
     };
   }, []); // Empty dependency - initialize only once
+
+  // Stop speech when component unmounts or user navigates away
+  useEffect(() => {
+    return () => {
+      stopSpeaking();
+    };
+  }, []);
 
   // Auto-scroll to latest message
   useEffect(() => {
@@ -367,7 +376,10 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
         <div className="flex items-center justify-between mb-6">
           <Button 
             variant="outline" 
-            onClick={onBack}
+            onClick={() => {
+              stopSpeaking(); // Stop speech when clicking back
+              onBack();
+            }}
             className="flex items-center gap-2 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200"
           >
             <ArrowLeft className="w-4 h-4" />
