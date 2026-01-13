@@ -153,11 +153,12 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
 
     setDiscussionPhase('discussion');
     
-    const introMessage = `Welcome to our group discussion! Today's topic is: "${topic.text}". I'm ${groupmates.supporter.name}, and this is ${groupmates.opposer.name}. We'll take turns sharing our thoughts. Why don't you start by sharing your opinion?`;
+    // Exam-style introduction
+    const introMessage = `Good afternoon everyone. Welcome to our group discussion for the DSE English Speaking Examination. Today's topic is: "${topic.text}". I'm ${groupmates.supporter.name}, and joining us is ${groupmates.opposer.name}. We have about 8 minutes to discuss this topic together. Remember, we should share our views, respond to each other's points, and try to explore different perspectives. Feel free to agree or disagree with each other respectfully. Let's begin - would you like to share your initial thoughts on this topic?`;
     
     addMessage('system', introMessage);
     
-    // Speak the introduction with random gender
+    // Speak the introduction
     setIsSpeaking(true);
     try {
       await speakGroupmateResponse(introMessage, groupmates.supporter.gender);
@@ -285,7 +286,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
       // Check if discussion should end
       if (turnCount + 1 >= MAX_TURNS / 2) {
         setDiscussionPhase('complete');
-        const closingMessage = "That was a great discussion! Thank you for sharing your thoughts with us.";
+        const closingMessage = `Thank you all for such a thoughtful discussion. We've explored many interesting perspectives on this topic. You all made excellent points with strong reasoning and relevant examples. This is exactly the kind of critical thinking and respectful debate we want to see. Well done everyone!`;
         addMessage('system', closingMessage);
         await speakGroupmateResponse(closingMessage, groupmates.supporter.gender);
       }
