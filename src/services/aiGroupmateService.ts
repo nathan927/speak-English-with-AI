@@ -1,28 +1,6 @@
 // AI Groupmate Service - Generate responses from AI discussion partners
 import { logger } from './logService';
-
-// API Configuration - Two providers for variety and reliability
-const AI_PROVIDERS = [
-  {
-    name: 'SiliconFlow',
-    url: 'https://api.siliconflow.cn/v1/chat/completions',
-    model: 'Qwen/Qwen2.5-7B-Instruct',
-    apiKey: 'sk-sltxmvec3ikcp32e7yvgfwdwcvlrozyiqqpcvuvvtvfl8m4r'
-  },
-  {
-    name: 'OpenRouter',
-    url: 'https://openrouter.ai/api/v1/chat/completions',
-    model: 'google/gemini-2.0-flash-exp:free',
-    apiKey: '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'
-  }
-];
-
-// Randomly select a provider
-function getRandomProvider() {
-  const provider = AI_PROVIDERS[Math.floor(Math.random() * AI_PROVIDERS.length)];
-  logger.info('Selected AI provider', { name: provider.name, model: provider.model });
-  return provider;
-}
+import { generateDiscussionResponse } from './ai/aiApiService';
 
 // Generate AI-powered natural discussion opening
 export async function generateDiscussionOpening(
@@ -32,8 +10,6 @@ export async function generateDiscussionOpening(
   userName?: string,
   grade?: string
 ): Promise<string> {
-  const provider = getRandomProvider();
-  
   const systemPrompt = `You are ${supporterName}, a friendly and confident student about to lead a group discussion in a speaking exam.
 
 YOUR TASK: Create a NATURAL, conversational opening that:
@@ -70,37 +46,17 @@ ${userName ? `PARTICIPANT: ${userName}` : ''}
 Remember: Rephrase the topic naturally, don't quote it. Sound like a real student starting a conversation with friends.`;
 
   try {
-    const response = await fetch(provider.url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${provider.apiKey}`,
-        'HTTP-Referer': 'https://lovable.dev',
-        'X-Title': 'English Speaking Practice'
-      },
-      body: JSON.stringify({
-        model: provider.model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        max_tokens: 200,
-        temperature: 0.95 // Higher for more variety
-      })
+    const text = await generateDiscussionResponse(systemPrompt, userPrompt, { 
+      maxTokens: 200, 
+      temperature: 0.95 
     });
-
-    if (!response.ok) {
-      throw new Error(`API request failed: ${response.status}`);
-    }
-
-    const data = await response.json();
-    let text = data.choices?.[0]?.message?.content?.trim() || '';
-    text = text.replace(/^["']|["']$/g, '').trim();
     
-    if (!text) throw new Error('Empty response');
+    const cleanedText = text.replace(/^["']|["']$/g, '').trim();
     
-    logger.info('Generated AI discussion opening', { preview: text.substring(0, 50) });
-    return text;
+    if (!cleanedText) throw new Error('Empty response');
+    
+    logger.info('Generated AI discussion opening', { preview: cleanedText.substring(0, 50) });
+    return cleanedText;
   } catch (error) {
     logger.error('Failed to generate AI opening', { error });
     throw error;
@@ -128,8 +84,6 @@ export async function analyzeArgumentStrength(
   userTranscript: string,
   topic: string
 ): Promise<ArgumentFeedback> {
-  const provider = getRandomProvider();
-  
   const systemPrompt = `You are an expert speaking examiner. Analyze the student's argument and provide feedback in JSON format.
 
 Evaluate based on:
@@ -147,35 +101,18 @@ Return ONLY valid JSON (no markdown):
   "improvements": ["1-2 specific actionable suggestions"]
 }`;
 
-  try {
-    const response = await fetch(provider.url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${provider.apiKey}`,
-        'HTTP-Referer': 'https://lovable.dev',
-        'X-Title': 'English Speaking Practice'
-      },
-      body: JSON.stringify({
-        model: provider.model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: `TOPIC: "${topic}"\n\nSTUDENT SAID: "${userTranscript}"\n\nAnalyze and return JSON only.` }
-        ],
-        max_tokens: 200,
-        temperature: 0.3
-      })
-    });
+  const userPrompt = `TOPIC: "${topic}"\n\nSTUDENT SAID: "${userTranscript}"\n\nAnalyze and return JSON only.`;
 
-    if (!response.ok) throw new Error('API failed');
-    
-    const data = await response.json();
-    let text = data.choices?.[0]?.message?.content?.trim() || '';
+  try {
+    const text = await generateDiscussionResponse(systemPrompt, userPrompt, { 
+      maxTokens: 200, 
+      temperature: 0.3 
+    });
     
     // Clean up potential markdown wrapping
-    text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    const cleanedText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     
-    const parsed = JSON.parse(text);
+    const parsed = JSON.parse(cleanedText);
     return {
       strength: parsed.strength || 'moderate',
       score: Math.min(10, Math.max(1, parsed.score || 5)),
@@ -212,8 +149,6 @@ export async function generateMediatorResponse(
   userName?: string,
   shouldAskQuestion: boolean = true
 ): Promise<GroupmateResponse> {
-  const provider = getRandomProvider();
-  
   const userAddress = userName?.trim() || '';
   
   const systemPrompt = `You are ${mediatorInfo.name}, a thoughtful MEDIATOR in a group discussion exam.
@@ -246,33 +181,15 @@ YOUR TASK as ${mediatorInfo.name} (Mediator):
 3. Keep it natural and conversational`;
 
   try {
-    const response = await fetch(provider.url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${provider.apiKey}`,
-        'HTTP-Referer': 'https://lovable.dev',
-        'X-Title': 'English Speaking Practice'
-      },
-      body: JSON.stringify({
-        model: provider.model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        max_tokens: 200,
-        temperature: 0.85
-      })
+    const text = await generateDiscussionResponse(systemPrompt, userPrompt, { 
+      maxTokens: 200, 
+      temperature: 0.85 
     });
-
-    if (!response.ok) throw new Error('API failed');
     
-    const data = await response.json();
-    let text = data.choices?.[0]?.message?.content?.trim() || '';
-    text = text.replace(/^["']|["']$/g, '').trim();
+    const cleanedText = text.replace(/^["']|["']$/g, '').trim();
     
     return {
-      text: text || `That's interesting! ${userAddress ? `${userAddress}, what` : 'What'} do you think about the other side of this issue?`,
+      text: cleanedText || `That's interesting! ${userAddress ? `${userAddress}, what` : 'What'} do you think about the other side of this issue?`,
       stance: 'mediator',
       groupmateName: mediatorInfo.name,
       gender: mediatorInfo.gender,
@@ -464,57 +381,28 @@ YOUR TASK as ${groupmate.name}:
 ${userAddress ? `- Use their name "${userAddress}" naturally when appropriate` : ''}`;
 
   try {
-    // Randomly select AI provider for variety
-    const provider = getRandomProvider();
-    
     logger.info('Generating AI groupmate response', { 
       stance, 
       groupmateName: groupmate.name,
       userSaid: userTranscript.substring(0, 50),
-      topic: topic.substring(0, 30),
-      provider: provider.name
+      topic: topic.substring(0, 30)
     });
 
-    const response = await fetch(provider.url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${provider.apiKey}`,
-        'HTTP-Referer': 'https://lovable.dev',
-        'X-Title': 'English Speaking Practice'
-      },
-      body: JSON.stringify({
-        model: provider.model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        max_tokens: 350,
-        temperature: 0.85
-      })
+    const generatedText = await generateDiscussionResponse(systemPrompt, userPrompt, { 
+      maxTokens: 350, 
+      temperature: 0.85 
     });
-
-    if (!response.ok) {
-      throw new Error(`API request failed: ${response.status}`);
-    }
-
-    const data = await response.json();
-    let generatedText = data.choices?.[0]?.message?.content?.trim() || '';
-
-    if (!generatedText) {
-      throw new Error('Empty response from AI');
-    }
 
     // Clean up the response - remove quotes if the AI wrapped it
-    generatedText = generatedText.replace(/^["']|["']$/g, '').trim();
+    const cleanedText = generatedText.replace(/^["']|["']$/g, '').trim();
 
     logger.info('AI groupmate response generated', {
       groupmateName: groupmate.name,
-      responsePreview: generatedText.substring(0, 50)
+      responsePreview: cleanedText.substring(0, 50)
     });
 
     return {
-      text: generatedText,
+      text: cleanedText,
       stance,
       groupmateName: groupmate.name,
       gender: groupmate.gender,
