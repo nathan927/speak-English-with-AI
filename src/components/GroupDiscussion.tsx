@@ -93,29 +93,29 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
     });
   }, []);
 
-  // Grade-appropriate discussion topics
+  // Grade-appropriate discussion topics - realistic Hong Kong primary school level
   const getGradeAppropiateTopic = (gradeLevel: string): string => {
     const primaryTopics: Record<string, string[]> = {
       'P4': [
-        'Should students have homework every day? Why or why not?',
-        'Is it better to play video games or outdoor games? Share your ideas.',
-        'Should children be allowed to have mobile phones? Discuss.',
-        'Do you think pets are good for children? Why?',
-        'Should schools have more PE lessons? What do you think?'
+        'What is your favourite food? Why do you like it?',
+        'Do you like going to the park? What do you do there?',
+        'What pet would you like to have? Why?',
+        'Do you like rainy days or sunny days? Why?',
+        'What do you like to do after school?'
       ],
       'P5': [
-        'Some people think children should learn to cook. Do you agree? Why or why not?',
-        'Should students wear school uniforms? Discuss the advantages and disadvantages.',
-        'Do you think watching TV helps children learn? Share your views.',
-        'Should children be allowed to stay up late on weekends? What is your opinion?',
-        'Is reading books better than reading on tablets? Discuss your thoughts.'
+        'What is your favourite subject at school? Why?',
+        'Do you like playing with friends or playing alone? Why?',
+        'Should children help with housework? Why or why not?',
+        'What makes a good friend?',
+        'Do you like reading books or watching TV? Why?'
       ],
       'P6': [
-        'Some people believe that homework helps students learn better. Others think it takes away free time. What are your thoughts on this issue?',
-        'With the rise of technology, some suggest that handwriting is no longer important. Do you agree or disagree? Give reasons for your answer.',
-        'Should primary school students be allowed to use social media? Discuss the pros and cons.',
-        'Some parents think extra-curricular activities are as important as academic studies. What is your view?',
-        'Do you think online learning is as effective as face-to-face learning? Share your perspective.'
+        'Should students have less homework? Why or why not?',
+        'Is it good to have a mobile phone? Why?',
+        'What do you want to be when you grow up? Why?',
+        'Should children eat more vegetables? Why?',
+        'Do you think playing sports is important? Why?'
       ]
     };
 
