@@ -551,7 +551,7 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
           
           <Button
             onClick={handleNextQuestion}
-            disabled={currentQuestionIndex >= questions.length - 1}
+            disabled={currentQuestionIndex < questions.length - 1 ? false : !responses[currentQuestion.id]}
             className="bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-600 dark:hover:bg-blue-700"
           >
             {currentQuestionIndex === questions.length - 1 ? 'Complete Test' : 'Next'}
