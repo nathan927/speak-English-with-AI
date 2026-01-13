@@ -435,7 +435,7 @@ export const questionSets: GradeQuestionSets = {
         // A. Spontaneous Language Use
         {
           id: 300,
-          text: "Good morning. / Good afternoon.",
+          text: "Good afternoon.",
           section: "A. Spontaneous Language Use",
           grade: "P3",
           type: "speaking"
@@ -540,7 +540,7 @@ export const questionSets: GradeQuestionSets = {
         // A. Spontaneous Language Use
         {
           id: 312,
-          text: "Good morning. / Good afternoon.",
+          text: "Good afternoon.",
           section: "A. Spontaneous Language Use",
           grade: "P3",
           type: "speaking"
@@ -649,7 +649,7 @@ export const questionSets: GradeQuestionSets = {
         // A. Spontaneous Language Use
         {
           id: 400,
-          text: "Good morning. / Good afternoon.",
+          text: "Good afternoon.",
           section: "A. Spontaneous Language Use",
           grade: "P4",
           type: "speaking"
@@ -754,7 +754,7 @@ export const questionSets: GradeQuestionSets = {
         // A. Spontaneous Language Use
         {
           id: 412,
-          text: "Good morning. / Good afternoon.",
+          text: "Good afternoon.",
           section: "A. Spontaneous Language Use",
           grade: "P4",
           type: "speaking"
