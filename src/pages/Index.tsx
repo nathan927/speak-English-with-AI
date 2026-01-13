@@ -169,24 +169,24 @@ const Index = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="container mx-auto px-4 py-12">
+      <section className="container mx-auto px-4 py-16 md:py-20">
         <div className="text-center max-w-4xl mx-auto">
-          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6">
+          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-8">
             <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               AI 英語口試即時評測
             </span>
           </h2>
-          <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
+          <p className="text-xl text-gray-600 dark:text-gray-300 mb-12 leading-relaxed">
             專為香港K1-S6學生設計，結合先進語音識別技術與教育局標準，
             提供精準的發音、詞彙、流暢度及自信程度評估
           </p>
-          <div className="flex justify-center">
+          <div className="flex justify-center mt-8">
             <Button 
               size="lg" 
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-16 py-8 text-3xl font-semibold rounded-2xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-20 py-10 text-4xl font-bold rounded-2xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
               onClick={handleStartTest}
             >
-              <Mic className="w-12 h-12 mr-6" strokeWidth={3} />
+              <Mic className="w-14 h-14 mr-6" strokeWidth={3} />
               開始測驗
             </Button>
           </div>
