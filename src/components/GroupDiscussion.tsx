@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Mic, MicOff, Volume2, Users, MessageCircle, Loader2, User } from 'lucide-react';
+import { ArrowLeft, Mic, MicOff, Volume2, Users, MessageCircle, Loader2, User, Star, Clock, BookOpen, History } from 'lucide-react';
 import { logger } from '@/services/logService';
 import { 
   generateGroupmateResponse, 
@@ -14,6 +14,14 @@ import {
   stopSpeaking
 } from '@/services/aiGroupmateService';
 import { getRandomQuestionByType, Question } from '@/data/questionBank';
+import { getRandomOpening, getRandomClosing } from '@/services/discussionVariationsService';
+import { 
+  saveDiscussion, 
+  calculateDiscussionScore,
+  DiscussionScore,
+  getDiscussionHistory,
+  SavedDiscussion
+} from '@/services/discussionHistoryService';
 
 interface GroupDiscussionProps {
   grade: string;
@@ -45,10 +53,13 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [currentTranscript, setCurrentTranscript] = useState('');
   const [messages, setMessages] = useState<DiscussionMessage[]>([]);
-  const [discussionPhase, setDiscussionPhase] = useState<'intro' | 'discussion' | 'complete'>('intro');
+  const [discussionPhase, setDiscussionPhase] = useState<'intro' | 'discussion' | 'complete' | 'results' | 'history'>('intro');
   const [turnCount, setTurnCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [userName, setUserName] = useState('');
+  const [discussionScore, setDiscussionScore] = useState<DiscussionScore | null>(null);
+  const [discussionStartTime, setDiscussionStartTime] = useState<Date | null>(null);
+  const [savedDiscussions, setSavedDiscussions] = useState<SavedDiscussion[]>([]);
   
   // Random groupmates - regenerated each session
   const [groupmates, setGroupmates] = useState<{ supporter: GroupmateIdentity; opposer: GroupmateIdentity } | null>(null);
@@ -230,12 +241,15 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
     if (!topic || !groupmates) return;
 
     setDiscussionPhase('discussion');
+    setDiscussionStartTime(new Date());
     
-    // Exam-style introduction - include user name if provided
-    const userGreeting = userName.trim() 
-      ? `Welcome ${userName.trim()}, and ` 
-      : '';
-    const introMessage = `Good afternoon everyone. ${userGreeting}welcome to our group discussion for the English Speaking Examination. Today's topic is: "${topic.text}". I'm ${groupmates.supporter.name}, and joining us is ${groupmates.opposer.name}. We have about 8 minutes to discuss this topic together. Remember, we should share our views, respond to each other's points, and try to explore different perspectives. ${userName.trim() ? `${userName.trim()}, would you like to share your initial thoughts on this topic?` : 'Would you like to share your initial thoughts on this topic?'}`;
+    // Use varied, humanized opening
+    const introMessage = getRandomOpening(
+      groupmates.supporter.name,
+      groupmates.opposer.name,
+      topic.text,
+      userName.trim() || undefined
+    );
     
     addMessage('system', introMessage);
     
@@ -382,10 +396,45 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
 
       // Check if discussion should end
       if (turnCount + 1 >= MAX_TURNS / 2) {
-        setDiscussionPhase('complete');
-        const closingMessage = `Thank you all for such a thoughtful discussion. We've explored many interesting perspectives on this topic. You all made excellent points with strong reasoning and relevant examples. This is exactly the kind of critical thinking and respectful debate we want to see. Well done everyone!`;
+        // Use varied closing message
+        const closingMessage = getRandomClosing(userName.trim() || undefined);
         addMessage('system', closingMessage);
         await speakGroupmateResponse(closingMessage, groupmates.supporter.gender);
+        
+        // Calculate score and save discussion
+        const endTime = new Date();
+        const durationSeconds = discussionStartTime 
+          ? Math.round((endTime.getTime() - discussionStartTime.getTime()) / 1000)
+          : 0;
+        
+        const score = calculateDiscussionScore(
+          messages.map(m => ({ speaker: m.speaker, text: m.text })),
+          durationSeconds,
+          turnCount + 1
+        );
+        setDiscussionScore(score);
+        
+        // Save the discussion
+        saveDiscussion({
+          date: new Date().toISOString(),
+          grade,
+          topic: topic.text,
+          userName: userName.trim() || undefined,
+          groupmates: {
+            supporter: { name: groupmates.supporter.name, gender: groupmates.supporter.gender },
+            opposer: { name: groupmates.opposer.name, gender: groupmates.opposer.gender }
+          },
+          messages: messages.map(m => ({
+            speaker: m.speaker,
+            speakerName: m.speakerName,
+            text: m.text,
+            timestamp: m.timestamp.toISOString()
+          })),
+          score,
+          durationSeconds
+        });
+        
+        setDiscussionPhase('results');
       }
 
     } catch (error) {
@@ -624,6 +673,150 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
               </Button>
             )}
           </div>
+        )}
+
+        {/* Results Screen with Scoring */}
+        {discussionPhase === 'results' && discussionScore && (
+          <Card className="mb-6 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+            <CardHeader>
+              <CardTitle className="text-lg text-gray-900 dark:text-white flex items-center gap-2">
+                <Star className="w-5 h-5 text-yellow-500" />
+                Your Discussion Score
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Overall Score */}
+              <div className="text-center">
+                <div className="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
+                  {discussionScore.overall}
+                </div>
+                <p className="text-gray-500 dark:text-gray-400 mt-1">out of 100</p>
+              </div>
+
+              {/* Score Breakdown */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+                  <Clock className="w-6 h-6 text-blue-600 mx-auto mb-1" />
+                  <div className="text-xl font-bold text-gray-800 dark:text-gray-200">
+                    {discussionScore.speakingTime}s
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Speaking Time</p>
+                </div>
+                <div className="text-center p-3 bg-green-50 dark:bg-green-900/30 rounded-lg">
+                  <MessageCircle className="w-6 h-6 text-green-600 mx-auto mb-1" />
+                  <div className="text-xl font-bold text-gray-800 dark:text-gray-200">
+                    {discussionScore.turnCount}
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Turns</p>
+                </div>
+                <div className="text-center p-3 bg-purple-50 dark:bg-purple-900/30 rounded-lg">
+                  <Star className="w-6 h-6 text-purple-600 mx-auto mb-1" />
+                  <div className="text-xl font-bold text-gray-800 dark:text-gray-200">
+                    {discussionScore.contentQuality}%
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Content Quality</p>
+                </div>
+                <div className="text-center p-3 bg-orange-50 dark:bg-orange-900/30 rounded-lg">
+                  <BookOpen className="w-6 h-6 text-orange-600 mx-auto mb-1" />
+                  <div className="text-xl font-bold text-gray-800 dark:text-gray-200">
+                    {discussionScore.vocabularyRichness}%
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Vocabulary</p>
+                </div>
+              </div>
+
+              {/* Feedback */}
+              <div className="space-y-2">
+                <h4 className="font-semibold text-gray-700 dark:text-gray-300">Feedback:</h4>
+                {discussionScore.feedback.map((fb, idx) => (
+                  <p key={idx} className="text-sm text-gray-600 dark:text-gray-400 flex items-start gap-2">
+                    <span className="text-green-500">✓</span> {fb}
+                  </p>
+                ))}
+              </div>
+
+              {/* Actions */}
+              <div className="flex flex-wrap justify-center gap-4 pt-4">
+                <Button
+                  onClick={() => setDiscussionPhase('history')}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  <History className="w-4 h-4" />
+                  View History
+                </Button>
+                <Button
+                  onClick={handleComplete}
+                  className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
+                >
+                  Complete Discussion
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Discussion History View */}
+        {discussionPhase === 'history' && (
+          <Card className="mb-6 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+            <CardHeader>
+              <CardTitle className="text-lg text-gray-900 dark:text-white flex items-center gap-2">
+                <History className="w-5 h-5 text-blue-600" />
+                Past Discussions
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {(() => {
+                const history = getDiscussionHistory();
+                if (history.length === 0) {
+                  return (
+                    <p className="text-center text-gray-500 dark:text-gray-400 py-8">
+                      No past discussions yet. Complete a discussion to see it here!
+                    </p>
+                  );
+                }
+                return (
+                  <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                    {history.map((disc) => (
+                      <div
+                        key={disc.id}
+                        className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <Badge variant="outline" className="mb-1">{disc.grade}</Badge>
+                            <p className="text-sm font-medium text-gray-800 dark:text-gray-200 line-clamp-2">
+                              {disc.topic}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-2xl font-bold text-blue-600">{disc.score.overall}</div>
+                            <p className="text-xs text-gray-500">Score</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+                          <span>{new Date(disc.date).toLocaleDateString()}</span>
+                          <span>{disc.messages.length} messages</span>
+                          <span>{Math.floor(disc.durationSeconds / 60)}m {disc.durationSeconds % 60}s</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+              
+              <div className="flex justify-center pt-4">
+                <Button
+                  onClick={() => setDiscussionPhase('results')}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Back to Results
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {discussionPhase === 'complete' && (
