@@ -6,13 +6,14 @@ import { Badge } from '@/components/ui/badge';
 import { Mic, BookOpen, Award, TrendingUp, Users, Star, Settings } from 'lucide-react';
 import { GradeSelector } from '@/components/GradeSelector';
 import VoiceTest from '@/components/VoiceTest';
+import GroupDiscussion from '@/components/GroupDiscussion';
 import { ResultsAnalysis } from '@/components/ResultsAnalysis';
 import LogViewer from '@/components/LogViewer';
 import { logger } from '@/services/logService';
 
 const Index = () => {
   const navigate = useNavigate();
-  const [currentView, setCurrentView] = useState<'home' | 'gradeSelect' | 'test' | 'results'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'gradeSelect' | 'test' | 'discussion' | 'results'>('home');
   const [selectedGrade, setSelectedGrade] = useState<string>('');
   const [speechRate, setSpeechRate] = useState<number>(0.9);
   const [selectedVoiceId, setSelectedVoiceId] = useState<string>('default');
@@ -63,6 +64,18 @@ const Index = () => {
     setShowQuestions(checked);
   };
 
+  const handleDiscussionSelect = (grade: string) => {
+    logger.info('Discussion mode selected', { grade });
+    setSelectedGrade(grade);
+    setCurrentView('discussion');
+  };
+
+  const handleDiscussionComplete = (results: any) => {
+    logger.info('Discussion completed', { grade: selectedGrade, results });
+    setTestResults(results);
+    setCurrentView('results');
+  };
+
   const renderStars = (maxLevel: number) => {
     return (
       <div className="space-y-2">
@@ -84,7 +97,23 @@ const Index = () => {
   };
 
   if (currentView === 'gradeSelect') {
-    return <GradeSelector onGradeSelect={handleGradeSelect} onBack={handleReturnHome} />;
+    return (
+      <GradeSelector 
+        onGradeSelect={handleGradeSelect} 
+        onDiscussionSelect={handleDiscussionSelect}
+        onBack={handleReturnHome} 
+      />
+    );
+  }
+
+  if (currentView === 'discussion') {
+    return (
+      <GroupDiscussion
+        grade={selectedGrade}
+        onComplete={handleDiscussionComplete}
+        onBack={() => setCurrentView('gradeSelect')}
+      />
+    );
   }
 
   if (currentView === 'test') {

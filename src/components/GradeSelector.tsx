@@ -1,20 +1,36 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Settings } from 'lucide-react';
+import { ArrowLeft, Settings, Users, Mic } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { logger } from '@/services/logService';
 
 interface GradeSelectorProps {
   onGradeSelect: (grade: string) => void;
+  onDiscussionSelect?: (grade: string) => void;
   onBack: () => void;
 }
 
-export const GradeSelector = ({ onGradeSelect, onBack }: GradeSelectorProps) => {
+export const GradeSelector = ({ onGradeSelect, onDiscussionSelect, onBack }: GradeSelectorProps) => {
   const navigate = useNavigate();
+
+  // Check if grade supports group discussion (P4+)
+  const supportsDiscussion = (grade: string) => {
+    const gradeNum = parseInt(grade.substring(1));
+    if (grade.startsWith('P') && gradeNum >= 4) return true;
+    if (grade.startsWith('S')) return true;
+    return false;
+  };
 
   const handleGradeSelect = (grade: string) => {
     logger.info('Grade selected in GradeSelector', { grade });
     onGradeSelect(grade);
+  };
+
+  const handleDiscussionSelect = (grade: string) => {
+    logger.info('Discussion mode selected for grade', { grade });
+    if (onDiscussionSelect) {
+      onDiscussionSelect(grade);
+    }
   };
 
   const gradeGroups = [
@@ -88,16 +104,31 @@ export const GradeSelector = ({ onGradeSelect, onBack }: GradeSelectorProps) => 
                   {group.description}
                 </p>
               </CardHeader>
-              <CardContent className="pt-0">
+              <CardContent className="pt-0 space-y-4">
                 <div className="grid grid-cols-3 md:grid-cols-6 gap-2 md:gap-3">
                   {group.grades.map((grade) => (
-                    <Button
-                      key={grade}
-                      onClick={() => handleGradeSelect(grade)}
-                      className="h-12 md:h-16 text-base md:text-lg font-semibold bg-white dark:bg-gray-700 hover:bg-gradient-to-r hover:from-blue-600 hover:to-purple-600 text-gray-900 dark:text-white hover:text-white border-2 border-gray-200 dark:border-gray-600 hover:border-transparent transition-all duration-300 transform hover:scale-105 shadow-sm hover:shadow-md"
-                    >
-                      {grade}
-                    </Button>
+                    <div key={grade} className="flex flex-col gap-1">
+                      <Button
+                        onClick={() => handleGradeSelect(grade)}
+                        className="h-12 md:h-16 text-base md:text-lg font-semibold bg-white dark:bg-gray-700 hover:bg-gradient-to-r hover:from-blue-600 hover:to-purple-600 text-gray-900 dark:text-white hover:text-white border-2 border-gray-200 dark:border-gray-600 hover:border-transparent transition-all duration-300 transform hover:scale-105 shadow-sm hover:shadow-md"
+                      >
+                        <Mic className="w-4 h-4 mr-1 opacity-70" />
+                        {grade}
+                      </Button>
+                      
+                      {/* Discussion button for P4+ */}
+                      {supportsDiscussion(grade) && onDiscussionSelect && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDiscussionSelect(grade)}
+                          className="h-8 text-xs font-medium bg-purple-50 dark:bg-purple-900/30 hover:bg-purple-100 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-700 hover:border-purple-400 transition-all"
+                        >
+                          <Users className="w-3 h-3 mr-1" />
+                          Discussion
+                        </Button>
+                      )}
+                    </div>
                   ))}
                 </div>
               </CardContent>
