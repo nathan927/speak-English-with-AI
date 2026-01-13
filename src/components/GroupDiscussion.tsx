@@ -53,7 +53,8 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
   const recognitionRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageIdRef = useRef(0);
-
+  const isRecordingRef = useRef(false);
+  const transcriptRef = useRef('');
   const MAX_TURNS = 6; // 6 turns total (user speaks 3 times, AI responds each time)
 
   // Generate random groupmates on mount
@@ -107,29 +108,35 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
     loadTopic();
   }, [grade]);
 
-  // Initialize speech recognition
+  // Initialize speech recognition - only once
   useEffect(() => {
-    recognitionRef.current = createSpeechRecognition();
+    const recognition = createSpeechRecognition();
+    recognitionRef.current = recognition;
     
-    if (recognitionRef.current) {
-      recognitionRef.current.onresult = (event: any) => {
+    if (recognition) {
+      recognition.onresult = (event: any) => {
         let transcript = '';
         for (let i = event.resultIndex; i < event.results.length; i++) {
           transcript += event.results[i][0].transcript;
         }
+        transcriptRef.current = transcript;
         setCurrentTranscript(transcript);
       };
 
-      recognitionRef.current.onerror = (event: any) => {
+      recognition.onerror = (event: any) => {
+        // Ignore aborted errors when intentionally stopping
+        if (event.error === 'aborted') return;
         logger.error('Speech recognition error', { error: event.error });
+        isRecordingRef.current = false;
         setIsRecording(false);
       };
 
-      recognitionRef.current.onend = () => {
-        if (isRecording) {
+      recognition.onend = () => {
+        // Use ref to check actual recording state
+        if (isRecordingRef.current) {
           // Restart if still supposed to be recording
           try {
-            recognitionRef.current?.start();
+            recognition.start();
           } catch (e) {
             logger.warn('Could not restart recognition');
           }
@@ -138,9 +145,9 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
     }
 
     return () => {
-      recognitionRef.current?.stop();
+      recognition?.stop();
     };
-  }, [isRecording]);
+  }, []); // Empty dependency - initialize only once
 
   // Auto-scroll to latest message
   useEffect(() => {
@@ -193,7 +200,9 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
       return;
     }
 
+    transcriptRef.current = '';
     setCurrentTranscript('');
+    isRecordingRef.current = true;
     setIsRecording(true);
     
     try {
@@ -201,6 +210,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
       logger.info('Started recording user speech');
     } catch (e) {
       logger.error('Failed to start recording', { error: e });
+      isRecordingRef.current = false;
       setIsRecording(false);
     }
   };
@@ -208,21 +218,32 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
   const stopRecording = async () => {
     if (!recognitionRef.current) return;
 
-    recognitionRef.current.stop();
+    // Stop recording first
+    isRecordingRef.current = false;
     setIsRecording(false);
     
-    if (!currentTranscript.trim()) {
+    try {
+      recognitionRef.current.stop();
+    } catch (e) {
+      // Ignore stop errors
+    }
+    
+    // Use ref value as it's more reliable
+    const finalTranscript = transcriptRef.current.trim() || currentTranscript.trim();
+    
+    if (!finalTranscript) {
       logger.warn('No speech detected');
       return;
     }
 
     // Add user's message
-    addMessage('user', currentTranscript);
-    logger.info('User finished speaking', { transcript: currentTranscript });
+    addMessage('user', finalTranscript);
+    logger.info('User finished speaking', { transcript: finalTranscript });
 
     // Process AI responses
-    await processAIResponses(currentTranscript);
+    await processAIResponses(finalTranscript);
     
+    transcriptRef.current = '';
     setCurrentTranscript('');
     setTurnCount(prev => prev + 1);
   };
