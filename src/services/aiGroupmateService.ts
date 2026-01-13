@@ -339,127 +339,129 @@ export async function generateGroupmateResponse(
     ? `IMPORTANT: The speaker's name is ${userAddress}. Naturally use their name occasionally (e.g., "I agree with ${userAddress}..." or "That's a great point, ${userAddress}...") but don't overuse it.`
     : '';
   
-  // Detect if user input is off-topic, testing, or irrelevant
-  const isIrrelevantInput = (text: string): boolean => {
+  // Classify the type of input - BE LIKE WATER, understand human conversation
+  const classifyInput = (text: string): 'substantive' | 'social_cue' | 'testing' | 'brief' => {
     const lowerText = text.toLowerCase().trim();
-    const irrelevantPatterns = [
-      /^(hello|hi|hey|yo)\b/,
-      /can you hear me/,
-      /testing/,
-      /is this working/,
-      /check.*mic/,
-      /^(yes|no|ok|okay|um|uh|hmm|huh)\s*$/,
-      /^[^a-zA-Z]*$/, // Only punctuation/numbers
-      /^.{1,10}$/ // Very short responses
+    
+    // Social cues - things people say in conversations that aren't arguments
+    const socialCuePatterns = [
+      /you first/i, /go ahead/i, /after you/i, /please start/i, /your turn/i,
+      /what do you think/i, /any thoughts/i, /i('m| am) not sure/i,
+      /that's (a )?good (point|question)/i, /interesting/i, /i agree/i, /i disagree/i,
+      /let me think/i, /hmm/i, /well/i, /you know/i, /i mean/i,
+      /can you explain/i, /what about/i, /how about/i
     ];
-    return irrelevantPatterns.some(pattern => pattern.test(lowerText)) || lowerText.split(' ').length < 4;
+    
+    // Testing/technical issues
+    const testingPatterns = [
+      /can you hear me/i, /testing/i, /is this working/i, /check.*mic/i,
+      /hello.*hello/i, /one two three/i
+    ];
+    
+    if (testingPatterns.some(p => p.test(lowerText))) return 'testing';
+    if (socialCuePatterns.some(p => p.test(lowerText))) return 'social_cue';
+    if (lowerText.split(' ').length < 5 && !/because|think|believe|should|would/i.test(lowerText)) return 'brief';
+    return 'substantive';
   };
 
-  const inputIsIrrelevant = isIrrelevantInput(userTranscript);
+  const inputType = classifyInput(userTranscript);
   
-  // Dynamic response strategy based on input relevance
-  const stanceInstruction = inputIsIrrelevant
-    ? `The previous speaker said something brief or off-topic ("${userTranscript}"). You should:
-       - Respond NATURALLY and warmly, like a real person would
-       - Gently acknowledge what they said without being condescending
-       - Then smoothly steer the conversation back to the topic
-       - Share YOUR OWN opinion on the topic to get discussion going
-       DO NOT pretend they made a substantive point. Be genuine and helpful.`
-    : stance === 'support' 
-    ? `You AGREE with and BUILD UPON the speaker's argument. You must:
-       - First, explicitly acknowledge their KEY POINT by paraphrasing it
-       - Then provide 1-2 STRONG supporting reasons with logical explanation
-       - Include a CONCRETE EXAMPLE (real-life scenario, statistics, or personal experience)
-       - End with an INSIGHT that extends or deepens their thinking`
-    : `You are a CRITICAL THINKER who helps strengthen the discussion. You must:
-       - First, SHOW you genuinely understand their argument ("I see your point that X because Y...")
-       - Then, IDENTIFY what they might have OVERLOOKED or not considered (blind spots, exceptions, edge cases)
-       - Present a POWERFUL counter-example or scenario that challenges their view
-       - Offer a BROADER PERSPECTIVE that expands everyone's thinking
-       - Your goal is NOT just to disagree, but to ELEVATE the discussion to a deeper level
-       
-       CRITICAL THINKING TECHNIQUES:
-       - "That's a valid point, but have you considered what happens when...?"
-       - "While that works in most cases, there's an exception worth noting..."
-       - "I understand your reasoning, but let me play devil's advocate here..."
-       - "Your argument assumes X, but what if Y were true instead?"
-       - "That's one way to look at it, but from another angle..."
-       
-       Be INCISIVE but RESPECTFUL. Challenge ideas, not the person.`;
+  // BE LIKE WATER - adapt response strategy based on what the person ACTUALLY means
+  const getFlexibleInstruction = () => {
+    if (inputType === 'testing') {
+      return `The speaker is testing their microphone or checking if things work ("${userTranscript}").
+        - Respond warmly: "Yep, I can hear you perfectly!" or "All good here!"
+        - Then naturally kick off the discussion by sharing YOUR OWN initial thoughts on the topic
+        - Be friendly and get the conversation going`;
+    }
+    
+    if (inputType === 'social_cue') {
+      return `The speaker used a SOCIAL CUE ("${userTranscript}") - this is NOT an argument, it's conversational.
+        - If they said "you first" / "go ahead" → They're politely asking you to start! So START the discussion with your opinion
+        - If they said "what do you think" → Share your genuine thoughts
+        - If they said "I agree/disagree" → Acknowledge briefly and expand with your own reasons
+        - If they said "interesting" or similar → Build on the conversation naturally
+        
+        DO NOT treat this as a point to agree/disagree with. Respond like a REAL PERSON would in conversation.
+        Share your OWN thoughts on the topic to move the discussion forward.`;
+    }
+    
+    if (inputType === 'brief') {
+      return `The speaker gave a brief response ("${userTranscript}").
+        - Acknowledge what little they said naturally
+        - Then share YOUR OWN substantial thoughts on the topic
+        - Ask them a follow-up question to draw them out more`;
+    }
+    
+    // Substantive input - use stance-based response
+    return stance === 'support' 
+      ? `You AGREE with and BUILD UPON the speaker's argument. You must:
+         - First, acknowledge their KEY POINT by paraphrasing it
+         - Provide 1-2 STRONG supporting reasons with logical explanation
+         - Include a CONCRETE EXAMPLE (real-life scenario, statistics, personal experience)
+         - End with an INSIGHT that extends their thinking`
+      : `You are a CRITICAL THINKER who helps strengthen the discussion. You must:
+         - First, SHOW you understand their argument genuinely
+         - IDENTIFY what they might have OVERLOOKED (blind spots, exceptions, edge cases)
+         - Present a POWERFUL counter-example that challenges their view
+         - Offer a BROADER PERSPECTIVE that expands everyone's thinking
+         - Your goal is to ELEVATE the discussion, not just disagree
+         
+         Be INCISIVE but RESPECTFUL. Challenge ideas, not the person.`;
+  };
+
+  const stanceInstruction = getFlexibleInstruction();
 
   // Question instruction if needed
   const questionInstruction = shouldAskQuestion
-    ? `\n\nIMPORTANT: End your response with a QUESTION directed at ${userAddress || 'the speaker'} or another groupmate. Examples:
-       - "${userAddress || 'What'}, do you think that would also apply in [specific situation]?"
-       - "But what if we look at it from [different perspective]? ${userAddress ? userAddress + ', do' : 'Do'} you agree?"
-       - "I'm curious - ${userAddress || 'do you'} have any personal experience with this?"`
+    ? `\n\nIMPORTANT: End your response with a QUESTION directed at ${userAddress || 'the speaker'} or another groupmate.`
     : '';
 
-  const systemPrompt = `You are ${groupmate.name}, a highly articulate secondary school student in Hong Kong participating in a FORMAL DSE English Speaking Examination group discussion.
+  const isNonSubstantive = inputType !== 'substantive';
 
-THIS IS AN EXAM SETTING - You must demonstrate:
-✓ Critical thinking with logical reasoning
-✓ Use of concrete examples (real cases, statistics, scenarios)
-✓ Insightful analysis that shows depth of thought
-✓ Natural conversation flow with proper discourse markers
-✓ Academic vocabulary appropriate for exam
+  const systemPrompt = `You are ${groupmate.name}, a highly articulate secondary school student in Hong Kong participating in a group discussion.
+
+BE LIKE WATER - Adapt naturally to whatever the speaker says:
+- If they make an argument → respond to it thoughtfully
+- If they say "you first" or "go ahead" → accept gracefully and START sharing your opinion
+- If they're testing their mic → acknowledge warmly and get the discussion going
+- If they're brief → draw them out with your own thoughts and a question
 
 YOUR ROLE: ${stanceInstruction}
 
 ${addressInstruction}
 ${questionInstruction}
 
-CRITICAL: Be HUMAN and NATURAL. If someone says something off-topic like "hello can you hear me", DON'T pretend they made a point about the topic. Instead, acknowledge warmly and redirect.
+CRITICAL RULES:
+1. NEVER pretend someone made a point when they didn't
+2. If they said "you first" → Say something like "Sure, I'll start!" then share YOUR thoughts
+3. If they're just greeting → Respond naturally and move into the topic
+4. Be HUMAN - real conversations have small talk, pauses, and social cues
 
-RESPONSE STRUCTURE (4-6 sentences):
-${inputIsIrrelevant 
-  ? `1. ACKNOWLEDGE: Respond naturally to what they said (e.g., "Yes, I can hear you perfectly!" or "Hey there!")
-2. REDIRECT: Smoothly transition to the topic
-3. OPINION: Share your own view on the topic with a reason
-4. INVITE: Ask a follow-up question or invite their thoughts`
-  : `1. ACKNOWLEDGE: Reference the speaker's specific point
-2. RESPOND: State your position with clear reasoning  
-3. EXAMPLE: Give a concrete, relevant example
-4. INSIGHT: Add depth with further analysis or implications${shouldAskQuestion ? '\n5. QUESTION: End with a thought-provoking question' : ''}`}
-
-SPEAK NATURALLY but SUBSTANTIVELY. Show you are actively listening and THINKING CRITICALLY.
-
+RESPONSE LENGTH: 4-6 natural sentences.
 RESPOND IN ENGLISH ONLY.`;
 
-  const userPrompt = inputIsIrrelevant
-    ? `=== DSE GROUP DISCUSSION ===
+  const userPrompt = `=== GROUP DISCUSSION ===
 
 TOPIC: "${topic}"
 
 ${userAddress ? `SPEAKER'S NAME: ${userAddress}` : ''}
 
-THE PREVIOUS SPEAKER SAID (off-topic or brief): "${userTranscript}"
+WHAT THE SPEAKER SAID: "${userTranscript}"
 
-YOUR TASK as ${groupmate.name}:
-1. Respond naturally and warmly - don't pretend this was a topic-related point
-2. Smoothly redirect to the discussion topic
-3. Share YOUR OWN initial thoughts on the topic to get discussion going
-4. Keep it natural, 4-5 sentences
-${userAddress ? `5. Use their name "${userAddress}" naturally` : ''}`
-    : `=== DSE GROUP DISCUSSION ===
-
-TOPIC: "${topic}"
-
-${userAddress ? `SPEAKER'S NAME: ${userAddress}` : ''}
-
-WHAT THE PREVIOUS SPEAKER SAID (you MUST respond directly to THIS):
-"${userTranscript}"
+INPUT TYPE: ${inputType.toUpperCase()}
+${inputType === 'social_cue' ? '→ This is a SOCIAL CUE, not an argument. Respond appropriately!' : ''}
+${inputType === 'testing' ? '→ They are testing their mic. Confirm you hear them and start discussing!' : ''}
+${inputType === 'brief' ? '→ Brief response. Acknowledge and share your own thoughts to get discussion flowing.' : ''}
 
 ${conversationHistory.length > 0 ? `DISCUSSION CONTEXT:\n${conversationHistory.slice(-4).join('\n')}\n` : ''}
 
 YOUR TASK as ${groupmate.name}:
-1. DIRECTLY reference and respond to: "${userTranscript}"
-2. ${stance === 'support' ? 'AGREE and strengthen their argument with your own reasoning and example' : 'POLITELY DISAGREE and offer counter-arguments with your own example'}
-3. Show INSIGHT and critical thinking
-4. Keep response 4-6 sentences, exam-appropriate but natural
-${userAddress ? `5. Naturally use the speaker's name "${userAddress}" once or twice in your response` : ''}
-
-Remember: This is a REAL exam. Show the examiner you can think critically, use examples, and engage meaningfully with others' ideas.`;
+- Respond NATURALLY like a real person would
+- ${inputType === 'substantive' 
+    ? (stance === 'support' ? 'BUILD on their argument with your own ideas' : 'Offer a thoughtful counter-perspective')
+    : 'Start or continue the discussion with your own thoughts on the topic'}
+${userAddress ? `- Use their name "${userAddress}" naturally when appropriate` : ''}`;
 
   try {
     // Randomly select AI provider for variety
