@@ -371,10 +371,10 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
 
   if (isLoadingQuestions) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-lg text-gray-600">Loading questions...</p>
+          <p className="text-lg text-gray-600 dark:text-gray-300">Loading questions...</p>
         </div>
       </div>
     );
@@ -382,16 +382,16 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
 
   if (!currentQuestion) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
-        <Card className="w-full max-w-md">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
+        <Card className="w-full max-w-md bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
           <CardHeader>
-            <CardTitle className="text-center">No Questions Available</CardTitle>
+            <CardTitle className="text-center text-gray-900 dark:text-white">No Questions Available</CardTitle>
           </CardHeader>
           <CardContent className="text-center">
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-600 dark:text-gray-300 mb-4">
               No questions are available for grade {grade}.
             </p>
-            <Button onClick={onBack} variant="outline">
+            <Button onClick={onBack} variant="outline" className="dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Go Back
             </Button>
@@ -402,14 +402,14 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 p-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <Button 
             variant="outline" 
             onClick={onBack}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
           >
             <ArrowLeft className="w-4 h-4" />
             Back
@@ -422,7 +422,7 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
                 checked={showQuestions}
                 onCheckedChange={onShowQuestionsChange}
               />
-              <Label htmlFor="show-questions">Show The Questions</Label>
+              <Label htmlFor="show-questions" className="text-gray-700 dark:text-gray-200">Show The Questions</Label>
             </div>
           </div>
         </div>
@@ -430,40 +430,40 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
         {/* Progress */}
         <div className="mb-6">
           <div className="flex justify-between items-center mb-2">
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
               {grade} English Assessment
             </h1>
-            <span className="text-sm text-gray-600">
+            <span className="text-sm text-gray-600 dark:text-gray-300">
               {Math.round(progress)}%
             </span>
           </div>
           <Progress value={progress} className="h-2" />
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
             Question {currentQuestionIndex + 1} / {questions.length}
           </p>
         </div>
 
         {/* Question Card */}
-        <Card className="mb-6">
+        <Card className="mb-6 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
           <CardHeader>
             <div className="flex justify-between items-center">
-              <CardTitle className="text-lg">Question {currentQuestionIndex + 1}</CardTitle>
-              <Badge variant="secondary">{getShortSectionName(currentQuestion.section)}</Badge>
+              <CardTitle className="text-lg text-gray-900 dark:text-white">Question {currentQuestionIndex + 1}</CardTitle>
+              <Badge variant="secondary" className="dark:bg-gray-700 dark:text-gray-200">{getShortSectionName(currentQuestion.section)}</Badge>
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Question Text - Show only if showQuestions is true */}
             {showQuestions && (
-              <div className="text-lg font-medium text-gray-900">
+              <div className="text-lg font-medium text-gray-900 dark:text-white">
                 {currentQuestion.text}
               </div>
             )}
 
             {/* Reading Passage - Always show for reading type questions */}
             {currentQuestion.type === 'reading' && currentQuestion.readingPassage && (
-              <div className="bg-gray-50 p-4 rounded-lg border">
-                <h4 className="font-semibold text-gray-900 mb-3">Reading Passage:</h4>
-                <div className="text-gray-800 leading-relaxed whitespace-pre-line">
+              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border border-gray-200 dark:border-gray-600">
+                <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Reading Passage:</h4>
+                <div className="text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-line">
                   {currentQuestion.readingPassage}
                 </div>
               </div>
@@ -476,7 +476,7 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
                 size="sm"
                 onClick={handlePlayQuestion}
                 disabled={isPlaying && !isPaused}
-                className="flex items-center space-x-2"
+                className="flex items-center space-x-2 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200"
               >
                 {isPlaying && !isPaused ? (
                   <>
@@ -518,7 +518,7 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
                   size="sm"
                   onClick={() => handlePlayRecording(currentQuestion.id)}
                   disabled={playingRecordingId === currentQuestion.id}
-                  className="flex items-center space-x-2"
+                  className="flex items-center space-x-2 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200"
                 >
                   <Headphones className="w-4 h-4" />
                   <span>
@@ -544,6 +544,7 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
             variant="outline"
             onClick={handlePreviousQuestion}
             disabled={currentQuestionIndex === 0}
+            className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
           >
             Previous
           </Button>
@@ -551,6 +552,7 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
           <Button
             onClick={handleNextQuestion}
             disabled={currentQuestionIndex >= questions.length - 1}
+            className="bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-600 dark:hover:bg-blue-700"
           >
             {currentQuestionIndex === questions.length - 1 ? 'Complete Test' : 'Next'}
           </Button>

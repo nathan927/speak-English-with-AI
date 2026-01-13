@@ -45,14 +45,14 @@ export const GradeSelector = ({ onGradeSelect, onBack }: GradeSelectorProps) => 
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <div className="container mx-auto px-4 py-4 md:py-8">
         <div className="mb-4 md:mb-8">
           <div className="flex items-center justify-between mb-4 md:mb-6">
             <Button 
               variant="ghost" 
               onClick={onBack}
-              className="group relative overflow-hidden bg-gradient-to-r from-gray-100 to-gray-200 hover:from-blue-100 hover:to-purple-100 border border-gray-300 hover:border-blue-300 text-gray-700 hover:text-blue-700 font-medium px-4 md:px-6 py-2 md:py-3 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-105"
+              className="group relative overflow-hidden bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 hover:from-blue-100 hover:to-purple-100 dark:hover:from-blue-900 dark:hover:to-purple-900 border border-gray-300 dark:border-gray-600 hover:border-blue-300 text-gray-700 dark:text-gray-200 hover:text-blue-700 dark:hover:text-blue-300 font-medium px-4 md:px-6 py-2 md:py-3 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-105"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
               <ArrowLeft className="w-4 h-4 mr-2 transition-transform duration-300 group-hover:-translate-x-1" />
@@ -62,7 +62,7 @@ export const GradeSelector = ({ onGradeSelect, onBack }: GradeSelectorProps) => 
             <Button 
               variant="outline"
               onClick={() => navigate('/settings')}
-              className="group bg-white hover:bg-purple-50 border-2 border-purple-200 hover:border-purple-400 text-purple-700 font-medium px-4 md:px-6 py-2 md:py-3 rounded-xl shadow-sm hover:shadow-md transition-all duration-300"
+              className="group bg-white dark:bg-gray-800 hover:bg-purple-50 dark:hover:bg-purple-900 border-2 border-purple-200 dark:border-purple-700 hover:border-purple-400 text-purple-700 dark:text-purple-300 font-medium px-4 md:px-6 py-2 md:py-3 rounded-xl shadow-sm hover:shadow-md transition-all duration-300"
             >
               <Settings className="w-4 h-4 mr-2" />
               <span>設定</span>
@@ -70,21 +70,21 @@ export const GradeSelector = ({ onGradeSelect, onBack }: GradeSelectorProps) => 
           </div>
           
           <div className="text-center mb-4 md:mb-8">
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2 md:mb-4">選擇您的年級</h1>
-            <p className="text-gray-600 text-base md:text-lg">根據香港教育體系設計的分級評測</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2 md:mb-4">選擇您的年級</h1>
+            <p className="text-gray-600 dark:text-gray-300 text-base md:text-lg">根據香港教育體系設計的分級評測</p>
           </div>
         </div>
 
         {/* Grade Selection */}
         <div className="max-w-6xl mx-auto space-y-4 md:space-y-8">
           {gradeGroups.map((group) => (
-            <Card key={group.title} className={`${group.bgColor} ${group.borderColor} border-2`}>
+            <Card key={group.title} className={`${group.bgColor} dark:bg-gray-800 ${group.borderColor} dark:border-gray-700 border-2`}>
               <CardHeader className="text-center pb-3 md:pb-6">
-                <CardTitle className="text-xl md:text-2xl text-gray-900">{group.title}</CardTitle>
-                <CardDescription className="text-base md:text-lg font-medium text-gray-700">
+                <CardTitle className="text-xl md:text-2xl text-gray-900 dark:text-white">{group.title}</CardTitle>
+                <CardDescription className="text-base md:text-lg font-medium text-gray-700 dark:text-gray-300">
                   {group.subtitle}
                 </CardDescription>
-                <p className="text-xs md:text-sm text-gray-600 mt-1 md:mt-2">
+                <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400 mt-1 md:mt-2">
                   {group.description}
                 </p>
               </CardHeader>
@@ -94,7 +94,7 @@ export const GradeSelector = ({ onGradeSelect, onBack }: GradeSelectorProps) => 
                     <Button
                       key={grade}
                       onClick={() => handleGradeSelect(grade)}
-                      className="h-12 md:h-16 text-base md:text-lg font-semibold bg-white hover:bg-gradient-to-r hover:from-blue-600 hover:to-purple-600 text-gray-900 hover:text-white border-2 border-gray-200 hover:border-transparent transition-all duration-300 transform hover:scale-105 shadow-sm hover:shadow-md"
+                      className="h-12 md:h-16 text-base md:text-lg font-semibold bg-white dark:bg-gray-700 hover:bg-gradient-to-r hover:from-blue-600 hover:to-purple-600 text-gray-900 dark:text-white hover:text-white border-2 border-gray-200 dark:border-gray-600 hover:border-transparent transition-all duration-300 transform hover:scale-105 shadow-sm hover:shadow-md"
                     >
                       {grade}
                     </Button>

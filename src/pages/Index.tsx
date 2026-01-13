@@ -174,57 +174,57 @@ const Index = () => {
         </div>
 
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <Card className="text-center hover:shadow-lg transition-shadow duration-300 dark:bg-gray-800 dark:border-gray-700">
+          <Card className="text-center hover:shadow-lg transition-shadow duration-300 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
             <CardHeader className="p-4">
-              <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center mx-auto mb-2">
+              <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/50 rounded-lg flex items-center justify-center mx-auto mb-2">
                 <Mic className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               </div>
-              <CardTitle className="text-base dark:text-white">發音準確度</CardTitle>
+              <CardTitle className="text-base text-gray-900 dark:text-white">發音準確度</CardTitle>
             </CardHeader>
             <CardContent className="p-4 pt-0">
-              <CardDescription className="dark:text-gray-400">
+              <CardDescription className="text-gray-600 dark:text-gray-300">
                 基於音素匹配和置信度分析，提供精確的發音評估與改進建議
               </CardDescription>
             </CardContent>
           </Card>
 
-          <Card className="text-center hover:shadow-lg transition-shadow duration-300 dark:bg-gray-800 dark:border-gray-700">
+          <Card className="text-center hover:shadow-lg transition-shadow duration-300 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
             <CardHeader className="p-4">
-              <div className="w-10 h-10 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center mx-auto mb-2">
+              <div className="w-10 h-10 bg-green-100 dark:bg-green-900/50 rounded-lg flex items-center justify-center mx-auto mb-2">
                 <BookOpen className="w-5 h-5 text-green-600 dark:text-green-400" />
               </div>
-              <CardTitle className="text-base dark:text-white">詞彙運用</CardTitle>
+              <CardTitle className="text-base text-gray-900 dark:text-white">詞彙運用</CardTitle>
             </CardHeader>
             <CardContent className="p-4 pt-0">
-              <CardDescription className="dark:text-gray-400">
+              <CardDescription className="text-gray-600 dark:text-gray-300">
                 智能識別關鍵詞彙使用情況，評估語言豐富度和表達能力
               </CardDescription>
             </CardContent>
           </Card>
 
-          <Card className="text-center hover:shadow-lg transition-shadow duration-300 dark:bg-gray-800 dark:border-gray-700">
+          <Card className="text-center hover:shadow-lg transition-shadow duration-300 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
             <CardHeader className="p-4">
-              <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center mx-auto mb-2">
+              <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/50 rounded-lg flex items-center justify-center mx-auto mb-2">
                 <TrendingUp className="w-5 h-5 text-purple-600 dark:text-purple-400" />
               </div>
-              <CardTitle className="text-base dark:text-white">流暢度分析</CardTitle>
+              <CardTitle className="text-base text-gray-900 dark:text-white">流暢度分析</CardTitle>
             </CardHeader>
             <CardContent className="p-4 pt-0">
-              <CardDescription className="dark:text-gray-400">
+              <CardDescription className="text-gray-600 dark:text-gray-300">
                 分析語速、停頓模式和連貫性，提供流暢度提升指導
               </CardDescription>
             </CardContent>
           </Card>
 
-          <Card className="text-center hover:shadow-lg transition-shadow duration-300 dark:bg-gray-800 dark:border-gray-700">
+          <Card className="text-center hover:shadow-lg transition-shadow duration-300 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
             <CardHeader className="p-4">
-              <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900 rounded-lg flex items-center justify-center mx-auto mb-2">
+              <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/50 rounded-lg flex items-center justify-center mx-auto mb-2">
                 <Award className="w-5 h-5 text-orange-600 dark:text-orange-400" />
               </div>
-              <CardTitle className="text-base dark:text-white">自信程度</CardTitle>
+              <CardTitle className="text-base text-gray-900 dark:text-white">自信程度</CardTitle>
             </CardHeader>
             <CardContent className="p-4 pt-0">
-              <CardDescription className="dark:text-gray-400">
+              <CardDescription className="text-gray-600 dark:text-gray-300">
                 評估音量、音質和表達清晰度，培養自信的口語表達能力
               </CardDescription>
             </CardContent>
@@ -243,24 +243,24 @@ const Index = () => {
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
-            <Card className="hover:shadow-lg transition-shadow duration-300 dark:bg-gray-800 dark:border-gray-700">
+            <Card className="hover:shadow-lg transition-shadow duration-300 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
               <CardHeader>
-                <CardTitle className="text-xl text-center dark:text-white">幼稚園 (K1-K3)</CardTitle>
-                <CardDescription className="text-center dark:text-gray-400">觀察記錄制度</CardDescription>
+                <CardTitle className="text-xl text-center text-gray-900 dark:text-white">幼稚園 (K1-K3)</CardTitle>
+                <CardDescription className="text-center text-gray-600 dark:text-gray-300">觀察記錄制度</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm dark:text-gray-300">表現良好</span>
-                    <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Good</Badge>
+                    <span className="text-sm text-gray-700 dark:text-gray-200">表現良好</span>
+                    <Badge className="bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300">Good</Badge>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm dark:text-gray-300">發展中</span>
-                    <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">Developing</Badge>
+                    <span className="text-sm text-gray-700 dark:text-gray-200">發展中</span>
+                    <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300">Developing</Badge>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm dark:text-gray-300">需要支援</span>
-                    <Badge className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Support</Badge>
+                    <span className="text-sm text-gray-700 dark:text-gray-200">需要支援</span>
+                    <Badge className="bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300">Support</Badge>
                   </div>
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-4">
@@ -269,10 +269,10 @@ const Index = () => {
               </CardContent>
             </Card>
 
-            <Card className="hover:shadow-lg transition-shadow duration-300 dark:bg-gray-800 dark:border-gray-700">
+            <Card className="hover:shadow-lg transition-shadow duration-300 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
               <CardHeader>
-                <CardTitle className="text-xl text-center dark:text-white">小學 (P1-P6)</CardTitle>
-                <CardDescription className="text-center dark:text-gray-400">4級評分制度</CardDescription>
+                <CardTitle className="text-xl text-center text-gray-900 dark:text-white">小學 (P1-P6)</CardTitle>
+                <CardDescription className="text-center text-gray-600 dark:text-gray-300">4級評分制度</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {renderStars(4)}
@@ -282,10 +282,10 @@ const Index = () => {
               </CardContent>
             </Card>
 
-            <Card className="hover:shadow-lg transition-shadow duration-300 dark:bg-gray-800 dark:border-gray-700">
+            <Card className="hover:shadow-lg transition-shadow duration-300 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
               <CardHeader>
-                <CardTitle className="text-xl text-center dark:text-white">中學 (S1-S6)</CardTitle>
-                <CardDescription className="text-center dark:text-gray-400">6級評分制度</CardDescription>
+                <CardTitle className="text-xl text-center text-gray-900 dark:text-white">中學 (S1-S6)</CardTitle>
+                <CardDescription className="text-center text-gray-600 dark:text-gray-300">6級評分制度</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {renderStars(6)}

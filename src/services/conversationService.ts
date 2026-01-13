@@ -9,6 +9,9 @@ export interface ConversationPhrase {
   greeting: string[];
   thinking: string[];
   casual: string[];
+  connectors: string[];
+  agreement: string[];
+  followUp: string[];
 }
 
 const conversationPhrases: ConversationPhrase = {
@@ -106,6 +109,64 @@ const conversationPhrases: ConversationPhrase = {
     "Anyway,",
     "Right,",
     "Okay,"
+  ],
+  // New: Natural conversation connectors for primary and above
+  connectors: [
+    "That's interesting.",
+    "I'd love to hear more.",
+    "Tell me more about that.",
+    "How fascinating.",
+    "Really?",
+    "Sounds wonderful.",
+    "That's great to hear.",
+    "Wonderful.",
+    "Lovely.",
+    "How nice.",
+    "That sounds fun.",
+    "Interesting point.",
+    "Good thinking.",
+    "Nice.",
+    "Cool.",
+    "Awesome.",
+    "That's a good point.",
+    "I like that.",
+    "Fair enough.",
+    "Makes sense to me.",
+    "That's quite something.",
+    "I can imagine.",
+    "How exciting.",
+    "That must be nice.",
+    "Sounds like fun.",
+    "What a great idea.",
+    "That's a thoughtful answer.",
+    "You've thought about this.",
+    "That's well said.",
+    "I appreciate your honesty.",
+    "Thank you for sharing."
+  ],
+  agreement: [
+    "I agree with that.",
+    "Absolutely.",
+    "That's exactly right.",
+    "You make a good point.",
+    "I think so too.",
+    "That's true.",
+    "Definitely.",
+    "For sure.",
+    "Without a doubt.",
+    "I couldn't agree more."
+  ],
+  followUp: [
+    "And then what happened?",
+    "What do you think about that?",
+    "How did that make you feel?",
+    "Can you tell me more?",
+    "What else?",
+    "Anything else you'd like to add?",
+    "Is there more to that?",
+    "What about after that?",
+    "And how does that work?",
+    "Why do you think that is?"
   ]
 };
 
@@ -169,13 +230,17 @@ export const buildNaturalQuestion = (questionText: string, isFirst: boolean = fa
   let naturalText = '';
   const buildSteps: string[] = [];
   
-  // Determine if this is a kindergarten or primary grade
+  // Determine grade level
   const isKindergarten = grade?.startsWith('K') || false;
   const isPrimary = grade?.startsWith('P') || false;
+  const isPrimaryUpper = ['P4', 'P5', 'P6'].includes(grade || '');
+  const isSecondary = grade?.startsWith('S') || false;
   
   logger.debug(`Grade analysis`, {
     isKindergarten,
     isPrimary,
+    isPrimaryUpper,
+    isSecondary,
     grade
   }, 'ConversationService', 'gradeAnalysis');
   
@@ -187,6 +252,16 @@ export const buildNaturalQuestion = (questionText: string, isFirst: boolean = fa
       buildSteps.push(`Added greeting: "${greeting}"`);
     }
   } else if (!isKindergarten) { // Skip transition phrases for kindergarten
+    // For P1+ students, add natural connectors more frequently
+    if (isPrimary || isSecondary) {
+      // Add conversation connectors for primary and above (60% chance)
+      if (Math.random() < 0.6) {
+        const connector = getRandomPhrase('connectors');
+        naturalText += connector + ' ';
+        buildSteps.push(`Added connector: "${connector}"`);
+      }
+    }
+    
     // Reduce opening phrases for primary students (50% instead of 80%)
     const openingChance = isPrimary ? 0.5 : 0.8;
     const random = Math.random();
@@ -217,12 +292,19 @@ export const buildNaturalQuestion = (questionText: string, isFirst: boolean = fa
     }
   }
   
+  // Add follow-up style phrases for upper primary and secondary (30% chance)
+  if ((isPrimaryUpper || isSecondary) && !isFirst && Math.random() < 0.3) {
+    const followUp = getRandomPhrase('followUp');
+    naturalText += followUp + ' ';
+    buildSteps.push(`Added followUp: "${followUp}"`);
+  }
+  
   // Reduce encouragement for younger students
   let encouragementChance = 0.25; // Default for secondary
   if (isKindergarten) {
     encouragementChance = 0.1; // Very low for kindergarten
   } else if (isPrimary) {
-    encouragementChance = 0.15; // Reduced for primary
+    encouragementChance = 0.2; // Slightly higher for primary
   }
   
   if (Math.random() < encouragementChance) {
@@ -280,11 +362,39 @@ export const buildNaturalQuestion = (questionText: string, isFirst: boolean = fa
       isLast,
       grade,
       isKindergarten,
-      isPrimary
+      isPrimary,
+      isPrimaryUpper,
+      isSecondary
     }
   }, 'ConversationService', 'questionBuilt');
   
   return naturalText;
+};
+
+// New function to get agreement phrases for AI groupmates
+export const getAgreementPhrase = (): string => {
+  return getRandomPhrase('agreement');
+};
+
+// New function to get disagreement phrases for AI groupmates
+export const getDisagreementPhrases = (): string[] => {
+  return [
+    "I see your point, but I think...",
+    "That's one way to look at it. However...",
+    "I respectfully disagree because...",
+    "While that's true, we should also consider...",
+    "That's an interesting perspective, but...",
+    "I understand what you're saying, though...",
+    "You make a good point, but on the other hand...",
+    "I have a different view on this...",
+    "That's fair, but let me offer another perspective...",
+    "I can see why you'd think that, but..."
+  ];
+};
+
+export const getRandomDisagreementPhrase = (): string => {
+  const phrases = getDisagreementPhrases();
+  return phrases[Math.floor(Math.random() * phrases.length)];
 };
 
 export const getCompletionPhrase = (): string => {
