@@ -1,13 +1,28 @@
 // AI Groupmate Service - Generate responses from AI discussion partners
 import { logger } from './logService';
 
-// Using the same API endpoint as aiApiService for consistency
-const AI_API_URL = 'https://aiquiz.ycm927.workers.dev';
-const MIMO_API_URL = 'https://api.siliconflow.cn/v1/chat/completions';
-const MIMO_MODEL = 'Qwen/Qwen2.5-7B-Instruct';
+// API Configuration - Two providers for variety and reliability
+const AI_PROVIDERS = [
+  {
+    name: 'SiliconFlow',
+    url: 'https://api.siliconflow.cn/v1/chat/completions',
+    model: 'Qwen/Qwen2.5-7B-Instruct',
+    apiKey: 'sk-sltxmvec3ikcp32e7yvgfwdwcvlrozyiqqpcvuvvtvfl8m4r'
+  },
+  {
+    name: 'OpenRouter',
+    url: 'https://openrouter.ai/api/v1/chat/completions',
+    model: 'google/gemini-2.0-flash-exp:free',
+    apiKey: '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'
+  }
+];
 
-// Get API key from environment
-const MIMO_API_KEY = 'sk-sltxmvec3ikcp32e7yvgfwdwcvlrozyiqqpcvuvvtvfl8m4r';
+// Randomly select a provider
+function getRandomProvider() {
+  const provider = AI_PROVIDERS[Math.floor(Math.random() * AI_PROVIDERS.length)];
+  logger.info('Selected AI provider', { name: provider.name, model: provider.model });
+  return provider;
+}
 
 interface GroupmateResponse {
   text: string;
@@ -116,27 +131,33 @@ ${userAddress ? `5. Naturally use the speaker's name "${userAddress}" once or tw
 Remember: This is a REAL exam. Show the examiner you can think critically, use examples, and engage meaningfully with others' ideas.`;
 
   try {
+    // Randomly select AI provider for variety
+    const provider = getRandomProvider();
+    
     logger.info('Generating AI groupmate response', { 
       stance, 
       groupmateName: groupmate.name,
       userSaid: userTranscript.substring(0, 50),
-      topic: topic.substring(0, 30)
+      topic: topic.substring(0, 30),
+      provider: provider.name
     });
 
-    const response = await fetch(MIMO_API_URL, {
+    const response = await fetch(provider.url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${MIMO_API_KEY}`
+        'Authorization': `Bearer ${provider.apiKey}`,
+        'HTTP-Referer': 'https://lovable.dev',
+        'X-Title': 'English Speaking Practice'
       },
       body: JSON.stringify({
-        model: MIMO_MODEL,
+        model: provider.model,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        max_tokens: 300, // Increased for more detailed responses
-        temperature: 0.85 // Slightly lower for more coherent reasoning
+        max_tokens: 350,
+        temperature: 0.85
       })
     });
 
