@@ -54,6 +54,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isAiThinking, setIsAiThinking] = useState(false);
   const [currentTranscript, setCurrentTranscript] = useState('');
   const [messages, setMessages] = useState<DiscussionMessage[]>([]);
   const [discussionPhase, setDiscussionPhase] = useState<'intro' | 'discussion' | 'complete' | 'results' | 'history'>('intro');
@@ -390,6 +391,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
     if (!topic || !groupmates) return;
 
     setIsProcessing(true);
+    setIsAiThinking(true);
     const conversationHistory = messages.map(m => `${m.speakerName || m.speaker}: ${m.text}`);
 
     try {
@@ -402,8 +404,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
       const shouldAskQuestion = Math.random() < 0.3;
       const questionTarget = Math.random() > 0.5 ? 'user' : 'other';
 
-      // Generate and speak first AI response
-      setIsSpeaking(true);
+      // Generate first AI response
       const firstResponse = await generateGroupmateResponse(
         topic.text,
         userTranscript,
@@ -411,8 +412,12 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
         conversationHistory,
         { name: firstGroupmate.name, gender: firstGroupmate.gender, avatar: firstGroupmate.avatar },
         userName.trim() || undefined,
-        shouldAskQuestion && questionTarget === 'user'
+        shouldAskQuestion && questionTarget === 'user',
+        grade
       );
+      
+      setIsAiThinking(false);
+      setIsSpeaking(true);
       
       addMessage(
         'groupmate1', 
@@ -427,7 +432,8 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
       // Small pause between responses
       await new Promise(resolve => setTimeout(resolve, 600));
 
-      // Generate and speak second AI response
+      // Generate second AI response
+      setIsAiThinking(true);
       const secondResponse = await generateGroupmateResponse(
         topic.text,
         userTranscript + ' ' + firstResponse.text,
@@ -435,8 +441,10 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
         [...conversationHistory, `${firstResponse.groupmateName}: ${firstResponse.text}`],
         { name: secondGroupmate.name, gender: secondGroupmate.gender, avatar: secondGroupmate.avatar },
         userName.trim() || undefined,
-        shouldAskQuestion && questionTarget === 'other'
+        shouldAskQuestion && questionTarget === 'other',
+        grade
       );
+      setIsAiThinking(false);
       
       addMessage(
         'groupmate2', 
@@ -716,18 +724,18 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
               )}
 
 
-              {/* Processing indicator */}
-              {isProcessing && (
-                <div className="flex items-center justify-center py-2">
+              {/* AI Thinking indicator */}
+              {isAiThinking && (
+                <div className="flex items-center justify-center py-3 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
                   <Loader2 className="w-5 h-5 animate-spin text-purple-600 mr-2" />
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    {groupmates.supporter.name}, {groupmates.opposer.name}, and {groupmates.mediator.name} are thinking...
+                  <span className="text-sm font-medium text-purple-700 dark:text-purple-300">
+                    AI is thinking...
                   </span>
                 </div>
               )}
 
               {/* Speaking indicator */}
-              {isSpeaking && !isProcessing && (
+              {isSpeaking && !isAiThinking && (
                 <div className="flex items-center justify-center py-2">
                   <Volume2 className="w-5 h-5 text-green-600 animate-pulse mr-2" />
                   <span className="text-sm text-gray-600 dark:text-gray-400">AI groupmate is speaking...</span>

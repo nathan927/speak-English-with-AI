@@ -238,6 +238,70 @@ export function generateRandomMediator(): { name: string; gender: 'male' | 'fema
   };
 }
 
+// Get grade-appropriate language level instructions
+function getGradeLevelInstructions(grade?: string): string {
+  if (!grade) return '';
+  
+  const gradeLevel = grade.toUpperCase();
+  
+  if (gradeLevel.startsWith('P4') || gradeLevel.startsWith('P5')) {
+    return `
+LANGUAGE LEVEL: Primary 4-5 (Ages 9-11)
+- Use SIMPLE vocabulary and short sentences (8-12 words per sentence)
+- Speak like a 10-year-old student
+- Use basic connectors: "and", "but", "because", "so"
+- Topics: daily life, school, hobbies, friends, family
+- Avoid complex vocabulary or abstract concepts
+- Examples should be from a child's perspective (playground, homework, games)`;
+  }
+  
+  if (gradeLevel.startsWith('P6')) {
+    return `
+LANGUAGE LEVEL: Primary 6 (Ages 11-12)
+- Use moderately simple vocabulary with some variety
+- Sentences can be slightly longer (10-15 words)
+- Use connectors: "because", "however", "for example", "also"
+- Can discuss opinions but keep reasoning straightforward
+- Examples from school life, local community, popular culture
+- Avoid sophisticated vocabulary or complex arguments`;
+  }
+  
+  if (gradeLevel.startsWith('S1') || gradeLevel.startsWith('S2')) {
+    return `
+LANGUAGE LEVEL: Secondary 1-2 (Ages 12-14)
+- Use intermediate vocabulary appropriate for junior secondary
+- Sentences can be more complex (12-18 words)
+- Include connectors: "moreover", "on the other hand", "for instance"
+- Can present simple arguments with one clear supporting point
+- Examples from teenage life, social media, school activities
+- Avoid overly academic or sophisticated language`;
+  }
+  
+  if (gradeLevel.startsWith('S3') || gradeLevel.startsWith('S4')) {
+    return `
+LANGUAGE LEVEL: Secondary 3-4 (Ages 14-16)
+- Use varied vocabulary with some academic terms
+- Can use complex sentence structures
+- Include discourse markers: "furthermore", "nevertheless", "consequently"
+- Present structured arguments with evidence
+- Examples can include current affairs and social issues
+- Beginning to develop critical thinking skills`;
+  }
+  
+  if (gradeLevel.startsWith('S5') || gradeLevel.startsWith('S6')) {
+    return `
+LANGUAGE LEVEL: Secondary 5-6 / DSE Level (Ages 16-18)
+- Use sophisticated vocabulary and academic register
+- Complex sentence structures with multiple clauses
+- Advanced discourse markers and hedging language
+- Present multi-layered arguments with nuanced reasoning
+- Reference real-world examples, statistics, and current affairs
+- Demonstrate critical analysis and evaluation skills`;
+  }
+  
+  return '';
+}
+
 export async function generateGroupmateResponse(
   topic: string,
   userTranscript: string,
@@ -245,7 +309,8 @@ export async function generateGroupmateResponse(
   conversationHistory: string[] = [],
   groupmateInfo?: { name: string; gender: 'male' | 'female'; avatar: string },
   userName?: string,
-  shouldAskQuestion: boolean = false
+  shouldAskQuestion: boolean = false,
+  grade?: string
 ): Promise<GroupmateResponse> {
   // Use provided info or generate random
   const groupmate = groupmateInfo || generateRandomGroupmate();
@@ -335,8 +400,13 @@ export async function generateGroupmateResponse(
     : '';
 
   const isNonSubstantive = inputType !== 'substantive';
+  
+  // Get grade-appropriate language instructions
+  const gradeLevelInstructions = getGradeLevelInstructions(grade);
 
-  const systemPrompt = `You are ${groupmate.name}, a highly articulate secondary school student in Hong Kong participating in a group discussion.
+  const systemPrompt = `You are ${groupmate.name}, a ${grade || 'secondary'} school student in Hong Kong participating in a group discussion.
+
+${gradeLevelInstructions}
 
 BE LIKE WATER - Adapt naturally to whatever the speaker says:
 - If they make an argument → respond to it thoughtfully
@@ -354,8 +424,9 @@ CRITICAL RULES:
 2. If they said "you first" → Say something like "Sure, I'll start!" then share YOUR thoughts
 3. If they're just greeting → Respond naturally and move into the topic
 4. Be HUMAN - real conversations have small talk, pauses, and social cues
+5. MATCH YOUR LANGUAGE to the grade level specified above
 
-RESPONSE LENGTH: 4-6 natural sentences.
+RESPONSE LENGTH: ${grade?.startsWith('P') ? '2-4' : '4-6'} natural sentences.
 RESPOND IN ENGLISH ONLY.`;
 
   const userPrompt = `=== GROUP DISCUSSION ===
