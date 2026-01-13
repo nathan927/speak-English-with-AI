@@ -106,9 +106,19 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
     const voices = window.speechSynthesis.getVoices();
     const englishVoices = voices.filter(v => v.lang.startsWith('en'));
     
-    // Preferred voice lists
-    const preferredFemale = ['Samantha', 'Karen', 'Moira', 'Tessa', 'Google UK English Female', 'Google US English Female', 'Microsoft Zira', 'Microsoft Hazel', 'Fiona', 'Victoria', 'Allison'];
-    const preferredMale = ['Daniel', 'Alex', 'Google UK English Male', 'Google US English Male', 'Microsoft David', 'Microsoft Mark'];
+    // Enhanced preferred voice lists
+    const preferredFemale = [
+      'Samantha', 'Karen', 'Moira', 'Tessa', 'Fiona', 'Victoria', 'Allison',
+      'Google UK English Female', 'Google US English Female',
+      'Microsoft Zira', 'Microsoft Hazel', 'Microsoft Susan', 'Microsoft Catherine',
+      'Siri Female', 'Ellen', 'Serena', 'Nicky', 'Veena', 'Ava'
+    ];
+    const preferredMale = [
+      'Daniel', 'Alex', 'Tom', 'Oliver', 'James', 'Arthur',
+      'Google UK English Male', 'Google US English Male',
+      'Microsoft David', 'Microsoft Mark', 'Microsoft George', 'Microsoft Richard',
+      'Siri Male', 'Thomas', 'Lee', 'Ralph'
+    ];
     
     const findPreferredVoice = (preferredList: string[]): SpeechSynthesisVoice | null => {
       for (const name of preferredList) {
@@ -117,17 +127,89 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
       }
       return null;
     };
+
+    // Find all voices by category
+    const findAllFemaleVoices = (): SpeechSynthesisVoice[] => {
+      const result: SpeechSynthesisVoice[] = [];
+      for (const name of preferredFemale) {
+        const found = englishVoices.find(v => v.name.includes(name) && !result.includes(v));
+        if (found) result.push(found);
+      }
+      const otherFemale = englishVoices.filter(v => 
+        v.name.toLowerCase().includes('female') && !result.includes(v)
+      );
+      return [...result, ...otherFemale];
+    };
+
+    const findAllMaleVoices = (): SpeechSynthesisVoice[] => {
+      const result: SpeechSynthesisVoice[] = [];
+      for (const name of preferredMale) {
+        const found = englishVoices.find(v => v.name.includes(name) && !result.includes(v));
+        if (found) result.push(found);
+      }
+      const otherMale = englishVoices.filter(v => 
+        v.name.toLowerCase().includes('male') && 
+        !v.name.toLowerCase().includes('female') && 
+        !result.includes(v)
+      );
+      return [...result, ...otherMale];
+    };
+
+    // Parse new voice ID format (e.g., "female-0", "male-1", "uk-0")
+    if (voiceId.startsWith('female-')) {
+      const index = parseInt(voiceId.split('-')[1], 10);
+      const femaleVoices = findAllFemaleVoices();
+      if (femaleVoices[index]) return femaleVoices[index];
+      return femaleVoices[0] || null;
+    }
+
+    if (voiceId.startsWith('male-')) {
+      const index = parseInt(voiceId.split('-')[1], 10);
+      const maleVoices = findAllMaleVoices();
+      if (maleVoices[index]) return maleVoices[index];
+      return maleVoices[0] || null;
+    }
+
+    if (voiceId.startsWith('uk-')) {
+      const index = parseInt(voiceId.split('-')[1], 10);
+      const ukVoices = englishVoices.filter(v => v.lang === 'en-GB');
+      if (ukVoices[index]) return ukVoices[index];
+      return ukVoices[0] || null;
+    }
+
+    if (voiceId.startsWith('us-')) {
+      const index = parseInt(voiceId.split('-')[1], 10);
+      const usVoices = englishVoices.filter(v => v.lang === 'en-US');
+      if (usVoices[index]) return usVoices[index];
+      return usVoices[0] || null;
+    }
+
+    if (voiceId.startsWith('au-')) {
+      const index = parseInt(voiceId.split('-')[1], 10);
+      const auVoices = englishVoices.filter(v => v.lang === 'en-AU');
+      if (auVoices[index]) return auVoices[index];
+      return auVoices[0] || null;
+    }
+
+    if (voiceId.startsWith('ie-')) {
+      const ieVoices = englishVoices.filter(v => v.lang === 'en-IE');
+      return ieVoices[0] || null;
+    }
+
+    if (voiceId.startsWith('in-')) {
+      const inVoices = englishVoices.filter(v => v.lang === 'en-IN');
+      return inVoices[0] || null;
+    }
     
+    // Legacy format support
     switch (voiceId) {
       case 'female':
-        const femaleVoice = findPreferredVoice(preferredFemale);
-        if (femaleVoice) return femaleVoice;
-        return englishVoices.find(v => v.name.toLowerCase().includes('female')) || null;
+        return findPreferredVoice(preferredFemale) || 
+               englishVoices.find(v => v.name.toLowerCase().includes('female')) || null;
         
       case 'male':
-        const maleVoice = findPreferredVoice(preferredMale);
-        if (maleVoice) return maleVoice;
-        return englishVoices.find(v => v.name.toLowerCase().includes('male') && !v.name.toLowerCase().includes('female')) || null;
+        return findPreferredVoice(preferredMale) || 
+               englishVoices.find(v => v.name.toLowerCase().includes('male') && !v.name.toLowerCase().includes('female')) || null;
         
       case 'uk':
         return englishVoices.find(v => v.lang === 'en-GB') || null;

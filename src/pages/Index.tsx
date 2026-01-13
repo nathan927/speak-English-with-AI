@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Mic, BookOpen, Award, TrendingUp, Users, Globe, Star } from 'lucide-react';
+import { Mic, BookOpen, Award, TrendingUp, Users, Globe, Star, Settings } from 'lucide-react';
 import { GradeSelector } from '@/components/GradeSelector';
 import VoiceTest from '@/components/VoiceTest';
 import { ResultsAnalysis } from '@/components/ResultsAnalysis';
@@ -10,6 +11,7 @@ import LogViewer from '@/components/LogViewer';
 import { logger } from '@/services/logService';
 
 const Index = () => {
+  const navigate = useNavigate();
   const [currentView, setCurrentView] = useState<'home' | 'gradeSelect' | 'test' | 'results'>('home');
   const [selectedGrade, setSelectedGrade] = useState<string>('');
   const [speechRate, setSpeechRate] = useState<number>(0.9);
@@ -17,12 +19,26 @@ const Index = () => {
   const [testResults, setTestResults] = useState<any>(null);
   const [showQuestions, setShowQuestions] = useState<boolean>(false);
 
+  // Load settings from localStorage
+  useEffect(() => {
+    const savedRate = localStorage.getItem('speechRate');
+    const savedVoice = localStorage.getItem('selectedVoiceId');
+    if (savedRate) setSpeechRate(parseFloat(savedRate));
+    if (savedVoice) setSelectedVoiceId(savedVoice);
+  }, [currentView]); // Reload when view changes (user might come back from settings)
+
   const handleStartTest = () => {
     logger.info('User started test from homepage');
     setCurrentView('gradeSelect');
   };
 
-  const handleGradeSelect = (grade: string, rate: number, voiceId: string) => {
+  const handleGradeSelect = (grade: string) => {
+    // Load latest settings from localStorage
+    const savedRate = localStorage.getItem('speechRate');
+    const savedVoice = localStorage.getItem('selectedVoiceId');
+    const rate = savedRate ? parseFloat(savedRate) : 0.9;
+    const voiceId = savedVoice || 'default';
+    
     logger.info('Grade selected', { grade, speechRate: rate, voiceId });
     setSelectedGrade(grade);
     setSpeechRate(rate);
@@ -108,11 +124,19 @@ const Index = () => {
               <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
                 <Mic className="w-6 h-6 text-white" />
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">SpeakCheck HK</h1>
-                <p className="text-sm text-gray-600">AI英語口試即時評測</p>
-              </div>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">SpeakCheck HK</h1>
+              <p className="text-sm text-gray-600">AI英語口試即時評測</p>
             </div>
+          </div>
+          <Button 
+            variant="outline"
+            onClick={() => navigate('/settings')}
+            className="bg-white hover:bg-purple-50 border-2 border-purple-200 hover:border-purple-400 text-purple-700"
+          >
+            <Settings className="w-4 h-4 mr-2" />
+            設定
+          </Button>
           </div>
         </div>
       </header>
