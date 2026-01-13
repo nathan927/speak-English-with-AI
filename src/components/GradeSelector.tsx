@@ -20,6 +20,31 @@ export const GradeSelector = ({ onGradeSelect, onBack }: GradeSelectorProps) => 
     onGradeSelect(grade, speechRate);
   };
 
+  // Function to get an elegant female voice
+  const getElegantFemaleVoice = (): SpeechSynthesisVoice | null => {
+    const voices = window.speechSynthesis.getVoices();
+    
+    const preferredVoices = [
+      'Samantha', 'Karen', 'Moira', 'Tessa',
+      'Google UK English Female', 'Google US English Female',
+      'Microsoft Zira', 'Microsoft Hazel', 'Microsoft Susan',
+      'Fiona', 'Victoria', 'Allison',
+    ];
+    
+    for (const voiceName of preferredVoices) {
+      const voice = voices.find(v => v.name.includes(voiceName) && v.lang.startsWith('en'));
+      if (voice) return voice;
+    }
+    
+    const femaleVoice = voices.find(v => 
+      v.lang.startsWith('en') && 
+      (v.name.toLowerCase().includes('female') || v.name.includes('Samantha'))
+    );
+    if (femaleVoice) return femaleVoice;
+    
+    return voices.find(v => v.lang.startsWith('en')) || null;
+  };
+
   const testSpeechRate = () => {
     const testText = "Hello, this is a test of the speech rate. How does this sound to you?";
     setIsSpeaking(true);
@@ -30,8 +55,16 @@ export const GradeSelector = ({ onGradeSelect, onBack }: GradeSelectorProps) => 
       }
       
       const utterance = new SpeechSynthesisUtterance(testText);
+      
+      // Use elegant female voice
+      const voice = getElegantFemaleVoice();
+      if (voice) {
+        utterance.voice = voice;
+      }
+      
       utterance.lang = 'en-US';
       utterance.rate = speechRate;
+      utterance.pitch = 1.0;
       utterance.volume = 1.0;
       
       utterance.onend = () => setIsSpeaking(false);
