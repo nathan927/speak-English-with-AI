@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, Mic, MicOff, Volume2, Users, MessageCircle, Loader2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { ArrowLeft, Mic, MicOff, Volume2, Users, MessageCircle, Loader2, User } from 'lucide-react';
 import { logger } from '@/services/logService';
 import { 
   generateGroupmateResponse, 
@@ -47,6 +48,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
   const [discussionPhase, setDiscussionPhase] = useState<'intro' | 'discussion' | 'complete'>('intro');
   const [turnCount, setTurnCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [userName, setUserName] = useState('');
   
   // Random groupmates - regenerated each session
   const [groupmates, setGroupmates] = useState<{ supporter: GroupmateIdentity; opposer: GroupmateIdentity } | null>(null);
@@ -79,30 +81,90 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
     });
   }, []);
 
+  // Grade-appropriate discussion topics
+  const getGradeAppropiateTopic = (gradeLevel: string): string => {
+    const primaryTopics: Record<string, string[]> = {
+      'P4': [
+        'Should students have homework every day? Why or why not?',
+        'Is it better to play video games or outdoor games? Share your ideas.',
+        'Should children be allowed to have mobile phones? Discuss.',
+        'Do you think pets are good for children? Why?',
+        'Should schools have more PE lessons? What do you think?'
+      ],
+      'P5': [
+        'Some people think children should learn to cook. Do you agree? Why or why not?',
+        'Should students wear school uniforms? Discuss the advantages and disadvantages.',
+        'Do you think watching TV helps children learn? Share your views.',
+        'Should children be allowed to stay up late on weekends? What is your opinion?',
+        'Is reading books better than reading on tablets? Discuss your thoughts.'
+      ],
+      'P6': [
+        'Some people believe that homework helps students learn better. Others think it takes away free time. What are your thoughts on this issue?',
+        'With the rise of technology, some suggest that handwriting is no longer important. Do you agree or disagree? Give reasons for your answer.',
+        'Should primary school students be allowed to use social media? Discuss the pros and cons.',
+        'Some parents think extra-curricular activities are as important as academic studies. What is your view?',
+        'Do you think online learning is as effective as face-to-face learning? Share your perspective.'
+      ]
+    };
+
+    const secondaryTopics: Record<string, string[]> = {
+      'S1': [
+        'Social media has both positive and negative effects on teenagers. Discuss how young people can use social media responsibly while avoiding its potential harms.',
+        'Some people believe that students should focus only on academic subjects, while others think arts and sports are equally important. What is your view?',
+        'With the increasing use of smartphones, some worry that young people are losing important social skills. Do you agree with this concern?'
+      ],
+      'S2': [
+        'The government is considering extending school hours to improve student performance. Discuss whether you think this would be beneficial for students and explain your reasoning.',
+        'Some educators believe that competitive sports in schools teach valuable life skills, while others argue they put too much pressure on students. What are your thoughts?',
+        'Fast food restaurants are popular among teenagers. Should schools do more to promote healthy eating habits? Discuss the challenges and possible solutions.'
+      ],
+      'S3': [
+        'In recent years, there has been debate about whether students should be required to take part in community service. Consider the benefits and drawbacks, and share your opinion on whether it should be mandatory.',
+        'Some argue that traditional examinations are outdated and should be replaced with alternative assessment methods. Evaluate this viewpoint and discuss what changes, if any, should be made to the current system.',
+        'With the advancement of AI technology, some predict that many jobs will be replaced by machines. How should young people prepare for this changing job market?'
+      ],
+      'S4': [
+        'The Hong Kong government has proposed various measures to tackle youth unemployment. Evaluate the effectiveness of these initiatives and suggest additional strategies that could help young people enter the workforce.',
+        'There is ongoing debate about the balance between economic development and environmental protection in Hong Kong. Discuss how the city can achieve sustainable development while maintaining its competitive edge.',
+        'Mental health issues among teenagers have become increasingly prevalent. Analyze the contributing factors and propose comprehensive solutions involving schools, families, and the government.'
+      ],
+      'S5': [
+        'With rising property prices in Hong Kong, many young people are concerned about their future housing prospects. Critically examine the current housing policies and suggest reforms that could make housing more accessible to the younger generation.',
+        'The COVID-19 pandemic has fundamentally changed the way we work and learn. Evaluate the long-term implications of these changes on society and discuss how individuals and institutions should adapt.',
+        "Some argue that Hong Kong's education system places too much emphasis on academic achievement at the expense of creativity and critical thinking. To what extent do you agree, and what reforms would you propose?"
+      ],
+      'S6': [
+        'As Hong Kong positions itself as a hub for innovation and technology, discuss the policy reforms and cultural shifts needed to foster an entrepreneurial ecosystem that can compete with other global cities like Singapore and Shenzhen.',
+        "The concept of work-life balance is becoming increasingly important to the younger generation. Analyze how this shift in values might impact Hong Kong's economic productivity and corporate culture, and discuss whether employers should adapt their practices.",
+        "With the growing influence of AI and automation, some experts predict that many traditional careers will become obsolete within the next decade. Critically evaluate how Hong Kong's education and training systems should evolve to prepare young people for this uncertain future."
+      ]
+    };
+
+    const allTopics = { ...primaryTopics, ...secondaryTopics };
+    const topics = allTopics[gradeLevel];
+    
+    if (topics && topics.length > 0) {
+      return topics[Math.floor(Math.random() * topics.length)];
+    }
+    
+    return 'Discuss the advantages and disadvantages of technology in education.';
+  };
+
   // Load a discussion topic
   useEffect(() => {
     const loadTopic = () => {
-      // Try to get a group discussion question
-      let question = getRandomQuestionByType(grade, 'dse_group');
+      // Get grade-appropriate topic
+      const topicText = getGradeAppropiateTopic(grade);
       
-      // Fallback for P4-P6 or if no group discussion found
-      if (!question) {
-        question = getRandomQuestionByType(grade, 'speaking');
-      }
+      setTopic({
+        id: Date.now(),
+        text: topicText,
+        section: 'Group Discussion',
+        grade,
+        type: 'dse_group'
+      });
       
-      if (question) {
-        setTopic(question);
-        logger.info('Discussion topic loaded', { topic: question.text, grade });
-      } else {
-        // Default topic
-        setTopic({
-          id: 0,
-          text: 'Discuss the advantages and disadvantages of social media for students.',
-          section: 'Group Discussion',
-          grade,
-          type: 'dse_group'
-        });
-      }
+      logger.info('Discussion topic loaded', { topic: topicText, grade });
       setIsLoading(false);
     };
 
@@ -169,8 +231,11 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
 
     setDiscussionPhase('discussion');
     
-    // Exam-style introduction
-    const introMessage = `Good afternoon everyone. Welcome to our group discussion for the DSE English Speaking Examination. Today's topic is: "${topic.text}". I'm ${groupmates.supporter.name}, and joining us is ${groupmates.opposer.name}. We have about 8 minutes to discuss this topic together. Remember, we should share our views, respond to each other's points, and try to explore different perspectives. Feel free to agree or disagree with each other respectfully. Let's begin - would you like to share your initial thoughts on this topic?`;
+    // Exam-style introduction - include user name if provided
+    const userGreeting = userName.trim() 
+      ? `Welcome ${userName.trim()}, and ` 
+      : '';
+    const introMessage = `Good afternoon everyone. ${userGreeting}welcome to our group discussion for the English Speaking Examination. Today's topic is: "${topic.text}". I'm ${groupmates.supporter.name}, and joining us is ${groupmates.opposer.name}. We have about 8 minutes to discuss this topic together. Remember, we should share our views, respond to each other's points, and try to explore different perspectives. ${userName.trim() ? `${userName.trim()}, would you like to share your initial thoughts on this topic?` : 'Would you like to share your initial thoughts on this topic?'}`;
     
     addMessage('system', introMessage);
     
@@ -276,7 +341,8 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
         userTranscript,
         firstGroupmate.stance,
         conversationHistory,
-        { name: firstGroupmate.name, gender: firstGroupmate.gender, avatar: firstGroupmate.avatar }
+        { name: firstGroupmate.name, gender: firstGroupmate.gender, avatar: firstGroupmate.avatar },
+        userName.trim() || undefined
       );
       
       addMessage(
@@ -298,7 +364,8 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
         userTranscript + ' ' + firstResponse.text,
         secondGroupmate.stance,
         [...conversationHistory, `${firstResponse.groupmateName}: ${firstResponse.text}`],
-        { name: secondGroupmate.name, gender: secondGroupmate.gender, avatar: secondGroupmate.avatar }
+        { name: secondGroupmate.name, gender: secondGroupmate.gender, avatar: secondGroupmate.avatar },
+        userName.trim() || undefined
       );
       
       addMessage(
@@ -449,6 +516,28 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
                   <p className="text-gray-500 dark:text-gray-400 mb-4">
                     Ready to start the group discussion with {groupmates.supporter.name} and {groupmates.opposer.name}?
                   </p>
+                  
+                  {/* Name Input Field */}
+                  <div className="max-w-xs mx-auto mb-6">
+                    <div className="flex items-center gap-2 mb-2">
+                      <User className="w-4 h-4 text-gray-400" />
+                      <label htmlFor="userName" className="text-sm text-gray-600 dark:text-gray-400">
+                        Your English name (optional)
+                      </label>
+                    </div>
+                    <Input
+                      id="userName"
+                      type="text"
+                      placeholder="e.g., Michael, Emily..."
+                      value={userName}
+                      onChange={(e) => setUserName(e.target.value)}
+                      className="text-center bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+                    />
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                      AI groupmates will use your name naturally in conversation
+                    </p>
+                  </div>
+                  
                   <Button 
                     onClick={startDiscussion}
                     className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"

@@ -41,10 +41,17 @@ export async function generateGroupmateResponse(
   userTranscript: string,
   stance: 'support' | 'oppose',
   conversationHistory: string[] = [],
-  groupmateInfo?: { name: string; gender: 'male' | 'female'; avatar: string }
+  groupmateInfo?: { name: string; gender: 'male' | 'female'; avatar: string },
+  userName?: string
 ): Promise<GroupmateResponse> {
   // Use provided info or generate random
   const groupmate = groupmateInfo || generateRandomGroupmate();
+  
+  // How to address the user
+  const userAddress = userName?.trim() ? userName.trim() : '';
+  const addressInstruction = userAddress 
+    ? `IMPORTANT: The speaker's name is ${userAddress}. Naturally use their name occasionally (e.g., "I agree with ${userAddress}..." or "That's a great point, ${userAddress}...") but don't overuse it.`
+    : '';
   
   // Detailed exam-style prompts with reasoning and examples
   const stanceInstruction = stance === 'support' 
@@ -70,6 +77,8 @@ THIS IS AN EXAM SETTING - You must demonstrate:
 
 YOUR ROLE: ${stanceInstruction}
 
+${addressInstruction}
+
 RESPONSE STRUCTURE (4-6 sentences):
 1. ACKNOWLEDGE: Reference the speaker's specific point
 2. RESPOND: State your position with clear reasoning  
@@ -90,6 +99,8 @@ RESPOND IN ENGLISH ONLY.`;
 
 TOPIC: "${topic}"
 
+${userAddress ? `SPEAKER'S NAME: ${userAddress}` : ''}
+
 WHAT THE PREVIOUS SPEAKER SAID (you MUST respond directly to THIS):
 "${userTranscript}"
 
@@ -100,6 +111,7 @@ YOUR TASK as ${groupmate.name}:
 2. ${stance === 'support' ? 'AGREE and strengthen their argument with your own reasoning and example' : 'POLITELY DISAGREE and offer counter-arguments with your own example'}
 3. Show INSIGHT and critical thinking
 4. Keep response 4-6 sentences, exam-appropriate but natural
+${userAddress ? `5. Naturally use the speaker's name "${userAddress}" once or twice in your response` : ''}
 
 Remember: This is a REAL exam. Show the examiner you can think critically, use examples, and engage meaningfully with others' ideas.`;
 
