@@ -37,7 +37,7 @@ export const GradeSelector = ({ onGradeSelect, onDiscussionSelect, onBack }: Gra
     {
       title: "幼稚園",
       subtitle: "Kindergarten (K1-K3)",
-      description: "遊戲化設計，大按鈕介面，鮮豔色彩",
+      description: "",
       grades: ["K1", "K2", "K3"],
       bgColor: "bg-pink-50",
       borderColor: "border-pink-200"
@@ -45,7 +45,7 @@ export const GradeSelector = ({ onGradeSelect, onDiscussionSelect, onBack }: Gra
     {
       title: "小學",
       subtitle: "Primary School (P1-P6)", 
-      description: "成就徽章，進度追蹤，互動元素",
+      description: "",
       grades: ["P1", "P2", "P3", "P4", "P5", "P6"],
       bgColor: "bg-blue-50",
       borderColor: "border-blue-200"
@@ -53,7 +53,7 @@ export const GradeSelector = ({ onGradeSelect, onDiscussionSelect, onBack }: Gra
     {
       title: "中學",
       subtitle: "Secondary School (S1-S6)",
-      description: "專業分析，詳細報告，自主學習",
+      description: "",
       grades: ["S1", "S2", "S3", "S4", "S5", "S6"],
       bgColor: "bg-green-50", 
       borderColor: "border-green-200"
