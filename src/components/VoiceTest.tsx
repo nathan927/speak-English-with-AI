@@ -99,6 +99,62 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
     }
   };
 
+  // Function to get an elegant female voice
+  const getElegantFemaleVoice = (): SpeechSynthesisVoice | null => {
+    const voices = window.speechSynthesis.getVoices();
+    
+    // Prioritized list of elegant female voices (most natural sounding)
+    const preferredVoices = [
+      'Samantha', // macOS - very natural
+      'Karen', // macOS Australian
+      'Moira', // macOS Irish
+      'Tessa', // macOS South African
+      'Google UK English Female',
+      'Google US English Female', 
+      'Microsoft Zira',
+      'Microsoft Hazel',
+      'Microsoft Susan',
+      'Fiona', // macOS Scottish
+      'Victoria', // macOS
+      'Allison', // macOS
+    ];
+    
+    // Try to find a preferred voice
+    for (const voiceName of preferredVoices) {
+      const voice = voices.find(v => 
+        v.name.includes(voiceName) && v.lang.startsWith('en')
+      );
+      if (voice) {
+        logger.info('Selected voice', { name: voice.name, lang: voice.lang });
+        return voice;
+      }
+    }
+    
+    // Fallback: find any female English voice
+    const femaleVoice = voices.find(v => 
+      v.lang.startsWith('en') && 
+      (v.name.toLowerCase().includes('female') || 
+       v.name.includes('Samantha') ||
+       v.name.includes('Karen') ||
+       v.name.includes('Zira') ||
+       v.name.includes('Hazel'))
+    );
+    
+    if (femaleVoice) {
+      logger.info('Using fallback female voice', { name: femaleVoice.name });
+      return femaleVoice;
+    }
+    
+    // Last resort: any English voice
+    const englishVoice = voices.find(v => v.lang.startsWith('en'));
+    if (englishVoice) {
+      logger.info('Using English voice', { name: englishVoice.name });
+      return englishVoice;
+    }
+    
+    return null;
+  };
+
   // Function to speak the current question
   const speakQuestion = (text: string) => {
     if (!speechInitialized) {
@@ -110,13 +166,23 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
     window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = speechRate; // Set speech rate
+    
+    // Get elegant female voice
+    const voice = getElegantFemaleVoice();
+    if (voice) {
+      utterance.voice = voice;
+    }
+    
+    // Natural speech settings
+    utterance.rate = speechRate; // User-controlled rate (default 0.9 for natural pace)
+    utterance.pitch = 1.0; // Natural pitch
+    utterance.volume = 1.0; // Full volume
     utterance.lang = 'en-US'; // Set language
 
     utterance.onstart = () => {
       setIsPlaying(true);
       setIsPaused(false);
-      logger.info('Speech started');
+      logger.info('Speech started', { voice: voice?.name || 'default' });
     };
 
     utterance.onend = () => {
