@@ -1,52 +1,182 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
-import { ArrowLeft, Mic, Volume2 } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { ArrowLeft, Volume2, Play, Check } from 'lucide-react';
 import { logger } from '@/services/logService';
 
+interface VoiceOption {
+  id: string;
+  name: string;
+  description: string;
+  voice: SpeechSynthesisVoice | null;
+}
+
 interface GradeSelectorProps {
-  onGradeSelect: (grade: string, speechRate: number) => void;
+  onGradeSelect: (grade: string, speechRate: number, voiceId: string) => void;
   onBack: () => void;
 }
 
 export const GradeSelector = ({ onGradeSelect, onBack }: GradeSelectorProps) => {
   const [speechRate, setSpeechRate] = useState(0.9);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [availableVoices, setAvailableVoices] = useState<VoiceOption[]>([]);
+  const [selectedVoiceId, setSelectedVoiceId] = useState<string>('default');
+  const [previewingVoiceId, setPreviewingVoiceId] = useState<string | null>(null);
+
+  // Load available voices
+  useEffect(() => {
+    const loadVoices = () => {
+      const voices = window.speechSynthesis.getVoices();
+      const englishVoices = voices.filter(v => v.lang.startsWith('en'));
+      
+      // Preferred voice names for elegant female voices
+      const preferredFemale = ['Samantha', 'Karen', 'Moira', 'Tessa', 'Google UK English Female', 'Google US English Female', 'Microsoft Zira', 'Microsoft Hazel', 'Fiona', 'Victoria', 'Allison'];
+      const preferredMale = ['Daniel', 'Alex', 'Google UK English Male', 'Google US English Male', 'Microsoft David', 'Microsoft Mark'];
+      
+      const voiceOptions: VoiceOption[] = [];
+      
+      // Find best female voice
+      let femaleVoice: SpeechSynthesisVoice | null = null;
+      for (const name of preferredFemale) {
+        const found = englishVoices.find(v => v.name.includes(name));
+        if (found) {
+          femaleVoice = found;
+          break;
+        }
+      }
+      if (!femaleVoice) {
+        femaleVoice = englishVoices.find(v => v.name.toLowerCase().includes('female')) || null;
+      }
+      
+      // Find best male voice
+      let maleVoice: SpeechSynthesisVoice | null = null;
+      for (const name of preferredMale) {
+        const found = englishVoices.find(v => v.name.includes(name));
+        if (found) {
+          maleVoice = found;
+          break;
+        }
+      }
+      if (!maleVoice) {
+        maleVoice = englishVoices.find(v => v.name.toLowerCase().includes('male') && !v.name.toLowerCase().includes('female')) || null;
+      }
+      
+      // Add default option (system will choose best)
+      voiceOptions.push({
+        id: 'default',
+        name: '自動選擇',
+        description: '系統自動選擇最佳女聲',
+        voice: femaleVoice
+      });
+      
+      // Add female option if available
+      if (femaleVoice) {
+        voiceOptions.push({
+          id: 'female',
+          name: '優雅女聲',
+          description: femaleVoice.name,
+          voice: femaleVoice
+        });
+      }
+      
+      // Add male option if available
+      if (maleVoice) {
+        voiceOptions.push({
+          id: 'male',
+          name: '專業男聲',
+          description: maleVoice.name,
+          voice: maleVoice
+        });
+      }
+      
+      // Add some specific regional voices if available
+      const ukVoice = englishVoices.find(v => v.lang === 'en-GB');
+      const usVoice = englishVoices.find(v => v.lang === 'en-US' && v !== femaleVoice && v !== maleVoice);
+      const auVoice = englishVoices.find(v => v.lang === 'en-AU');
+      
+      if (ukVoice && ukVoice !== femaleVoice && ukVoice !== maleVoice) {
+        voiceOptions.push({
+          id: 'uk',
+          name: '英式發音',
+          description: ukVoice.name,
+          voice: ukVoice
+        });
+      }
+      
+      if (auVoice && auVoice !== femaleVoice && auVoice !== maleVoice) {
+        voiceOptions.push({
+          id: 'au',
+          name: '澳洲發音',
+          description: auVoice.name,
+          voice: auVoice
+        });
+      }
+      
+      setAvailableVoices(voiceOptions);
+      logger.info('Loaded voices', { count: voiceOptions.length });
+    };
+
+    // Load voices immediately and also when voices change
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+    
+    return () => {
+      window.speechSynthesis.onvoiceschanged = null;
+    };
+  }, []);
 
   const handleGradeSelect = (grade: string) => {
-    logger.info('Grade selected in GradeSelector', { grade, speechRate });
-    onGradeSelect(grade, speechRate);
+    logger.info('Grade selected in GradeSelector', { grade, speechRate, voiceId: selectedVoiceId });
+    onGradeSelect(grade, speechRate, selectedVoiceId);
   };
 
-  // Function to get an elegant female voice
-  const getElegantFemaleVoice = (): SpeechSynthesisVoice | null => {
-    const voices = window.speechSynthesis.getVoices();
+  const getSelectedVoice = (voiceId: string): SpeechSynthesisVoice | null => {
+    const option = availableVoices.find(v => v.id === voiceId);
+    return option?.voice || null;
+  };
+
+  const previewVoice = (voiceId: string) => {
+    const testText = "Hello! I will be reading the questions for you today. How does my voice sound?";
     
-    const preferredVoices = [
-      'Samantha', 'Karen', 'Moira', 'Tessa',
-      'Google UK English Female', 'Google US English Female',
-      'Microsoft Zira', 'Microsoft Hazel', 'Microsoft Susan',
-      'Fiona', 'Victoria', 'Allison',
-    ];
-    
-    for (const voiceName of preferredVoices) {
-      const voice = voices.find(v => v.name.includes(voiceName) && v.lang.startsWith('en'));
-      if (voice) return voice;
+    if ('speechSynthesis' in window) {
+      if (speechSynthesis.speaking) {
+        speechSynthesis.cancel();
+      }
+      
+      setPreviewingVoiceId(voiceId);
+      setIsSpeaking(true);
+      
+      const utterance = new SpeechSynthesisUtterance(testText);
+      const voice = getSelectedVoice(voiceId);
+      
+      if (voice) {
+        utterance.voice = voice;
+      }
+      
+      utterance.lang = 'en-US';
+      utterance.rate = speechRate;
+      utterance.pitch = 1.0;
+      utterance.volume = 1.0;
+      
+      utterance.onend = () => {
+        setIsSpeaking(false);
+        setPreviewingVoiceId(null);
+      };
+      utterance.onerror = () => {
+        setIsSpeaking(false);
+        setPreviewingVoiceId(null);
+      };
+      
+      speechSynthesis.speak(utterance);
     }
-    
-    const femaleVoice = voices.find(v => 
-      v.lang.startsWith('en') && 
-      (v.name.toLowerCase().includes('female') || v.name.includes('Samantha'))
-    );
-    if (femaleVoice) return femaleVoice;
-    
-    return voices.find(v => v.lang.startsWith('en')) || null;
   };
 
   const testSpeechRate = () => {
-    const testText = "Hello, this is a test of the speech rate. How does this sound to you?";
+    const testText = "This is a test of the speech rate. How does this sound to you?";
     setIsSpeaking(true);
     
     if ('speechSynthesis' in window) {
@@ -55,9 +185,8 @@ export const GradeSelector = ({ onGradeSelect, onBack }: GradeSelectorProps) => 
       }
       
       const utterance = new SpeechSynthesisUtterance(testText);
+      const voice = getSelectedVoice(selectedVoiceId);
       
-      // Use elegant female voice
-      const voice = getElegantFemaleVoice();
       if (voice) {
         utterance.voice = voice;
       }
@@ -123,7 +252,72 @@ export const GradeSelector = ({ onGradeSelect, onBack }: GradeSelectorProps) => 
           </div>
         </div>
 
-        {/* Speech Rate Control - Compact for mobile */}
+        {/* Voice Selection Card */}
+        <Card className="mb-4 md:mb-6 max-w-2xl mx-auto border-2 border-purple-200 bg-purple-50/50">
+          <CardHeader className="pb-3 md:pb-4">
+            <CardTitle className="flex items-center text-lg md:text-xl">
+              <Volume2 className="w-4 h-4 md:w-5 md:h-5 mr-2 text-purple-600" />
+              選擇語音
+            </CardTitle>
+            <CardDescription className="text-sm">
+              點擊試聽按鈕預覽不同語音效果
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <RadioGroup
+              value={selectedVoiceId}
+              onValueChange={setSelectedVoiceId}
+              className="space-y-3"
+            >
+              {availableVoices.map((voiceOption) => (
+                <div 
+                  key={voiceOption.id}
+                  className={`flex items-center justify-between p-3 rounded-lg border-2 transition-all duration-200 ${
+                    selectedVoiceId === voiceOption.id 
+                      ? 'border-purple-500 bg-white shadow-sm' 
+                      : 'border-gray-200 bg-white/50 hover:border-purple-300'
+                  }`}
+                >
+                  <div className="flex items-center space-x-3">
+                    <RadioGroupItem value={voiceOption.id} id={voiceOption.id} />
+                    <Label htmlFor={voiceOption.id} className="cursor-pointer flex-1">
+                      <div className="font-medium text-gray-900">{voiceOption.name}</div>
+                      <div className="text-xs text-gray-500">{voiceOption.description}</div>
+                    </Label>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => previewVoice(voiceOption.id)}
+                    disabled={isSpeaking}
+                    className="flex items-center space-x-1 ml-2"
+                  >
+                    {previewingVoiceId === voiceOption.id ? (
+                      <>
+                        <Volume2 className="w-3 h-3 animate-pulse" />
+                        <span className="text-xs">播放中</span>
+                      </>
+                    ) : (
+                      <>
+                        <Play className="w-3 h-3" />
+                        <span className="text-xs">試聽</span>
+                      </>
+                    )}
+                  </Button>
+                </div>
+              ))}
+            </RadioGroup>
+            
+            {selectedVoiceId && (
+              <div className="mt-3 flex items-center text-sm text-green-600">
+                <Check className="w-4 h-4 mr-1" />
+                已選擇：{availableVoices.find(v => v.id === selectedVoiceId)?.name}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Speech Rate Control */}
         <Card className="mb-4 md:mb-8 max-w-2xl mx-auto">
           <CardHeader className="pb-3 md:pb-6">
             <CardTitle className="flex items-center text-lg md:text-xl">
@@ -164,7 +358,7 @@ export const GradeSelector = ({ onGradeSelect, onBack }: GradeSelectorProps) => 
           </CardContent>
         </Card>
 
-        {/* Grade Selection - Compact mobile layout */}
+        {/* Grade Selection */}
         <div className="max-w-6xl mx-auto space-y-4 md:space-y-8">
           {gradeGroups.map((group) => (
             <Card key={group.title} className={`${group.bgColor} ${group.borderColor} border-2`}>

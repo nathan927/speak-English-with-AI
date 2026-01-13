@@ -13,6 +13,7 @@ const Index = () => {
   const [currentView, setCurrentView] = useState<'home' | 'gradeSelect' | 'test' | 'results'>('home');
   const [selectedGrade, setSelectedGrade] = useState<string>('');
   const [speechRate, setSpeechRate] = useState<number>(0.9);
+  const [selectedVoiceId, setSelectedVoiceId] = useState<string>('default');
   const [testResults, setTestResults] = useState<any>(null);
   const [showQuestions, setShowQuestions] = useState<boolean>(false);
 
@@ -21,10 +22,11 @@ const Index = () => {
     setCurrentView('gradeSelect');
   };
 
-  const handleGradeSelect = (grade: string, rate: number) => {
-    logger.info('Grade selected', { grade, speechRate: rate });
+  const handleGradeSelect = (grade: string, rate: number, voiceId: string) => {
+    logger.info('Grade selected', { grade, speechRate: rate, voiceId });
     setSelectedGrade(grade);
     setSpeechRate(rate);
+    setSelectedVoiceId(voiceId);
     setCurrentView('test');
   };
 
@@ -76,6 +78,7 @@ const Index = () => {
       <VoiceTest 
         grade={selectedGrade}
         speechRate={speechRate}
+        voiceId={selectedVoiceId}
         showQuestions={showQuestions}
         onComplete={handleTestComplete}
         onBack={() => setCurrentView('gradeSelect')}
