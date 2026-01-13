@@ -109,17 +109,194 @@ Remember: Rephrase the topic naturally, don't quote it. Sound like a real studen
 
 interface GroupmateResponse {
   text: string;
-  stance: 'support' | 'oppose';
+  stance: 'support' | 'oppose' | 'mediator';
   groupmateName: string;
   gender: 'male' | 'female';
   avatar: string;
 }
 
+// Argument feedback interface
+export interface ArgumentFeedback {
+  strength: 'weak' | 'moderate' | 'strong';
+  score: number; // 1-10
+  positives: string[];
+  improvements: string[];
+}
+
+// Analyze user's argument and provide real-time feedback
+export async function analyzeArgumentStrength(
+  userTranscript: string,
+  topic: string
+): Promise<ArgumentFeedback> {
+  const provider = getRandomProvider();
+  
+  const systemPrompt = `You are an expert speaking examiner. Analyze the student's argument and provide feedback in JSON format.
+
+Evaluate based on:
+1. RELEVANCE: Does it address the topic directly?
+2. REASONING: Is the logic clear and sound?
+3. EXAMPLES: Are there concrete examples or evidence?
+4. VOCABULARY: Is the language appropriate and varied?
+5. STRUCTURE: Is the argument well-organized?
+
+Return ONLY valid JSON (no markdown):
+{
+  "strength": "weak" | "moderate" | "strong",
+  "score": 1-10,
+  "positives": ["1-2 specific things done well"],
+  "improvements": ["1-2 specific actionable suggestions"]
+}`;
+
+  try {
+    const response = await fetch(provider.url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${provider.apiKey}`,
+        'HTTP-Referer': 'https://lovable.dev',
+        'X-Title': 'English Speaking Practice'
+      },
+      body: JSON.stringify({
+        model: provider.model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: `TOPIC: "${topic}"\n\nSTUDENT SAID: "${userTranscript}"\n\nAnalyze and return JSON only.` }
+        ],
+        max_tokens: 200,
+        temperature: 0.3
+      })
+    });
+
+    if (!response.ok) throw new Error('API failed');
+    
+    const data = await response.json();
+    let text = data.choices?.[0]?.message?.content?.trim() || '';
+    
+    // Clean up potential markdown wrapping
+    text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    
+    const parsed = JSON.parse(text);
+    return {
+      strength: parsed.strength || 'moderate',
+      score: Math.min(10, Math.max(1, parsed.score || 5)),
+      positives: parsed.positives || ['Good attempt'],
+      improvements: parsed.improvements || ['Try adding more examples']
+    };
+  } catch (error) {
+    logger.error('Failed to analyze argument', { error });
+    // Fallback analysis based on simple heuristics
+    const wordCount = userTranscript.split(' ').length;
+    const hasExample = /for example|for instance|such as|like when/i.test(userTranscript);
+    const hasBecause = /because|since|therefore|so that/i.test(userTranscript);
+    
+    let score = 5;
+    if (wordCount > 30) score += 1;
+    if (wordCount > 50) score += 1;
+    if (hasExample) score += 2;
+    if (hasBecause) score += 1;
+    
+    return {
+      strength: score >= 7 ? 'strong' : score >= 5 ? 'moderate' : 'weak',
+      score: Math.min(10, score),
+      positives: hasExample ? ['Good use of examples'] : ['You shared your opinion'],
+      improvements: !hasExample ? ['Try adding a specific example'] : ['Consider addressing counter-arguments']
+    };
+  }
+}
+
+// Generate mediator response - summarizes and asks follow-up questions
+export async function generateMediatorResponse(
+  topic: string,
+  conversationHistory: string[],
+  mediatorInfo: { name: string; gender: 'male' | 'female'; avatar: string },
+  userName?: string,
+  shouldAskQuestion: boolean = true
+): Promise<GroupmateResponse> {
+  const provider = getRandomProvider();
+  
+  const userAddress = userName?.trim() || '';
+  
+  const systemPrompt = `You are ${mediatorInfo.name}, a thoughtful MEDIATOR in a group discussion exam.
+
+YOUR ROLE:
+- SUMMARIZE the key points from different speakers concisely
+- CONNECT different viewpoints to show how they relate
+- ASK thought-provoking FOLLOW-UP QUESTIONS to deepen discussion
+- INVITE specific people to respond or share more
+
+${userAddress ? `The main participant is ${userAddress}. Address them by name when asking questions.` : ''}
+
+MEDIATOR TECHNIQUES:
+- "So we've heard two interesting perspectives: [X] and [Y]. But I'm curious about..."
+- "That's a great point, and it makes me wonder - what do you think about...?"
+- "${userAddress || 'You'}, I'd love to hear your take on [specific aspect]..."
+- "Building on what everyone said, let me ask: [deeper question]?"
+- "It seems like we agree on X but differ on Y. ${userAddress || 'What'}'s your view?"
+
+Keep it 3-4 sentences. Be warm, curious, and encouraging.`;
+
+  const userPrompt = `TOPIC: "${topic}"
+
+DISCUSSION SO FAR:
+${conversationHistory.slice(-6).join('\n')}
+
+YOUR TASK as ${mediatorInfo.name} (Mediator):
+1. Briefly acknowledge or summarize what's been discussed
+2. ${shouldAskQuestion ? `Ask a thought-provoking follow-up question to ${userAddress || 'the group'}` : 'Share an insight that connects different viewpoints'}
+3. Keep it natural and conversational`;
+
+  try {
+    const response = await fetch(provider.url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${provider.apiKey}`,
+        'HTTP-Referer': 'https://lovable.dev',
+        'X-Title': 'English Speaking Practice'
+      },
+      body: JSON.stringify({
+        model: provider.model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        max_tokens: 200,
+        temperature: 0.85
+      })
+    });
+
+    if (!response.ok) throw new Error('API failed');
+    
+    const data = await response.json();
+    let text = data.choices?.[0]?.message?.content?.trim() || '';
+    text = text.replace(/^["']|["']$/g, '').trim();
+    
+    return {
+      text: text || `That's interesting! ${userAddress ? `${userAddress}, what` : 'What'} do you think about the other side of this issue?`,
+      stance: 'mediator',
+      groupmateName: mediatorInfo.name,
+      gender: mediatorInfo.gender,
+      avatar: mediatorInfo.avatar
+    };
+  } catch (error) {
+    logger.error('Failed to generate mediator response', { error });
+    return {
+      text: `Great points from everyone! ${userAddress ? `${userAddress}, I'm` : "I'm"} curious - can you give us a specific example from your own experience?`,
+      stance: 'mediator',
+      groupmateName: mediatorInfo.name,
+      gender: mediatorInfo.gender,
+      avatar: mediatorInfo.avatar
+    };
+  }
+}
+
 // Random name pools for variety
 const MALE_NAMES = ['Alex', 'Jordan', 'Chris', 'Sam', 'Max', 'Ryan', 'Tom', 'Jake'];
 const FEMALE_NAMES = ['Emma', 'Lily', 'Sophie', 'Mia', 'Chloe', 'Zoe', 'Amy', 'Kate'];
+const MEDIATOR_NAMES = ['Jamie', 'Taylor', 'Morgan', 'Casey', 'Riley', 'Quinn'];
 const MALE_AVATARS = ['👨‍🎓', '🧑‍💼', '👦', '🙋‍♂️'];
 const FEMALE_AVATARS = ['👩‍🎓', '👧', '🙋‍♀️', '💁‍♀️'];
+const MEDIATOR_AVATARS = ['🎯', '💡', '🤔', '📝'];
 
 // Generate random groupmate identity
 export function generateRandomGroupmate(): { name: string; gender: 'male' | 'female'; avatar: string } {
@@ -134,13 +311,24 @@ export function generateRandomGroupmate(): { name: string; gender: 'male' | 'fem
   };
 }
 
+// Generate random mediator identity
+export function generateRandomMediator(): { name: string; gender: 'male' | 'female'; avatar: string } {
+  const gender = Math.random() > 0.5 ? 'male' : 'female';
+  return {
+    name: MEDIATOR_NAMES[Math.floor(Math.random() * MEDIATOR_NAMES.length)],
+    gender,
+    avatar: MEDIATOR_AVATARS[Math.floor(Math.random() * MEDIATOR_AVATARS.length)]
+  };
+}
+
 export async function generateGroupmateResponse(
   topic: string,
   userTranscript: string,
   stance: 'support' | 'oppose',
   conversationHistory: string[] = [],
   groupmateInfo?: { name: string; gender: 'male' | 'female'; avatar: string },
-  userName?: string
+  userName?: string,
+  shouldAskQuestion: boolean = false
 ): Promise<GroupmateResponse> {
   // Use provided info or generate random
   const groupmate = groupmateInfo || generateRandomGroupmate();
@@ -199,6 +387,14 @@ export async function generateGroupmateResponse(
        
        Be INCISIVE but RESPECTFUL. Challenge ideas, not the person.`;
 
+  // Question instruction if needed
+  const questionInstruction = shouldAskQuestion
+    ? `\n\nIMPORTANT: End your response with a QUESTION directed at ${userAddress || 'the speaker'} or another groupmate. Examples:
+       - "${userAddress || 'What'}, do you think that would also apply in [specific situation]?"
+       - "But what if we look at it from [different perspective]? ${userAddress ? userAddress + ', do' : 'Do'} you agree?"
+       - "I'm curious - ${userAddress || 'do you'} have any personal experience with this?"`
+    : '';
+
   const systemPrompt = `You are ${groupmate.name}, a highly articulate secondary school student in Hong Kong participating in a FORMAL DSE English Speaking Examination group discussion.
 
 THIS IS AN EXAM SETTING - You must demonstrate:
@@ -211,6 +407,7 @@ THIS IS AN EXAM SETTING - You must demonstrate:
 YOUR ROLE: ${stanceInstruction}
 
 ${addressInstruction}
+${questionInstruction}
 
 CRITICAL: Be HUMAN and NATURAL. If someone says something off-topic like "hello can you hear me", DON'T pretend they made a point about the topic. Instead, acknowledge warmly and redirect.
 
@@ -223,7 +420,7 @@ ${inputIsIrrelevant
   : `1. ACKNOWLEDGE: Reference the speaker's specific point
 2. RESPOND: State your position with clear reasoning  
 3. EXAMPLE: Give a concrete, relevant example
-4. INSIGHT: Add depth with further analysis or implications`}
+4. INSIGHT: Add depth with further analysis or implications${shouldAskQuestion ? '\n5. QUESTION: End with a thought-provoking question' : ''}`}
 
 SPEAK NATURALLY but SUBSTANTIVELY. Show you are actively listening and THINKING CRITICALLY.
 
