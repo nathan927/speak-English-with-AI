@@ -46,46 +46,62 @@ export async function generateGroupmateResponse(
   // Use provided info or generate random
   const groupmate = groupmateInfo || generateRandomGroupmate();
   
-  // More specific and contextual prompts
+  // Detailed exam-style prompts with reasoning and examples
   const stanceInstruction = stance === 'support' 
-    ? `You STRONGLY AGREE with what the speaker just said. You must:
-       - DIRECTLY quote or paraphrase their EXACT words (e.g., "I totally agree that [what they said]...")
-       - Add a specific supporting reason or example that relates to THEIR point
-       - Show enthusiasm for their specific idea`
-    : `You POLITELY DISAGREE with what the speaker just said. You must:
-       - First acknowledge their SPECIFIC point (e.g., "You mentioned [their point], but...")  
-       - Offer a concrete counter-argument or alternative view
-       - Be respectful but challenge their reasoning`;
+    ? `You AGREE with and BUILD UPON the speaker's argument. You must:
+       - First, explicitly acknowledge their KEY POINT by paraphrasing it
+       - Then provide 1-2 STRONG supporting reasons with logical explanation
+       - Include a CONCRETE EXAMPLE (real-life scenario, statistics, or personal experience)
+       - End with an INSIGHT that extends or deepens their thinking`
+    : `You RESPECTFULLY CHALLENGE the speaker's viewpoint. You must:
+       - First, acknowledge what they said fairly ("You raise a good point about X, however...")
+       - Then present 1-2 COUNTER-ARGUMENTS with clear reasoning
+       - Include a CONCRETE EXAMPLE that supports YOUR alternative view
+       - Offer a different perspective or INSIGHT they may not have considered`;
 
-  const systemPrompt = `You are ${groupmate.name}, a ${groupmate.gender === 'male' ? 'male' : 'female'} secondary school student in Hong Kong having a casual group discussion.
+  const systemPrompt = `You are ${groupmate.name}, a highly articulate secondary school student in Hong Kong participating in a FORMAL DSE English Speaking Examination group discussion.
 
-CRITICAL RULES:
-1. You MUST directly reference what the previous speaker ACTUALLY said - use their exact words or ideas
-2. Your response must be SPECIFICALLY about what they talked about, not generic
-3. Keep it short: 2-3 sentences maximum
-4. Sound like a real teenager, use casual language
-5. ${stanceInstruction}
+THIS IS AN EXAM SETTING - You must demonstrate:
+✓ Critical thinking with logical reasoning
+✓ Use of concrete examples (real cases, statistics, scenarios)
+✓ Insightful analysis that shows depth of thought
+✓ Natural conversation flow with proper discourse markers
+✓ Academic vocabulary appropriate for exam
 
-Example of GOOD response if user said "I like pizza because it's cheesy":
-- Support: "Oh I'm with you on the pizza thing! The cheesy part is the best, especially when it stretches. Have you tried stuffed crust?"
-- Oppose: "Pizza's okay, but honestly I think the cheese makes it too heavy. I'd rather have something lighter like sushi."
+YOUR ROLE: ${stanceInstruction}
 
-Example of BAD response (too generic, doesn't reference what user said):
-- "That's an interesting point. I think we should consider different perspectives."
+RESPONSE STRUCTURE (4-6 sentences):
+1. ACKNOWLEDGE: Reference the speaker's specific point
+2. RESPOND: State your position with clear reasoning  
+3. EXAMPLE: Give a concrete, relevant example
+4. INSIGHT: Add depth with further analysis or implications
 
-RESPOND IN ENGLISH ONLY. Be natural and conversational.`;
+DISCOURSE MARKERS TO USE:
+- Agreement: "I completely agree with your point about...", "Building on what you said...", "That's exactly what I was thinking..."
+- Disagreement: "While I understand your perspective on...", "That's a fair point, but we should also consider...", "I see where you're coming from, however..."
+- Adding examples: "For instance...", "Take for example...", "A good case in point would be..."
+- Showing insight: "What's interesting is...", "This also relates to...", "Looking at the bigger picture..."
 
-  const userPrompt = `DISCUSSION TOPIC: "${topic}"
+SPEAK NATURALLY but SUBSTANTIVELY. Show you are actively listening and THINKING CRITICALLY.
 
-THE PREVIOUS SPEAKER JUST SAID (you MUST respond to THIS):
+RESPOND IN ENGLISH ONLY.`;
+
+  const userPrompt = `=== DSE GROUP DISCUSSION ===
+
+TOPIC: "${topic}"
+
+WHAT THE PREVIOUS SPEAKER SAID (you MUST respond directly to THIS):
 "${userTranscript}"
 
-${conversationHistory.length > 0 ? `Earlier in the discussion:\n${conversationHistory.slice(-3).join('\n')}\n` : ''}
+${conversationHistory.length > 0 ? `DISCUSSION CONTEXT:\n${conversationHistory.slice(-4).join('\n')}\n` : ''}
 
-Now respond as ${groupmate.name}. Your response MUST:
-1. Mention something specific from "${userTranscript}"
-2. ${stance === 'support' ? 'Agree and build on their point' : 'Politely disagree with a reason'}
-3. Be 2-3 sentences, casual and natural`;
+YOUR TASK as ${groupmate.name}:
+1. DIRECTLY reference and respond to: "${userTranscript}"
+2. ${stance === 'support' ? 'AGREE and strengthen their argument with your own reasoning and example' : 'POLITELY DISAGREE and offer counter-arguments with your own example'}
+3. Show INSIGHT and critical thinking
+4. Keep response 4-6 sentences, exam-appropriate but natural
+
+Remember: This is a REAL exam. Show the examiner you can think critically, use examples, and engage meaningfully with others' ideas.`;
 
   try {
     logger.info('Generating AI groupmate response', { 
@@ -107,8 +123,8 @@ Now respond as ${groupmate.name}. Your response MUST:
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        max_tokens: 150,
-        temperature: 0.9
+        max_tokens: 300, // Increased for more detailed responses
+        temperature: 0.85 // Slightly lower for more coherent reasoning
       })
     });
 
@@ -141,12 +157,13 @@ Now respond as ${groupmate.name}. Your response MUST:
   } catch (error) {
     logger.error('Failed to generate AI groupmate response', { error, stance });
     
-    // Smart fallback that tries to reference the user's words
-    const keywords = userTranscript.split(' ').filter(w => w.length > 3).slice(0, 3);
-    const keywordPhrase = keywords.length > 0 ? keywords.join(' ') : 'that';
+    // Improved fallback with exam-style response
+    const keywords = userTranscript.split(' ').filter(w => w.length > 3).slice(0, 4);
+    const keywordPhrase = keywords.length > 0 ? keywords.join(' ') : 'this topic';
     
-    const fallbackSupport = `Yeah, I totally get what you mean about ${keywordPhrase}. That's a really good point actually!`;
-    const fallbackOppose = `Hmm, I see what you're saying about ${keywordPhrase}, but I'm not sure I agree. Maybe we should think about it differently?`;
+    const fallbackSupport = `I completely agree with your point about ${keywordPhrase}. Building on what you said, I think this is particularly important because it affects many students in Hong Kong. For example, in my own experience, I've seen how this issue impacts daily life. What's interesting is that this connects to broader social trends we're seeing today.`;
+    
+    const fallbackOppose = `That's a fair point about ${keywordPhrase}, but I'd like to offer a different perspective. While I understand where you're coming from, we should also consider that there are alternative viewpoints. For instance, some people might argue that the opposite is true in certain situations. Looking at the bigger picture, I think we need to weigh both sides carefully.`;
     
     return {
       text: stance === 'support' ? fallbackSupport : fallbackOppose,
