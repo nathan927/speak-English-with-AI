@@ -5,9 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Mic, MicOff, Volume2, Users, MessageCircle, Loader2, User, Star, Clock, BookOpen, History, Edit2, Check, X, Play, Square, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Mic, MicOff, Volume2, Users, MessageCircle, Loader2, User, Star, Clock, BookOpen, History, Edit2, Check, X } from 'lucide-react';
 import { logger } from '@/services/logService';
-import { getRandomTopic } from '@/data/discussionTopics';
 import { 
   generateGroupmateResponse, 
   speakGroupmateResponse, 
@@ -49,7 +48,6 @@ interface DiscussionMessage {
   stance?: 'support' | 'oppose' | 'mediator';
   text: string;
   timestamp: Date;
-  audioUrl?: string; // URL for user's recorded audio playback
 }
 
 const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, onBack }) => {
@@ -71,15 +69,6 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
   // State for editing voice input before submission
   const [pendingTranscript, setPendingTranscript] = useState<string>('');
   const [isEditingTranscript, setIsEditingTranscript] = useState(false);
-  const [pendingAudioUrl, setPendingAudioUrl] = useState<string | null>(null);
-  
-  // Audio playback state
-  const [playingAudioId, setPlayingAudioId] = useState<number | null>(null);
-  const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
-  
-  // MediaRecorder for capturing actual audio
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
   
   
   // Random groupmates - regenerated each session (including mediator)
@@ -131,12 +120,72 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
     });
   }, []);
 
-  // Grade-appropriate discussion topics - using comprehensive topic bank
+  // Grade-appropriate discussion topics - realistic Hong Kong primary school level
   const getGradeAppropiateTopic = (gradeLevel: string): string => {
-    const topic = getRandomTopic(gradeLevel);
-    if (topic) {
-      return topic.text;
+    const primaryTopics: Record<string, string[]> = {
+      'P4': [
+        'What is your favourite food? Why do you like it?',
+        'Do you like going to the park? What do you do there?',
+        'What pet would you like to have? Why?',
+        'Do you like rainy days or sunny days? Why?',
+        'What do you like to do after school?'
+      ],
+      'P5': [
+        'What is your favourite subject at school? Why?',
+        'Do you like playing with friends or playing alone? Why?',
+        'Should children help with housework? Why or why not?',
+        'What makes a good friend?',
+        'Do you like reading books or watching TV? Why?'
+      ],
+      'P6': [
+        'Should students have less homework? Why or why not?',
+        'Is it good to have a mobile phone? Why?',
+        'What do you want to be when you grow up? Why?',
+        'Should children eat more vegetables? Why?',
+        'Do you think playing sports is important? Why?'
+      ]
+    };
+
+    const secondaryTopics: Record<string, string[]> = {
+      'S1': [
+        'Social media has both positive and negative effects on teenagers. Discuss how young people can use social media responsibly while avoiding its potential harms.',
+        'Some people believe that students should focus only on academic subjects, while others think arts and sports are equally important. What is your view?',
+        'With the increasing use of smartphones, some worry that young people are losing important social skills. Do you agree with this concern?'
+      ],
+      'S2': [
+        'The government is considering extending school hours to improve student performance. Discuss whether you think this would be beneficial for students and explain your reasoning.',
+        'Some educators believe that competitive sports in schools teach valuable life skills, while others argue they put too much pressure on students. What are your thoughts?',
+        'Fast food restaurants are popular among teenagers. Should schools do more to promote healthy eating habits? Discuss the challenges and possible solutions.'
+      ],
+      'S3': [
+        'In recent years, there has been debate about whether students should be required to take part in community service. Consider the benefits and drawbacks, and share your opinion on whether it should be mandatory.',
+        'Some argue that traditional examinations are outdated and should be replaced with alternative assessment methods. Evaluate this viewpoint and discuss what changes, if any, should be made to the current system.',
+        'With the advancement of AI technology, some predict that many jobs will be replaced by machines. How should young people prepare for this changing job market?'
+      ],
+      'S4': [
+        'The Hong Kong government has proposed various measures to tackle youth unemployment. Evaluate the effectiveness of these initiatives and suggest additional strategies that could help young people enter the workforce.',
+        'There is ongoing debate about the balance between economic development and environmental protection in Hong Kong. Discuss how the city can achieve sustainable development while maintaining its competitive edge.',
+        'Mental health issues among teenagers have become increasingly prevalent. Analyze the contributing factors and propose comprehensive solutions involving schools, families, and the government.'
+      ],
+      'S5': [
+        'With rising property prices in Hong Kong, many young people are concerned about their future housing prospects. Critically examine the current housing policies and suggest reforms that could make housing more accessible to the younger generation.',
+        'The COVID-19 pandemic has fundamentally changed the way we work and learn. Evaluate the long-term implications of these changes on society and discuss how individuals and institutions should adapt.',
+        "Some argue that Hong Kong's education system places too much emphasis on academic achievement at the expense of creativity and critical thinking. To what extent do you agree, and what reforms would you propose?"
+      ],
+      'S6': [
+        'As Hong Kong positions itself as a hub for innovation and technology, discuss the policy reforms and cultural shifts needed to foster an entrepreneurial ecosystem that can compete with other global cities like Singapore and Shenzhen.',
+        "The concept of work-life balance is becoming increasingly important to the younger generation. Analyze how this shift in values might impact Hong Kong's economic productivity and corporate culture, and discuss whether employers should adapt their practices.",
+        "With the growing influence of AI and automation, some experts predict that many traditional careers will become obsolete within the next decade. Critically evaluate how Hong Kong's education and training systems should evolve to prepare young people for this uncertain future."
+      ]
+    };
+
+    const allTopics = { ...primaryTopics, ...secondaryTopics };
+    const topics = allTopics[gradeLevel];
+    
+    if (topics && topics.length > 0) {
+      return topics[Math.floor(Math.random() * topics.length)];
     }
+    
     return 'Discuss the advantages and disadvantages of technology in education.';
   };
 
@@ -271,8 +320,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
     text: string,
     speakerName?: string,
     speakerAvatar?: string,
-    stance?: 'support' | 'oppose' | 'mediator',
-    audioUrl?: string
+    stance?: 'support' | 'oppose' | 'mediator'
   ) => {
     messageIdRef.current += 1;
     setMessages(prev => [...prev, {
@@ -282,12 +330,11 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
       speakerAvatar,
       stance,
       text,
-      timestamp: new Date(),
-      audioUrl
+      timestamp: new Date()
     }]);
   };
 
-  const startRecording = async () => {
+  const startRecording = () => {
     if (!recognitionRef.current) {
       logger.error('Speech recognition not available');
       return;
@@ -297,47 +344,14 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
     setCurrentTranscript('');
     isRecordingRef.current = true;
     setIsRecording(true);
-    audioChunksRef.current = [];
     
-    // Start speech recognition
     try {
       recognitionRef.current.start();
       logger.info('Started recording user speech');
     } catch (e) {
-      logger.error('Failed to start speech recognition', { error: e });
+      logger.error('Failed to start recording', { error: e });
       isRecordingRef.current = false;
       setIsRecording(false);
-      return;
-    }
-    
-    // Start audio recording with MediaRecorder
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-      mediaRecorderRef.current = mediaRecorder;
-      
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-      
-      mediaRecorder.onstop = () => {
-        // Create blob URL for playback
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        const audioUrl = URL.createObjectURL(audioBlob);
-        setPendingAudioUrl(audioUrl);
-        
-        // Stop all tracks
-        stream.getTracks().forEach(track => track.stop());
-        logger.info('Audio recording saved', { blobSize: audioBlob.size });
-      };
-      
-      mediaRecorder.start();
-      logger.info('MediaRecorder started');
-    } catch (e) {
-      logger.warn('Could not start audio recording (MediaRecorder)', { error: e });
-      // Continue without audio recording - speech recognition still works
     }
   };
 
@@ -354,17 +368,11 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
       // Ignore stop errors
     }
     
-    // Stop MediaRecorder
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
-    }
-    
     // Use ref value as it's more reliable
     const finalTranscript = transcriptRef.current.trim() || currentTranscript.trim();
     
     if (!finalTranscript) {
       logger.warn('No speech detected');
-      setPendingAudioUrl(null);
       return;
     }
 
@@ -376,20 +384,17 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
     setCurrentTranscript('');
   };
 
-  // Submit the (possibly edited) transcript with audio
+  // Submit the (possibly edited) transcript
   const submitTranscript = async () => {
     if (!pendingTranscript.trim()) return;
     
     const finalText = pendingTranscript.trim();
-    const audioUrl = pendingAudioUrl;
-    
     setIsEditingTranscript(false);
     setPendingTranscript('');
-    setPendingAudioUrl(null);
     
-    // Add user's message with audio URL
-    addMessage('user', finalText, undefined, undefined, undefined, audioUrl || undefined);
-    logger.info('User submitted speech', { transcript: finalText, hasAudio: !!audioUrl });
+    // Add user's message
+    addMessage('user', finalText);
+    logger.info('User submitted speech', { transcript: finalText });
 
     // Process AI responses
     await processAIResponses(finalText);
@@ -401,68 +406,6 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
   const cancelTranscript = () => {
     setIsEditingTranscript(false);
     setPendingTranscript('');
-    // Revoke the audio URL to free memory
-    if (pendingAudioUrl) {
-      URL.revokeObjectURL(pendingAudioUrl);
-      setPendingAudioUrl(null);
-    }
-  };
-
-  // Play user's recorded audio
-  const playUserAudio = (messageId: number, audioUrl: string) => {
-    // Stop any currently playing audio
-    if (audioPlayerRef.current) {
-      audioPlayerRef.current.pause();
-      audioPlayerRef.current = null;
-    }
-    
-    if (playingAudioId === messageId) {
-      // Toggle off
-      setPlayingAudioId(null);
-      return;
-    }
-    
-    const audio = new Audio(audioUrl);
-    audioPlayerRef.current = audio;
-    setPlayingAudioId(messageId);
-    
-    audio.onended = () => {
-      setPlayingAudioId(null);
-      audioPlayerRef.current = null;
-    };
-    
-    audio.onerror = () => {
-      setPlayingAudioId(null);
-      audioPlayerRef.current = null;
-      logger.error('Failed to play audio');
-    };
-    
-    audio.play();
-  };
-
-  // Replay AI speech for a message
-  const replayAiSpeech = async (text: string, messageId: number) => {
-    if (isSpeaking) return;
-    
-    setIsSpeaking(true);
-    setPlayingAudioId(messageId);
-    
-    try {
-      // Find the gender based on the message
-      const message = messages.find(m => m.id === messageId);
-      let gender: 'male' | 'female' = 'female';
-      
-      if (message && groupmates) {
-        if (message.speakerName === groupmates.supporter.name) gender = groupmates.supporter.gender;
-        else if (message.speakerName === groupmates.opposer.name) gender = groupmates.opposer.gender;
-        else if (message.speakerName === groupmates.mediator.name) gender = groupmates.mediator.gender;
-      }
-      
-      await speakGroupmateResponse(text, gender);
-    } finally {
-      setIsSpeaking(false);
-      setPlayingAudioId(null);
-    }
   };
 
   const processAIResponses = async (userTranscript: string) => {
@@ -786,53 +729,13 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
                   key={message.id}
                   className={`p-3 rounded-lg border-2 ${getSpeakerColor(message.speaker, message.stance)}`}
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-xs text-gray-700 dark:text-gray-300">
-                        {getSpeakerLabel(message)}
-                      </span>
-                      <span className="text-xs text-gray-500 dark:text-gray-500">
-                        {message.timestamp.toLocaleTimeString()}
-                      </span>
-                    </div>
-                    
-                    {/* Playback controls */}
-                    <div className="flex items-center gap-1">
-                      {/* User's recorded audio playback */}
-                      {message.speaker === 'user' && message.audioUrl && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => playUserAudio(message.id, message.audioUrl!)}
-                          className="h-6 px-2 text-xs"
-                          title="Play your recording"
-                        >
-                          {playingAudioId === message.id ? (
-                            <><Square className="w-3 h-3 mr-1" /> Stop</>
-                          ) : (
-                            <><Play className="w-3 h-3 mr-1" /> Play</>
-                          )}
-                        </Button>
-                      )}
-                      
-                      {/* AI speech replay */}
-                      {message.speaker !== 'user' && message.speaker !== 'system' && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => replayAiSpeech(message.text, message.id)}
-                          disabled={isSpeaking && playingAudioId !== message.id}
-                          className="h-6 px-2 text-xs"
-                          title="Replay AI speech"
-                        >
-                          {playingAudioId === message.id && isSpeaking ? (
-                            <><Volume2 className="w-3 h-3 mr-1 animate-pulse" /> Playing...</>
-                          ) : (
-                            <><RotateCcw className="w-3 h-3 mr-1" /> Replay</>
-                          )}
-                        </Button>
-                      )}
-                    </div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-semibold text-xs text-gray-700 dark:text-gray-300">
+                      {getSpeakerLabel(message)}
+                    </span>
+                    <span className="text-xs text-gray-500 dark:text-gray-500">
+                      {message.timestamp.toLocaleTimeString()}
+                    </span>
                   </div>
                   <p className="text-sm text-gray-800 dark:text-gray-200">{message.text}</p>
                 </div>
@@ -881,44 +784,11 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
             {isEditingTranscript && pendingTranscript && (
               <Card className="bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700">
                 <CardContent className="py-3 px-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <Edit2 className="w-4 h-4 text-blue-600" />
-                      <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                        Review & edit your response before submitting:
-                      </span>
-                    </div>
-                    
-                    {/* Play recording button */}
-                    {pendingAudioUrl && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          if (audioPlayerRef.current) {
-                            audioPlayerRef.current.pause();
-                            audioPlayerRef.current = null;
-                            setPlayingAudioId(null);
-                          } else {
-                            const audio = new Audio(pendingAudioUrl);
-                            audioPlayerRef.current = audio;
-                            setPlayingAudioId(-1); // -1 for pending audio
-                            audio.onended = () => {
-                              setPlayingAudioId(null);
-                              audioPlayerRef.current = null;
-                            };
-                            audio.play();
-                          }
-                        }}
-                        className="h-7 text-xs"
-                      >
-                        {playingAudioId === -1 ? (
-                          <><Square className="w-3 h-3 mr-1" /> Stop</>
-                        ) : (
-                          <><Play className="w-3 h-3 mr-1" /> Listen</>
-                        )}
-                      </Button>
-                    )}
+                  <div className="flex items-center gap-2 mb-2">
+                    <Edit2 className="w-4 h-4 text-blue-600" />
+                    <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                      Review & edit your response before submitting:
+                    </span>
                   </div>
                   <Textarea
                     value={pendingTranscript}
