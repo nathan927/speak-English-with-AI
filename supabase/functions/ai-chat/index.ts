@@ -30,11 +30,30 @@ serve(async (req) => {
 
     let userId = "anonymous";
 
+    const decodeJwtPayload = (jwt: string): Record<string, unknown> | null => {
+      try {
+        const parts = jwt.split(".");
+        if (parts.length < 2) return null;
+        const payload = parts[1]
+          .replace(/-/g, "+")
+          .replace(/_/g, "/")
+          .padEnd(Math.ceil(parts[1].length / 4) * 4, "=");
+        const json = atob(payload);
+        return JSON.parse(json);
+      } catch (_e) {
+        return null;
+      }
+    };
+
+    const payload = decodeJwtPayload(token);
+    const role = typeof payload?.role === "string" ? (payload.role as string) : undefined;
+
     const isProjectKey =
       token === supabaseAnonKey ||
-      (typeof supabasePublishableKey === "string" && token === supabasePublishableKey);
+      (typeof supabasePublishableKey === "string" && token === supabasePublishableKey) ||
+      role === "anon";
 
-    // If it's not a project key, validate as a user JWT
+    // If it's not a project key (or an anon JWT), validate as a user JWT
     if (!isProjectKey) {
       const supabase = createClient(supabaseUrl, supabaseAnonKey, {
         global: { headers: { Authorization: authHeader } },
@@ -42,9 +61,9 @@ serve(async (req) => {
 
       const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
 
-      if (claimsError || !claimsData?.claims) {
+      if (claimsError || !claimsData?.claims?.sub) {
         // Token is neither a valid user JWT nor an allowed project key
-        console.error("Invalid token provided");
+        console.error("Invalid token provided", { role });
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
