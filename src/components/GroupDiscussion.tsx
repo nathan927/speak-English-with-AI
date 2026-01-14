@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ArrowLeft, Mic, MicOff, Volume2, Users, MessageCircle, Loader2, User, Star, Clock, BookOpen, History, Edit2, Check, X, Play, Square, RotateCcw } from 'lucide-react';
 import { logger } from '@/services/logService';
+import { getRandomTopic } from '@/data/discussionTopics';
 import { 
   generateGroupmateResponse, 
   speakGroupmateResponse, 
@@ -130,72 +131,12 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
     });
   }, []);
 
-  // Grade-appropriate discussion topics - realistic Hong Kong primary school level
+  // Grade-appropriate discussion topics - using comprehensive topic bank
   const getGradeAppropiateTopic = (gradeLevel: string): string => {
-    const primaryTopics: Record<string, string[]> = {
-      'P4': [
-        'What is your favourite food? Why do you like it?',
-        'Do you like going to the park? What do you do there?',
-        'What pet would you like to have? Why?',
-        'Do you like rainy days or sunny days? Why?',
-        'What do you like to do after school?'
-      ],
-      'P5': [
-        'What is your favourite subject at school? Why?',
-        'Do you like playing with friends or playing alone? Why?',
-        'Should children help with housework? Why or why not?',
-        'What makes a good friend?',
-        'Do you like reading books or watching TV? Why?'
-      ],
-      'P6': [
-        'Should students have less homework? Why or why not?',
-        'Is it good to have a mobile phone? Why?',
-        'What do you want to be when you grow up? Why?',
-        'Should children eat more vegetables? Why?',
-        'Do you think playing sports is important? Why?'
-      ]
-    };
-
-    const secondaryTopics: Record<string, string[]> = {
-      'S1': [
-        'Social media has both positive and negative effects on teenagers. Discuss how young people can use social media responsibly while avoiding its potential harms.',
-        'Some people believe that students should focus only on academic subjects, while others think arts and sports are equally important. What is your view?',
-        'With the increasing use of smartphones, some worry that young people are losing important social skills. Do you agree with this concern?'
-      ],
-      'S2': [
-        'The government is considering extending school hours to improve student performance. Discuss whether you think this would be beneficial for students and explain your reasoning.',
-        'Some educators believe that competitive sports in schools teach valuable life skills, while others argue they put too much pressure on students. What are your thoughts?',
-        'Fast food restaurants are popular among teenagers. Should schools do more to promote healthy eating habits? Discuss the challenges and possible solutions.'
-      ],
-      'S3': [
-        'In recent years, there has been debate about whether students should be required to take part in community service. Consider the benefits and drawbacks, and share your opinion on whether it should be mandatory.',
-        'Some argue that traditional examinations are outdated and should be replaced with alternative assessment methods. Evaluate this viewpoint and discuss what changes, if any, should be made to the current system.',
-        'With the advancement of AI technology, some predict that many jobs will be replaced by machines. How should young people prepare for this changing job market?'
-      ],
-      'S4': [
-        'The Hong Kong government has proposed various measures to tackle youth unemployment. Evaluate the effectiveness of these initiatives and suggest additional strategies that could help young people enter the workforce.',
-        'There is ongoing debate about the balance between economic development and environmental protection in Hong Kong. Discuss how the city can achieve sustainable development while maintaining its competitive edge.',
-        'Mental health issues among teenagers have become increasingly prevalent. Analyze the contributing factors and propose comprehensive solutions involving schools, families, and the government.'
-      ],
-      'S5': [
-        'With rising property prices in Hong Kong, many young people are concerned about their future housing prospects. Critically examine the current housing policies and suggest reforms that could make housing more accessible to the younger generation.',
-        'The COVID-19 pandemic has fundamentally changed the way we work and learn. Evaluate the long-term implications of these changes on society and discuss how individuals and institutions should adapt.',
-        "Some argue that Hong Kong's education system places too much emphasis on academic achievement at the expense of creativity and critical thinking. To what extent do you agree, and what reforms would you propose?"
-      ],
-      'S6': [
-        'As Hong Kong positions itself as a hub for innovation and technology, discuss the policy reforms and cultural shifts needed to foster an entrepreneurial ecosystem that can compete with other global cities like Singapore and Shenzhen.',
-        "The concept of work-life balance is becoming increasingly important to the younger generation. Analyze how this shift in values might impact Hong Kong's economic productivity and corporate culture, and discuss whether employers should adapt their practices.",
-        "With the growing influence of AI and automation, some experts predict that many traditional careers will become obsolete within the next decade. Critically evaluate how Hong Kong's education and training systems should evolve to prepare young people for this uncertain future."
-      ]
-    };
-
-    const allTopics = { ...primaryTopics, ...secondaryTopics };
-    const topics = allTopics[gradeLevel];
-    
-    if (topics && topics.length > 0) {
-      return topics[Math.floor(Math.random() * topics.length)];
+    const topic = getRandomTopic(gradeLevel);
+    if (topic) {
+      return topic.text;
     }
-    
     return 'Discuss the advantages and disadvantages of technology in education.';
   };
 
