@@ -605,14 +605,32 @@ ${userAddress ? `- Use their name "${userAddress}" naturally when appropriate` :
 }
 
 // Stop any ongoing speech
+let activeUtterance: SpeechSynthesisUtterance | null = null;
+let activeResolve: (() => void) | null = null;
+
 export function stopSpeaking(): void {
   if ('speechSynthesis' in window) {
     window.speechSynthesis.cancel();
   }
+
+  // Ensure any awaiting speak promise resolves immediately on user interrupt
+  if (activeResolve) {
+    try {
+      activeResolve();
+    } catch {
+      // ignore
+    }
+  }
+
+  activeResolve = null;
+  activeUtterance = null;
 }
 
 // Text-to-Speech for groupmate responses with natural speed
-export async function speakGroupmateResponse(text: string, gender: 'male' | 'female' = 'female'): Promise<void> {
+export async function speakGroupmateResponse(
+  text: string,
+  gender: 'male' | 'female' = 'female'
+): Promise<void> {
   return new Promise((resolve, reject) => {
     if (!('speechSynthesis' in window)) {
       logger.warn('Speech synthesis not supported');
@@ -620,40 +638,52 @@ export async function speakGroupmateResponse(text: string, gender: 'male' | 'fem
       return;
     }
 
-    window.speechSynthesis.cancel();
+    // Cancel any previous speech and resolve any previous pending promise
+    stopSpeaking();
+
+    let settled = false;
+    const safeResolve = () => {
+      if (settled) return;
+      settled = true;
+      if (activeResolve === safeResolve) activeResolve = null;
+      if (activeUtterance === utterance) activeUtterance = null;
+      resolve();
+    };
 
     const utterance = new SpeechSynthesisUtterance(text);
-    
+    activeUtterance = utterance;
+    activeResolve = safeResolve;
+
     // Get voices
     const voices = window.speechSynthesis.getVoices();
     const englishVoices = voices.filter(v => v.lang.startsWith('en'));
-    
+
     // Try to get appropriate voice by gender
-    let selectedVoice = null;
-    
+    let selectedVoice: SpeechSynthesisVoice | null = null;
+
     if (gender === 'male') {
       // Look for male voices
-      selectedVoice = englishVoices.find(v => 
-        v.name.includes('Daniel') || 
+      selectedVoice = englishVoices.find(v =>
+        v.name.includes('Daniel') ||
         v.name.includes('David') ||
         v.name.includes('James') ||
         v.name.includes('Thomas') ||
         v.name.includes('Alex') ||
         v.name.includes('Fred') ||
         v.name.toLowerCase().includes('male')
-      );
+      ) || null;
     } else {
       // Look for female voices
-      selectedVoice = englishVoices.find(v => 
-        v.name.includes('Karen') || 
+      selectedVoice = englishVoices.find(v =>
+        v.name.includes('Karen') ||
         v.name.includes('Moira') ||
         v.name.includes('Samantha') ||
         v.name.includes('Victoria') ||
         v.name.includes('Fiona') ||
         v.name.toLowerCase().includes('female')
-      );
+      ) || null;
     }
-    
+
     if (selectedVoice) {
       utterance.voice = selectedVoice;
     } else if (englishVoices.length > 0) {
@@ -661,29 +691,46 @@ export async function speakGroupmateResponse(text: string, gender: 'male' | 'fem
       utterance.voice = englishVoices[Math.floor(Math.random() * englishVoices.length)];
     }
 
-    // Get base speech rate from localStorage or use default
-    const baseSpeechRate = parseFloat(localStorage.getItem('speechRate') || '0.9');
-    
-    // Apply random per-session variation of ±0.15 for more human-like speech
-    // This variation is consistent within a session but different across sessions
-    const sessionVariation = (Math.random() - 0.5) * 0.3; // -0.15 to +0.15
-    const adjustedRate = Math.max(0.5, Math.min(1.5, baseSpeechRate + sessionVariation));
-    
-    utterance.rate = adjustedRate;
-    utterance.pitch = gender === 'male' ? 0.85 + Math.random() * 0.1 : 1.0 + Math.random() * 0.15;
+    utterance.rate = 0.9;
+    utterance.pitch = 1.0;
     utterance.volume = 1.0;
 
-    utterance.onend = () => {
-      logger.info('Groupmate speech finished');
-      resolve();
+    utterance.onend = () => safeResolve();
+    utterance.onerror = (e) => {
+      // If it errors after a cancel, treat as resolved
+      if (settled) return;
+      settled = true;
+      activeResolve = null;
+      activeUtterance = null;
+      reject(e);
     };
 
-    utterance.onerror = (event) => {
-      logger.error('Groupmate speech error', { error: event.error });
-      reject(new Error(event.error));
-    };
+    try {
+      window.speechSynthesis.speak(utterance);
+    } catch (e) {
+      activeResolve = null;
+      activeUtterance = null;
+      reject(e);
+      return;
+    }
 
-    window.speechSynthesis.speak(utterance);
+    // Fallback: resolve when speech engine stops (covers some browsers where cancel doesn't trigger onend)
+    const start = Date.now();
+    const poll = () => {
+      if (settled) return;
+      const speaking = window.speechSynthesis.speaking;
+      if (!speaking) {
+        safeResolve();
+        return;
+      }
+      if (Date.now() - start > 60_000) {
+        // Safety timeout
+        safeResolve();
+        return;
+      }
+      setTimeout(poll, 80);
+    };
+    setTimeout(poll, 80);
   });
 }
 
