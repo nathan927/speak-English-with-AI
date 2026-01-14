@@ -67,6 +67,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
   const [savedDiscussions, setSavedDiscussions] = useState<SavedDiscussion[]>([]);
   const [isEditingTranscript, setIsEditingTranscript] = useState(false);
   const [editedTranscript, setEditedTranscript] = useState('');
+  const [lastSpeaker, setLastSpeaker] = useState<string | null>(null); // Track last AI speaker to prevent consecutive same-speaker
   
   // Per-speaker rate variations (generated once per session for each groupmate)
   const [speakerRateVariations] = useState(() => ({
@@ -278,13 +279,14 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
     setIsProcessing(true);
     
     try {
-      // Generate AI-powered natural opening
+      // Generate AI-powered natural opening - include balanced thinker name
       const openingResponse = await generateDiscussionOpening(
         topic.text,
         groupmates.supporter.name,
         groupmates.opposer.name,
         userName.trim() || undefined,
-        grade
+        grade,
+        groupmates.mediator.name  // Include balanced thinker in introduction
       );
       
       // Add as first groupmate speaking (not "Moderator")
@@ -295,6 +297,9 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
         groupmates.supporter.avatar,
         'support'
       );
+      
+      // Track last speaker to prevent consecutive same-speaker
+      setLastSpeaker(groupmates.supporter.name);
       
       // Speak the introduction
       setIsSpeaking(true);
@@ -425,27 +430,54 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
     const conversationHistory = messages.map(m => `${m.speakerName || m.speaker}: ${m.text}`);
 
     try {
-      // Randomly decide order of AI responses
-      const supporterFirst = Math.random() > 0.5;
-      const firstGroupmate = supporterFirst ? groupmates.supporter : groupmates.opposer;
-      const secondGroupmate = supporterFirst ? groupmates.opposer : groupmates.supporter;
+      // Determine first speaker - MUST be different from last speaker
+      let firstGroupmate: typeof groupmates.supporter;
+      let secondGroupmate: typeof groupmates.supporter;
+      
+      // Get all possible first speakers (not the last speaker)
+      const possibleFirstSpeakers = [groupmates.supporter, groupmates.opposer, groupmates.mediator]
+        .filter(g => g.name !== lastSpeaker);
+      
+      // Pick a random first speaker from those who didn't speak last
+      firstGroupmate = possibleFirstSpeakers[Math.floor(Math.random() * possibleFirstSpeakers.length)];
+      
+      // Second speaker should be different from first
+      const possibleSecondSpeakers = [groupmates.supporter, groupmates.opposer, groupmates.mediator]
+        .filter(g => g.name !== firstGroupmate.name);
+      secondGroupmate = possibleSecondSpeakers[Math.floor(Math.random() * possibleSecondSpeakers.length)];
 
       // Increased chance for groupmates to ask questions to EACH OTHER (50% now)
       const shouldRespondToGroupmate = Math.random() < 0.5;
       // If responding to groupmate, 70% chance to question the other AI, not the user
       const targetOtherAI = shouldRespondToGroupmate && Math.random() < 0.7;
 
+      // Determine which generator to use based on groupmate type
+      const isFirstBalanced = firstGroupmate.stance === 'mediator';
+      const isSecondBalanced = secondGroupmate.stance === 'mediator';
+      
       // Generate first AI response
-      const firstResponse = await generateGroupmateResponse(
-        topic.text,
-        userTranscript,
-        firstGroupmate.stance as 'support' | 'oppose',
-        conversationHistory,
-        { name: firstGroupmate.name, gender: firstGroupmate.gender, avatar: firstGroupmate.avatar },
-        userName.trim() || undefined,
-        !targetOtherAI && Math.random() < 0.3,  // 30% ask user if not targeting other AI
-        grade
-      );
+      let firstResponse;
+      if (isFirstBalanced) {
+        firstResponse = await generateBalancedThinkerResponse(
+          topic.text,
+          conversationHistory,
+          { name: firstGroupmate.name, gender: firstGroupmate.gender, avatar: firstGroupmate.avatar },
+          userName.trim() || undefined,
+          Math.random() < 0.5,
+          grade
+        );
+      } else {
+        firstResponse = await generateGroupmateResponse(
+          topic.text,
+          userTranscript,
+          firstGroupmate.stance as 'support' | 'oppose',
+          conversationHistory,
+          { name: firstGroupmate.name, gender: firstGroupmate.gender, avatar: firstGroupmate.avatar },
+          userName.trim() || undefined,
+          !targetOtherAI && Math.random() < 0.3,
+          grade
+        );
+      }
       
       setIsAiThinking(false);
       setIsSpeaking(true);
@@ -458,10 +490,15 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
         firstResponse.stance
       );
       
+      // Track last speaker
+      setLastSpeaker(firstResponse.groupmateName);
+      
       // Use per-speaker rate variation
-      const firstVariation = firstGroupmate === groupmates.supporter 
+      const firstVariation = firstGroupmate.stance === 'support' 
         ? speakerRateVariations.supporter 
-        : speakerRateVariations.opposer;
+        : firstGroupmate.stance === 'oppose' 
+          ? speakerRateVariations.opposer
+          : speakerRateVariations.balanced;
       await speakGroupmateResponse(firstResponse.text, firstResponse.gender, firstVariation);
 
       // Small pause between responses
@@ -469,20 +506,32 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
 
       // Generate second AI response - higher chance to respond to first AI (60%)
       setIsAiThinking(true);
-      const respondToFirstAI = Math.random() < 0.6;  // 60% respond to first AI's point
+      const respondToFirstAI = Math.random() < 0.6;
       
-      const secondResponse = await generateGroupmateResponse(
-        topic.text,
-        respondToFirstAI 
-          ? `[Responding to ${firstResponse.groupmateName}]: ${firstResponse.text}`
-          : userTranscript + ' ' + firstResponse.text,
-        secondGroupmate.stance as 'support' | 'oppose',
-        [...conversationHistory, `${firstResponse.groupmateName}: ${firstResponse.text}`],
-        { name: secondGroupmate.name, gender: secondGroupmate.gender, avatar: secondGroupmate.avatar },
-        userName.trim() || undefined,
-        targetOtherAI,  // Ask question to the other AI
-        grade
-      );
+      let secondResponse;
+      if (isSecondBalanced) {
+        secondResponse = await generateBalancedThinkerResponse(
+          topic.text,
+          [...conversationHistory, `${firstResponse.groupmateName}: ${firstResponse.text}`],
+          { name: secondGroupmate.name, gender: secondGroupmate.gender, avatar: secondGroupmate.avatar },
+          userName.trim() || undefined,
+          Math.random() < 0.5,
+          grade
+        );
+      } else {
+        secondResponse = await generateGroupmateResponse(
+          topic.text,
+          respondToFirstAI 
+            ? `[Responding to ${firstResponse.groupmateName}]: ${firstResponse.text}`
+            : userTranscript + ' ' + firstResponse.text,
+          secondGroupmate.stance as 'support' | 'oppose',
+          [...conversationHistory, `${firstResponse.groupmateName}: ${firstResponse.text}`],
+          { name: secondGroupmate.name, gender: secondGroupmate.gender, avatar: secondGroupmate.avatar },
+          userName.trim() || undefined,
+          targetOtherAI,
+          grade
+        );
+      }
       setIsAiThinking(false);
       
       addMessage(
@@ -493,38 +542,73 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
         secondResponse.stance
       );
       
-      const secondVariation = secondGroupmate === groupmates.supporter 
+      // Track last speaker
+      setLastSpeaker(secondResponse.groupmateName);
+      
+      const secondVariation = secondGroupmate.stance === 'support' 
         ? speakerRateVariations.supporter 
-        : speakerRateVariations.opposer;
+        : secondGroupmate.stance === 'oppose' 
+          ? speakerRateVariations.opposer
+          : speakerRateVariations.balanced;
       await speakGroupmateResponse(secondResponse.text, secondResponse.gender, secondVariation);
 
-      // More frequently add balanced thinker response (60% chance, up from 40%)
-      if (Math.random() < 0.6) {
+      // Optionally add a third response (40% chance) - pick someone who hasn't spoken
+      const thirdSpeakerChance = Math.random() < 0.4;
+      if (thirdSpeakerChance) {
+        const possibleThirdSpeakers = [groupmates.supporter, groupmates.opposer, groupmates.mediator]
+          .filter(g => g.name !== secondResponse.groupmateName);
+        const thirdGroupmate = possibleThirdSpeakers[Math.floor(Math.random() * possibleThirdSpeakers.length)];
+        
         await new Promise(resolve => setTimeout(resolve, 600));
+        setIsAiThinking(true);
         
-        // 50% chance to respond to another groupmate instead of user
-        const balancedRespondsToGroupmate = Math.random() < 0.5;
+        const isThirdBalanced = thirdGroupmate.stance === 'mediator';
+        let thirdResponse;
         
-        const balancedResponse = await generateBalancedThinkerResponse(
-          topic.text,
-          [...conversationHistory, 
-           `${firstResponse.groupmateName}: ${firstResponse.text}`,
-           `${secondResponse.groupmateName}: ${secondResponse.text}`],
-          { name: groupmates.mediator.name, gender: groupmates.mediator.gender, avatar: groupmates.mediator.avatar },
-          userName.trim() || undefined,
-          balancedRespondsToGroupmate,
-          grade
-        );
+        if (isThirdBalanced) {
+          thirdResponse = await generateBalancedThinkerResponse(
+            topic.text,
+            [...conversationHistory, 
+             `${firstResponse.groupmateName}: ${firstResponse.text}`,
+             `${secondResponse.groupmateName}: ${secondResponse.text}`],
+            { name: thirdGroupmate.name, gender: thirdGroupmate.gender, avatar: thirdGroupmate.avatar },
+            userName.trim() || undefined,
+            Math.random() < 0.5,
+            grade
+          );
+        } else {
+          thirdResponse = await generateGroupmateResponse(
+            topic.text,
+            `[Responding to ${secondResponse.groupmateName}]: ${secondResponse.text}`,
+            thirdGroupmate.stance as 'support' | 'oppose',
+            [...conversationHistory, 
+             `${firstResponse.groupmateName}: ${firstResponse.text}`,
+             `${secondResponse.groupmateName}: ${secondResponse.text}`],
+            { name: thirdGroupmate.name, gender: thirdGroupmate.gender, avatar: thirdGroupmate.avatar },
+            userName.trim() || undefined,
+            Math.random() < 0.3,
+            grade
+          );
+        }
+        setIsAiThinking(false);
         
         addMessage(
           'groupmate3',
-          balancedResponse.text,
-          balancedResponse.groupmateName,
-          balancedResponse.avatar,
-          'mediator'
+          thirdResponse.text,
+          thirdResponse.groupmateName,
+          thirdResponse.avatar,
+          thirdResponse.stance
         );
         
-        await speakGroupmateResponse(balancedResponse.text, balancedResponse.gender, speakerRateVariations.balanced);
+        // Track last speaker
+        setLastSpeaker(thirdResponse.groupmateName);
+        
+        const thirdVariation = thirdGroupmate.stance === 'support' 
+          ? speakerRateVariations.supporter 
+          : thirdGroupmate.stance === 'oppose' 
+            ? speakerRateVariations.opposer
+            : speakerRateVariations.balanced;
+        await speakGroupmateResponse(thirdResponse.text, thirdResponse.gender, thirdVariation);
       }
 
       setIsSpeaking(false);

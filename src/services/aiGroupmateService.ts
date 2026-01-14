@@ -8,12 +8,17 @@ export async function generateDiscussionOpening(
   supporterName: string,
   opposerName: string,
   userName?: string,
-  grade?: string
+  grade?: string,
+  balancedThinkerName?: string
 ): Promise<string> {
+  const allParticipants = balancedThinkerName 
+    ? `${opposerName} and ${balancedThinkerName}${userName ? `, and welcome ${userName}` : ''}`
+    : `${opposerName}${userName ? ` and welcome ${userName}` : ''}`;
+    
   const systemPrompt = `You are ${supporterName}, a friendly and confident student about to lead a group discussion in a speaking exam.
 
 YOUR TASK: Create a NATURAL, conversational opening that:
-1. Briefly introduces yourself and ${opposerName}${userName ? ` and welcome ${userName}` : ''}
+1. Briefly introduces yourself and ${allParticipants}
 2. REPHRASE the topic in your own words - DO NOT quote it verbatim
 3. Highlight the KEY QUESTION or dilemma in an engaging way
 4. Invite everyone to share their views
@@ -40,10 +45,10 @@ Examples of good openers:
 TOPIC: "${topic}"
 GRADE LEVEL: ${grade || 'Secondary'}
 YOUR NAME: ${supporterName}
-PARTNER: ${opposerName}
+PARTNERS: ${opposerName}${balancedThinkerName ? ` and ${balancedThinkerName}` : ''}
 ${userName ? `PARTICIPANT: ${userName}` : ''}
 
-Remember: Rephrase the topic naturally, don't quote it. Sound like a real student starting a conversation with friends.`;
+Remember: Rephrase the topic naturally, don't quote it. Sound like a real student starting a conversation with friends. Make sure to mention ALL your partners by name in the introduction.`;
 
   try {
     const text = await generateDiscussionResponse(systemPrompt, userPrompt, { 
