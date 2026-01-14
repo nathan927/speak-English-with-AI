@@ -43,6 +43,13 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
   const speechTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const recordingAudioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Auto-play -> auto-record (PC only) control
+  const lastAutoSpokenQuestionIdRef = useRef<number | null>(null);
+  const currentSpeakWasAutoRef = useRef(false);
+
+  // Detect if mobile device
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
   // Load questions on component mount
   useEffect(() => {
     const loadQuestions = () => {
@@ -81,16 +88,155 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
     initializeSpeech();
   }, []);
 
+  // Function to get the selected voice by voiceId (now uses voice.name as ID)
+  const getVoiceBySelection = (): SpeechSynthesisVoice | null => {
+    const voices = window.speechSynthesis.getVoices();
+    const englishVoices = voices.filter(v => v.lang.startsWith('en'));
+
+    logger.info('Looking for voice', { voiceId, availableVoices: englishVoices.map(v => v.name) });
+
+    // Enhanced preferred voice lists for fallback
+    const preferredFemale = [
+      'Samantha', 'Karen', 'Moira', 'Tessa', 'Fiona', 'Victoria', 'Allison',
+      'Google UK English Female', 'Google US English Female',
+      'Microsoft Zira', 'Microsoft Hazel', 'Microsoft Susan', 'Microsoft Catherine',
+      'Siri Female', 'Ellen', 'Serena', 'Nicky', 'Veena', 'Ava'
+    ];
+
+    const findPreferredFemaleVoice = (): SpeechSynthesisVoice | null => {
+      for (const name of preferredFemale) {
+        const found = englishVoices.find(v => v.name.includes(name));
+        if (found) return found;
+      }
+      return englishVoices.find(v => v.name.toLowerCase().includes('female')) || null;
+    };
+
+    // Primary lookup: voiceId is the full voice.name
+    // Try exact match first
+    const exactMatch = voices.find(v => v.name === voiceId);
+    if (exactMatch) {
+      logger.info('Found exact voice match', { voiceName: exactMatch.name });
+      return exactMatch;
+    }
+
+    // Try partial match (in case voiceId contains the voice name)
+    const partialMatch = voices.find(v => voiceId.includes(v.name) || v.name.includes(voiceId));
+    if (partialMatch) {
+      logger.info('Found partial voice match', { voiceName: partialMatch.name, voiceId });
+      return partialMatch;
+    }
+
+    // Fallback for 'default' - use best female voice
+    if (voiceId === 'default') {
+      const defaultVoice = findPreferredFemaleVoice() || englishVoices[0] || null;
+      logger.info('Using default voice', { voiceName: defaultVoice?.name });
+      return defaultVoice;
+    }
+
+    // Final fallback - use any English voice
+    logger.warn('Voice not found, using fallback', { voiceId });
+    return findPreferredFemaleVoice() || englishVoices[0] || null;
+  };
+
+  // Stop recording function
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+    }
+    if (speechTimeoutRef.current) {
+      clearTimeout(speechTimeoutRef.current);
+      speechTimeoutRef.current = null;
+    }
+    setIsRecording(false);
+    logger.info('Recording stopped and state reset');
+  };
+
+  // Function to speak the current question
+  const speakQuestion = (text: string, opts?: { auto?: boolean }) => {
+    if (!speechInitialized) {
+      logger.warn('Speech synthesis not initialized');
+      return;
+    }
+
+    currentSpeakWasAutoRef.current = !!opts?.auto;
+
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+
+    // Get voice based on user selection
+    const voice = getVoiceBySelection();
+    if (voice) {
+      utterance.voice = voice;
+      logger.info('Using selected voice', { voiceId, voiceName: voice.name });
+    }
+
+    // Natural speech settings
+    utterance.rate = speechRate; // User-controlled rate (default 0.9 for natural pace)
+    utterance.pitch = 1.0; // Natural pitch
+    utterance.volume = 1.0; // Full volume
+    utterance.lang = 'en-US'; // Set language
+
+    utterance.onstart = () => {
+      setIsPlaying(true);
+      setIsPaused(false);
+      logger.info('Speech started', { voice: voice?.name || 'default' });
+    };
+
+    utterance.onend = () => {
+      setIsPlaying(false);
+      setIsPaused(false);
+      logger.info('Speech ended');
+
+      // PC ONLY: after the AUTO-played question finishes, auto-start recording once per question.
+      if (!isMobile && currentQuestion && currentSpeakWasAutoRef.current) {
+        if (lastAutoSpokenQuestionIdRef.current !== currentQuestion.id) {
+          lastAutoSpokenQuestionIdRef.current = currentQuestion.id;
+          // Small delay so the browser fully releases TTS audio session
+          setTimeout(() => {
+            if (!isRecording) {
+              handleStartRecording();
+            }
+          }, 250);
+        }
+      }
+
+      currentSpeakWasAutoRef.current = false;
+    };
+
+    utterance.onpause = () => {
+      setIsPaused(true);
+      logger.info('Speech paused');
+    };
+
+    utterance.onresume = () => {
+      setIsPaused(false);
+      logger.info('Speech resumed');
+    };
+
+    utterance.onerror = (event) => {
+      logger.error('Speech error', { error: event.error });
+      setIsPlaying(false);
+      setIsPaused(false);
+      currentSpeakWasAutoRef.current = false;
+    };
+
+    window.speechSynthesis.speak(utterance);
+  };
+
   // Auto-read question when it changes or on initial load
   useEffect(() => {
+    const currentQuestion = questions[currentQuestionIndex];
     if (currentQuestion && speechInitialized && !isLoadingQuestions) {
       // Small delay to ensure voices are loaded and UI is ready
       const timer = setTimeout(() => {
-        speakQuestion(currentQuestion.text);
+        speakQuestion(currentQuestion.text, { auto: true });
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [currentQuestionIndex, speechInitialized, isLoadingQuestions]);
+  }, [currentQuestionIndex, speechInitialized, isLoadingQuestions, questions]);
 
   // Helper function to get short section name
   const getShortSectionName = (section: string) => {
@@ -112,116 +258,11 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
     }
   };
 
-  // Function to get the selected voice by voiceId (now uses voice.name as ID)
-  const getVoiceBySelection = (): SpeechSynthesisVoice | null => {
-    const voices = window.speechSynthesis.getVoices();
-    const englishVoices = voices.filter(v => v.lang.startsWith('en'));
-    
-    logger.info('Looking for voice', { voiceId, availableVoices: englishVoices.map(v => v.name) });
-    
-    // Enhanced preferred voice lists for fallback
-    const preferredFemale = [
-      'Samantha', 'Karen', 'Moira', 'Tessa', 'Fiona', 'Victoria', 'Allison',
-      'Google UK English Female', 'Google US English Female',
-      'Microsoft Zira', 'Microsoft Hazel', 'Microsoft Susan', 'Microsoft Catherine',
-      'Siri Female', 'Ellen', 'Serena', 'Nicky', 'Veena', 'Ava'
-    ];
-    
-    const findPreferredFemaleVoice = (): SpeechSynthesisVoice | null => {
-      for (const name of preferredFemale) {
-        const found = englishVoices.find(v => v.name.includes(name));
-        if (found) return found;
-      }
-      return englishVoices.find(v => v.name.toLowerCase().includes('female')) || null;
-    };
-
-    // Primary lookup: voiceId is the full voice.name
-    // Try exact match first
-    const exactMatch = voices.find(v => v.name === voiceId);
-    if (exactMatch) {
-      logger.info('Found exact voice match', { voiceName: exactMatch.name });
-      return exactMatch;
-    }
-    
-    // Try partial match (in case voiceId contains the voice name)
-    const partialMatch = voices.find(v => voiceId.includes(v.name) || v.name.includes(voiceId));
-    if (partialMatch) {
-      logger.info('Found partial voice match', { voiceName: partialMatch.name, voiceId });
-      return partialMatch;
-    }
-    
-    // Fallback for 'default' - use best female voice
-    if (voiceId === 'default') {
-      const defaultVoice = findPreferredFemaleVoice() || englishVoices[0] || null;
-      logger.info('Using default voice', { voiceName: defaultVoice?.name });
-      return defaultVoice;
-    }
-    
-    // Final fallback - use any English voice
-    logger.warn('Voice not found, using fallback', { voiceId });
-    return findPreferredFemaleVoice() || englishVoices[0] || null;
-  };
-
-  // Function to speak the current question
-  const speakQuestion = (text: string) => {
-    if (!speechInitialized) {
-      logger.warn('Speech synthesis not initialized');
-      return;
-    }
-
-    // Cancel any ongoing speech
-    window.speechSynthesis.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    
-    // Get voice based on user selection
-    const voice = getVoiceBySelection();
-    if (voice) {
-      utterance.voice = voice;
-      logger.info('Using selected voice', { voiceId, voiceName: voice.name });
-    }
-    
-    // Natural speech settings
-    utterance.rate = speechRate; // User-controlled rate (default 0.9 for natural pace)
-    utterance.pitch = 1.0; // Natural pitch
-    utterance.volume = 1.0; // Full volume
-    utterance.lang = 'en-US'; // Set language
-
-    utterance.onstart = () => {
-      setIsPlaying(true);
-      setIsPaused(false);
-      logger.info('Speech started', { voice: voice?.name || 'default' });
-    };
-
-    utterance.onend = () => {
-      setIsPlaying(false);
-      setIsPaused(false);
-      logger.info('Speech ended');
-    };
-
-    utterance.onpause = () => {
-      setIsPaused(true);
-      logger.info('Speech paused');
-    };
-
-    utterance.onresume = () => {
-      setIsPaused(false);
-      logger.info('Speech resumed');
-    };
-
-    utterance.onerror = (event) => {
-      logger.error('Speech error', { error: event.error });
-      setIsPlaying(false);
-      setIsPaused(false);
-    };
-
-    window.speechSynthesis.speak(utterance);
-  };
-
   // Handle play question
   const handlePlayQuestion = () => {
+    const currentQuestion = questions[currentQuestionIndex];
     if (currentQuestion) {
-      speakQuestion(currentQuestion.text);
+      speakQuestion(currentQuestion.text, { auto: false });
     }
   };
 
@@ -269,34 +310,11 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
     });
   };
 
-  // Handle start recording
-  const handleStartRecording = async () => {
-    logger.info('Start recording');
-    setIsRecording(true);
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorderRef.current = new MediaRecorder(stream);
-      mediaRecorderRef.current.ondataavailable = handleDataAvailable;
-      mediaRecorderRef.current.onstop = handleStopRecording;
-      mediaRecorderRef.current.start();
-
-      // Set a timeout to automatically stop recording after a certain duration (e.g., 10 seconds)
-      speechTimeoutRef.current = setTimeout(() => {
-        logger.info('Stopping recording automatically after timeout');
-        stopRecording();
-      }, 10000); // 10 seconds
-    } catch (error) {
-      logger.error('Error starting recording', { error });
-      setIsRecording(false);
-      alert('Failed to start recording. Please make sure you have a microphone and it is enabled.');
-    }
-  };
-
   // Handle data available during recording
   const handleDataAvailable = (event: BlobEvent) => {
     logger.info('Data available during recording');
-    if (event.data.size > 0) {
+    const currentQuestion = questions[currentQuestionIndex];
+    if (event.data.size > 0 && currentQuestion) {
       setResponses(prevResponses => ({
         ...prevResponses,
         [currentQuestion.id]: event.data,
@@ -310,18 +328,32 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
     stopRecording();
   };
 
-  // Stop recording function
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      mediaRecorderRef.current.stop();
-      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+  // Handle start recording
+  const handleStartRecording = async () => {
+    logger.info('Start recording');
+    setIsRecording(true);
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorderRef.current = new MediaRecorder(stream);
+      mediaRecorderRef.current.ondataavailable = handleDataAvailable;
+      mediaRecorderRef.current.onstop = () => {
+        // stop tracks
+        mediaRecorderRef.current?.stream.getTracks().forEach(track => track.stop());
+        setIsRecording(false);
+      };
+      mediaRecorderRef.current.start();
+
+      // Set a timeout to automatically stop recording after a certain duration (e.g., 10 seconds)
+      speechTimeoutRef.current = setTimeout(() => {
+        logger.info('Stopping recording automatically after timeout');
+        stopRecording();
+      }, 10000); // 10 seconds
+    } catch (error) {
+      logger.error('Error starting recording', { error });
+      setIsRecording(false);
+      alert('Failed to start recording. Please make sure you have a microphone and it is enabled.');
     }
-    if (speechTimeoutRef.current) {
-      clearTimeout(speechTimeoutRef.current);
-      speechTimeoutRef.current = null;
-    }
-    setIsRecording(false);
-    logger.info('Recording stopped and state reset');
   };
 
   // Reset recording state - helper function
@@ -358,12 +390,12 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
           responseTime: 0 // This would need to be calculated if needed
         };
       });
-      
-      logger.info('Test completed, sending results for AI evaluation', { 
+
+      logger.info('Test completed, sending results for AI evaluation', {
         totalRecordings: results.length,
-        questionsAttempted: questions.length 
+        questionsAttempted: questions.length
       });
-      
+
       onComplete(results);
     }
   };
