@@ -362,15 +362,14 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
     // Use ref value as it's more reliable
     const finalTranscript = transcriptRef.current.trim() || currentTranscript.trim();
     
-    if (!finalTranscript) {
-      logger.warn('No speech detected');
-      setPendingAudioUrl(null);
-      return;
-    }
-
-    // Instead of immediately submitting, show the transcript for editing
+    // Always show editable textbox - even if no speech detected
+    // This allows users to type in quiet environments
     setPendingTranscript(finalTranscript);
     setIsEditingTranscript(true);
+    
+    if (!finalTranscript) {
+      logger.info('No speech detected - showing text input for manual entry');
+    }
     
     transcriptRef.current = '';
     setCurrentTranscript('');
