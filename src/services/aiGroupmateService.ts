@@ -617,6 +617,9 @@ ${userAddress ? `- Use their name "${userAddress}" naturally when appropriate` :
 let activeUtterance: SpeechSynthesisUtterance | null = null;
 let activeResolve: (() => void) | null = null;
 
+// Voice ID tracking to ensure unique voices per groupmate
+let assignedVoices: Map<string, SpeechSynthesisVoice> = new Map();
+
 export function stopSpeaking(): void {
   if ('speechSynthesis' in window) {
     window.speechSynthesis.cancel();
@@ -635,10 +638,111 @@ export function stopSpeaking(): void {
   activeUtterance = null;
 }
 
+// Reset voice assignments (call when starting new discussion)
+export function resetVoiceAssignments(): void {
+  assignedVoices.clear();
+}
+
+// Extended male voice patterns - more variety
+const MALE_VOICE_PATTERNS = [
+  'Daniel', 'David', 'James', 'Thomas', 'Alex', 'Fred', 'Gordon', 'Lee',
+  'Oliver', 'Ralph', 'Aaron', 'Arthur', 'Albert', 'Benjamin',
+  'Charles', 'Edward', 'George', 'Henry', 'Joseph', 'Male', 'Guy', 'Man',
+  'Microsoft David', 'Microsoft Mark', 'Google UK English Male',
+  'Microsoft Richard', 'Microsoft Guy', 'Rishi', 'Nathan', 'Eddy',
+  'Jacques', 'Tom', 'Grandpa', 'Trinoids', 'Rocko', 'Junior'
+];
+
+// Extended female voice patterns - more variety
+const FEMALE_VOICE_PATTERNS = [
+  'Karen', 'Moira', 'Samantha', 'Victoria', 'Fiona', 'Tessa', 'Susan',
+  'Veena', 'Kate', 'Serena', 'Allison', 'Ava', 'Emily', 'Emma', 'Isabella',
+  'Kathy', 'Linda', 'Agnes', 'Ellen', 'Female', 'Woman',
+  'Microsoft Zira', 'Microsoft Hazel', 'Google UK English Female',
+  'Microsoft Catherine', 'Microsoft Linda', 'Microsoft Susan',
+  'Nicky', 'Sandy', 'Shelley', 'Superstar', 'Princess',
+  'Grandma', 'Bubbles', 'Trinoids Female', 'Carmit', 'Lesya',
+  'Linh', 'Mei-Jia', 'Melina', 'Milena', 'Mónica', 'Sara', 'Satu',
+  'Sinji', 'Tünde', 'Yelda', 'Yuna', 'Zosia'
+];
+
+// Get a unique voice for a groupmate by name
+function getUniqueVoiceForGroupmate(
+  groupmateName: string,
+  gender: 'male' | 'female',
+  voices: SpeechSynthesisVoice[]
+): SpeechSynthesisVoice | null {
+  // Check if already assigned
+  if (assignedVoices.has(groupmateName)) {
+    return assignedVoices.get(groupmateName) || null;
+  }
+  
+  const englishVoices = voices.filter(v => v.lang.startsWith('en'));
+  const patterns = gender === 'male' ? MALE_VOICE_PATTERNS : FEMALE_VOICE_PATTERNS;
+  const oppositePatterns = gender === 'male' ? FEMALE_VOICE_PATTERNS : MALE_VOICE_PATTERNS;
+  
+  // Get already used voice names
+  const usedVoiceNames = new Set(Array.from(assignedVoices.values()).map(v => v.name));
+  
+  // Find matching voices that haven't been used and match the gender
+  const matchingVoices = englishVoices.filter(v => {
+    if (usedVoiceNames.has(v.name)) return false;
+    const nameLower = v.name.toLowerCase();
+    // Must match a pattern for the correct gender
+    const matchesGender = patterns.some(p => nameLower.includes(p.toLowerCase()));
+    // Must NOT match opposite gender patterns
+    const matchesOpposite = oppositePatterns.some(p => nameLower.includes(p.toLowerCase()));
+    return matchesGender || (!matchesOpposite && nameLower.includes(gender));
+  });
+  
+  let selectedVoice: SpeechSynthesisVoice | null = null;
+  
+  if (matchingVoices.length > 0) {
+    // Pick a random matching voice
+    selectedVoice = matchingVoices[Math.floor(Math.random() * matchingVoices.length)];
+  } else {
+    // Fallback: find any unused English voice that doesn't match opposite gender
+    const safeVoices = englishVoices.filter(v => {
+      if (usedVoiceNames.has(v.name)) return false;
+      const nameLower = v.name.toLowerCase();
+      // Exclude voices that clearly match opposite gender
+      return !oppositePatterns.some(p => nameLower.includes(p.toLowerCase()));
+    });
+    
+    if (safeVoices.length > 0) {
+      selectedVoice = safeVoices[Math.floor(Math.random() * safeVoices.length)];
+    } else {
+      // Last resort: pick any unused English voice
+      const unusedVoices = englishVoices.filter(v => !usedVoiceNames.has(v.name));
+      if (unusedVoices.length > 0) {
+        selectedVoice = unusedVoices[Math.floor(Math.random() * unusedVoices.length)];
+      } else if (englishVoices.length > 0) {
+        // All voices used, just pick one matching gender if possible
+        const genderMatch = englishVoices.find(v => 
+          patterns.some(p => v.name.toLowerCase().includes(p.toLowerCase()))
+        );
+        selectedVoice = genderMatch || englishVoices[0];
+      }
+    }
+  }
+  
+  if (selectedVoice) {
+    assignedVoices.set(groupmateName, selectedVoice);
+    logger.info('Assigned voice to groupmate', { 
+      groupmate: groupmateName, 
+      voice: selectedVoice.name,
+      gender 
+    });
+  }
+  
+  return selectedVoice;
+}
+
 // Text-to-Speech for groupmate responses with natural speed
 export async function speakGroupmateResponse(
   text: string,
-  gender: 'male' | 'female' = 'female'
+  gender: 'male' | 'female' = 'female',
+  groupmateName?: string
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     if (!('speechSynthesis' in window)) {
@@ -665,39 +769,28 @@ export async function speakGroupmateResponse(
 
     // Get voices
     const voices = window.speechSynthesis.getVoices();
-    const englishVoices = voices.filter(v => v.lang.startsWith('en'));
-
-    // Try to get appropriate voice by gender
+    
     let selectedVoice: SpeechSynthesisVoice | null = null;
-
-    if (gender === 'male') {
-      // Look for male voices
-      selectedVoice = englishVoices.find(v =>
-        v.name.includes('Daniel') ||
-        v.name.includes('David') ||
-        v.name.includes('James') ||
-        v.name.includes('Thomas') ||
-        v.name.includes('Alex') ||
-        v.name.includes('Fred') ||
-        v.name.toLowerCase().includes('male')
-      ) || null;
+    
+    // If groupmate name provided, get unique voice for them
+    if (groupmateName) {
+      selectedVoice = getUniqueVoiceForGroupmate(groupmateName, gender, voices);
     } else {
-      // Look for female voices
+      // Legacy fallback - find any matching voice by gender
+      const englishVoices = voices.filter(v => v.lang.startsWith('en'));
+      const patterns = gender === 'male' ? MALE_VOICE_PATTERNS : FEMALE_VOICE_PATTERNS;
+      
       selectedVoice = englishVoices.find(v =>
-        v.name.includes('Karen') ||
-        v.name.includes('Moira') ||
-        v.name.includes('Samantha') ||
-        v.name.includes('Victoria') ||
-        v.name.includes('Fiona') ||
-        v.name.toLowerCase().includes('female')
+        patterns.some(p => v.name.toLowerCase().includes(p.toLowerCase()))
       ) || null;
+      
+      if (!selectedVoice && englishVoices.length > 0) {
+        selectedVoice = englishVoices[Math.floor(Math.random() * englishVoices.length)];
+      }
     }
 
     if (selectedVoice) {
       utterance.voice = selectedVoice;
-    } else if (englishVoices.length > 0) {
-      // Pick a random English voice
-      utterance.voice = englishVoices[Math.floor(Math.random() * englishVoices.length)];
     }
 
     utterance.rate = 0.9;

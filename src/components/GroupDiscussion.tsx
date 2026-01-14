@@ -16,7 +16,8 @@ import {
   generateRandomMediator,
   stopSpeaking,
   generateDiscussionOpening,
-  generateMediatorResponse
+  generateMediatorResponse,
+  resetVoiceAssignments
 } from '@/services/aiGroupmateService';
 import { getRandomQuestionByType, Question } from '@/data/questionBank';
 import { getRandomOpening, getRandomClosing } from '@/services/discussionVariationsService';
@@ -101,6 +102,9 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
 
   // Generate random groupmates on mount (including mediator)
   useEffect(() => {
+    // Reset voice assignments for new discussion
+    resetVoiceAssignments();
+    
     const supporter = generateRandomGroupmate();
     let opposer = generateRandomGroupmate();
     let mediator = generateRandomMediator();
@@ -275,7 +279,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
       
       // Speak the introduction
       setIsSpeaking(true);
-      await speakGroupmateResponse(openingResponse, groupmates.supporter.gender);
+      await speakGroupmateResponse(openingResponse, groupmates.supporter.gender, groupmates.supporter.name);
     } catch (e) {
       logger.warn('Could not generate AI opening, using fallback');
       // Fallback to static opening with all 3 members
@@ -289,7 +293,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
       );
       setIsSpeaking(true);
       try {
-        await speakGroupmateResponse(fallbackOpening, groupmates.supporter.gender);
+        await speakGroupmateResponse(fallbackOpening, groupmates.supporter.gender, groupmates.supporter.name);
       } catch {}
     }
     setIsSpeaking(false);
@@ -373,6 +377,9 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
     }
   };
 
+  // Detect if mobile device
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
   const stopRecording = async () => {
     if (!recognitionRef.current) return;
 
@@ -394,17 +401,57 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
     // Use ref value as it's more reliable
     const finalTranscript = transcriptRef.current.trim() || currentTranscript.trim();
     
-    // Always show editable textbox - even if no speech detected
-    // This allows users to type in quiet environments
-    setPendingTranscript(finalTranscript);
-    setIsEditingTranscript(true);
-    
-    if (!finalTranscript) {
-      logger.info('No speech detected - showing text input for manual entry');
+    // Mobile: Submit directly without editable textbox
+    // PC: Show editable textbox for review/editing
+    if (isMobile) {
+      // Mobile version - submit directly like original behavior
+      if (finalTranscript) {
+        setPendingTranscript(finalTranscript);
+        // Don't show editing mode, auto-submit
+        transcriptRef.current = '';
+        setCurrentTranscript('');
+        // Use setTimeout to ensure state updates before submission
+        setTimeout(async () => {
+          await submitTranscriptDirect(finalTranscript, pendingAudioUrl);
+        }, 100);
+      } else {
+        logger.info('No speech detected on mobile');
+        transcriptRef.current = '';
+        setCurrentTranscript('');
+      }
+    } else {
+      // PC version - show editable textbox
+      setPendingTranscript(finalTranscript);
+      setIsEditingTranscript(true);
+      
+      if (!finalTranscript) {
+        logger.info('No speech detected - showing text input for manual entry');
+      }
+      
+      transcriptRef.current = '';
+      setCurrentTranscript('');
     }
+  };
+  
+  // Direct submission for mobile (bypasses edit mode)
+  const submitTranscriptDirect = async (transcript: string, audioUrl: string | null) => {
+    if (!transcript.trim()) return;
     
-    transcriptRef.current = '';
-    setCurrentTranscript('');
+    const wasInterruption = userInterrupted;
+    
+    setIsEditingTranscript(false);
+    setPendingTranscript('');
+    setPendingAudioUrl(null);
+    setUserInterrupted(false);
+    
+    // Add user's message with audio URL
+    addMessage('user', transcript, undefined, undefined, undefined, audioUrl || undefined);
+    logger.info('Mobile user submitted speech', { transcript, hasAudio: !!audioUrl, wasInterruption });
+
+    // Process AI responses - pass if user interrupted
+    await processAIResponses(transcript, wasInterruption);
+    
+    setTurnCount(prev => prev + 1);
   };
 
   // Handle start speaking - stop AI if speaking and start user recording
@@ -507,7 +554,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
         else if (message.speakerName === groupmates.mediator.name) gender = groupmates.mediator.gender;
       }
       
-      await speakGroupmateResponse(text, gender);
+      await speakGroupmateResponse(text, gender, message?.speakerName);
     } finally {
       setIsSpeaking(false);
       setPlayingAudioId(null);
@@ -572,7 +619,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
           responder.stance
         );
         
-        await speakGroupmateResponse(response.text, response.gender);
+        await speakGroupmateResponse(response.text, response.gender, response.groupmateName);
         setIsSpeaking(false);
         return; // Only one AI responds to interruption
       }
@@ -612,7 +659,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
       );
       lastSpeaker = firstResponse.groupmateName;
       
-      await speakGroupmateResponse(firstResponse.text, firstResponse.gender);
+      await speakGroupmateResponse(firstResponse.text, firstResponse.gender, firstResponse.groupmateName);
 
       // Small pause between responses
       await new Promise(resolve => setTimeout(resolve, 600));
@@ -641,7 +688,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
       );
       lastSpeaker = secondResponse.groupmateName;
       
-      await speakGroupmateResponse(secondResponse.text, secondResponse.gender);
+      await speakGroupmateResponse(secondResponse.text, secondResponse.gender, secondResponse.groupmateName);
 
       // INCREASED: Balanced groupmate (formerly mediator) participation from 40% to 50%
       // Also ensure no consecutive same speaker
@@ -669,7 +716,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
         );
         lastSpeaker = mediatorResponse.groupmateName;
         
-        await speakGroupmateResponse(mediatorResponse.text, mediatorResponse.gender);
+        await speakGroupmateResponse(mediatorResponse.text, mediatorResponse.gender, mediatorResponse.groupmateName);
       }
 
       setIsSpeaking(false);
@@ -679,7 +726,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
         // Use varied closing message
         const closingMessage = getRandomClosing(userName.trim() || undefined);
         addMessage('system', closingMessage);
-        await speakGroupmateResponse(closingMessage, groupmates.supporter.gender);
+        await speakGroupmateResponse(closingMessage, groupmates.supporter.gender, groupmates.supporter.name);
         
         // Calculate score and save discussion
         const endTime = new Date();
