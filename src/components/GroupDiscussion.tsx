@@ -16,8 +16,7 @@ import {
   generateRandomMediator,
   stopSpeaking,
   generateDiscussionOpening,
-  generateMediatorResponse,
-  resetVoiceAssignments
+  generateMediatorResponse
 } from '@/services/aiGroupmateService';
 import { getRandomQuestionByType, Question } from '@/data/questionBank';
 import { getRandomOpening, getRandomClosing } from '@/services/discussionVariationsService';
@@ -102,9 +101,6 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
 
   // Generate random groupmates on mount (including mediator)
   useEffect(() => {
-    // Reset voice assignments for new discussion
-    resetVoiceAssignments();
-    
     const supporter = generateRandomGroupmate();
     let opposer = generateRandomGroupmate();
     let mediator = generateRandomMediator();
@@ -165,9 +161,6 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
     loadTopic();
   }, [grade]);
 
-  // Track accumulated transcript for mobile (non-continuous mode)
-  const accumulatedTranscriptRef = useRef('');
-
   // Initialize speech recognition - only once
   useEffect(() => {
     const recognition = createSpeechRecognition();
@@ -175,46 +168,32 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
     
     if (recognition) {
       recognition.onresult = (event: any) => {
-        // Mobile Web Speech can behave differently; accumulate FINAL results incrementally.
-        // This avoids losing text when the browser rewrites event.results.
-        const isMobileUA = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
-        let interimTranscript = '';
-
+        let transcript = '';
         for (let i = event.resultIndex; i < event.results.length; i++) {
-          const result = event.results[i];
-          const chunk = (result?.[0]?.transcript || '').trim();
-          if (!chunk) continue;
-
-          if (result.isFinal) {
-            accumulatedTranscriptRef.current += chunk + ' ';
-          } else {
-            interimTranscript = chunk;
-          }
+          transcript += event.results[i][0].transcript;
         }
-
-        const fullTranscript = (accumulatedTranscriptRef.current + interimTranscript).trim();
-        transcriptRef.current = fullTranscript;
-        setCurrentTranscript(fullTranscript);
-
-        logger.info('Speech recognition result', {
-          interim: interimTranscript.substring(0, 30),
-          accumulated: accumulatedTranscriptRef.current.substring(0, 30),
-          isMobile: isMobileUA,
-        });
+        transcriptRef.current = transcript;
+        setCurrentTranscript(transcript);
       };
 
       recognition.onerror = (event: any) => {
-        // Ignore aborted/no-speech errors when intentionally stopping or when the user is silent
-        if (event.error === 'aborted' || event.error === 'no-speech') return;
+        // Ignore aborted errors when intentionally stopping
+        if (event.error === 'aborted') return;
         logger.error('Speech recognition error', { error: event.error });
+        isRecordingRef.current = false;
+        setIsRecording(false);
       };
 
       recognition.onend = () => {
-        // IMPORTANT: Do NOT auto-restart here.
-        // On many phones, calling recognition.start() outside a user gesture is blocked,
-        // which results in "Start Speaking" producing no transcript.
-        logger.info('Speech recognition ended', { isRecording: isRecordingRef.current });
+        // Use ref to check actual recording state
+        if (isRecordingRef.current) {
+          // Restart if still supposed to be recording
+          try {
+            recognition.start();
+          } catch (e) {
+            logger.warn('Could not restart recognition');
+          }
+        }
       };
     }
 
@@ -266,7 +245,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
       
       // Speak the introduction
       setIsSpeaking(true);
-      await speakGroupmateResponse(openingResponse, groupmates.supporter.gender, groupmates.supporter.name);
+      await speakGroupmateResponse(openingResponse, groupmates.supporter.gender);
     } catch (e) {
       logger.warn('Could not generate AI opening, using fallback');
       // Fallback to static opening with all 3 members
@@ -280,7 +259,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
       );
       setIsSpeaking(true);
       try {
-        await speakGroupmateResponse(fallbackOpening, groupmates.supporter.gender, groupmates.supporter.name);
+        await speakGroupmateResponse(fallbackOpening, groupmates.supporter.gender);
       } catch {}
     }
     setIsSpeaking(false);
@@ -314,9 +293,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
       return;
     }
 
-    // Reset all transcript state
     transcriptRef.current = '';
-    accumulatedTranscriptRef.current = '';
     setCurrentTranscript('');
     isRecordingRef.current = true;
     setIsRecording(true);
@@ -345,7 +322,16 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
         }
       };
       
-      // onstop handler is set dynamically in stopRecording for mobile async handling
+      mediaRecorder.onstop = () => {
+        // Create blob URL for playback
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        setPendingAudioUrl(audioUrl);
+        
+        // Stop all tracks
+        stream.getTracks().forEach(track => track.stop());
+        logger.info('Audio recording saved', { blobSize: audioBlob.size });
+      };
       
       mediaRecorder.start();
       logger.info('MediaRecorder started');
@@ -354,12 +340,6 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
       // Continue without audio recording - speech recognition still works
     }
   };
-
-  // Detect if mobile device
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
-  // Ref to store audio URL when MediaRecorder finishes (for mobile async handling)
-  const pendingAudioUrlRef = useRef<string | null>(null);
 
   const stopRecording = async () => {
     if (!recognitionRef.current) return;
@@ -374,109 +354,25 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
       // Ignore stop errors
     }
     
-    // Use ref value as it's more reliable
-    const finalTranscript = transcriptRef.current.trim() || currentTranscript.trim() || accumulatedTranscriptRef.current.trim();
-    
-    // Stop MediaRecorder and wait for it to finish
+    // Stop MediaRecorder
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      // Wait for MediaRecorder to finish and get audio URL
-      const audioUrl = await new Promise<string | null>((resolve) => {
-        if (!mediaRecorderRef.current) {
-          resolve(null);
-          return;
-        }
-        
-        const existingOnStop = mediaRecorderRef.current.onstop;
-        mediaRecorderRef.current.onstop = (event) => {
-          // Create blob URL for playback
-          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-          const url = URL.createObjectURL(audioBlob);
-          pendingAudioUrlRef.current = url;
-          
-          // Stop all tracks
-          if (mediaRecorderRef.current?.stream) {
-            mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
-          }
-          logger.info('Audio recording saved', { blobSize: audioBlob.size });
-          resolve(url);
-        };
-        
-        try {
-          mediaRecorderRef.current.stop();
-        } catch (e) {
-          resolve(null);
-        }
-        
-        // Timeout fallback
-        setTimeout(() => resolve(pendingAudioUrlRef.current), 500);
-      });
-      
-      // Mobile: Submit directly without editable textbox
-      // PC: Show editable textbox for review/editing
-      if (isMobile) {
-        // Mobile version - submit directly like original behavior
-        if (finalTranscript) {
-          logger.info('Mobile: submitting transcript directly', { transcript: finalTranscript.substring(0, 50) });
-          await submitTranscriptDirect(finalTranscript, audioUrl);
-        } else {
-          logger.info('No speech detected on mobile');
-        }
-        transcriptRef.current = '';
-        accumulatedTranscriptRef.current = '';
-        setCurrentTranscript('');
-      } else {
-        // PC version - show editable textbox
-        setPendingTranscript(finalTranscript);
-        setPendingAudioUrl(audioUrl);
-        setIsEditingTranscript(true);
-        
-        if (!finalTranscript) {
-          logger.info('No speech detected - showing text input for manual entry');
-        }
-        
-        transcriptRef.current = '';
-        setCurrentTranscript('');
-      }
-    } else {
-      // No MediaRecorder active - just handle transcript
-      if (isMobile) {
-        if (finalTranscript) {
-          logger.info('Mobile: submitting transcript directly (no audio)', { transcript: finalTranscript.substring(0, 50) });
-          await submitTranscriptDirect(finalTranscript, null);
-        } else {
-          logger.info('No speech detected on mobile');
-        }
-        transcriptRef.current = '';
-        accumulatedTranscriptRef.current = '';
-        setCurrentTranscript('');
-      } else {
-        setPendingTranscript(finalTranscript);
-        setIsEditingTranscript(true);
-        transcriptRef.current = '';
-        setCurrentTranscript('');
-      }
+      mediaRecorderRef.current.stop();
     }
-  };
-  
-  // Direct submission for mobile (bypasses edit mode)
-  const submitTranscriptDirect = async (transcript: string, audioUrl: string | null) => {
-    if (!transcript.trim()) return;
     
-    const wasInterruption = userInterrupted;
+    // Use ref value as it's more reliable
+    const finalTranscript = transcriptRef.current.trim() || currentTranscript.trim();
     
-    setIsEditingTranscript(false);
-    setPendingTranscript('');
-    setPendingAudioUrl(null);
-    setUserInterrupted(false);
+    // Always show editable textbox - even if no speech detected
+    // This allows users to type in quiet environments
+    setPendingTranscript(finalTranscript);
+    setIsEditingTranscript(true);
     
-    // Add user's message with audio URL
-    addMessage('user', transcript, undefined, undefined, undefined, audioUrl || undefined);
-    logger.info('Mobile user submitted speech', { transcript, hasAudio: !!audioUrl, wasInterruption });
-
-    // Process AI responses - pass if user interrupted
-    await processAIResponses(transcript, wasInterruption);
+    if (!finalTranscript) {
+      logger.info('No speech detected - showing text input for manual entry');
+    }
     
-    setTurnCount(prev => prev + 1);
+    transcriptRef.current = '';
+    setCurrentTranscript('');
   };
 
   // Handle start speaking - stop AI if speaking and start user recording
@@ -579,7 +475,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
         else if (message.speakerName === groupmates.mediator.name) gender = groupmates.mediator.gender;
       }
       
-      await speakGroupmateResponse(text, gender, message?.speakerName);
+      await speakGroupmateResponse(text, gender);
     } finally {
       setIsSpeaking(false);
       setPlayingAudioId(null);
@@ -615,8 +511,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
             { name: responder.name, gender: responder.gender, avatar: responder.avatar },
             userName.trim() || undefined,
             false, // Don't ask question when responding to interruption
-            grade,
-            true // isRespondingToUser - user interrupted, so responding to user
+            grade
           );
         } else {
           response = await generateGroupmateResponse(
@@ -627,8 +522,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
             { name: responder.name, gender: responder.gender, avatar: responder.avatar },
             userName.trim() || undefined,
             false, // Don't ask question
-            grade,
-            true // isRespondingToUser - user interrupted, so responding to user
+            grade
           );
         }
         
@@ -644,7 +538,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
           responder.stance
         );
         
-        await speakGroupmateResponse(response.text, response.gender, response.groupmateName);
+        await speakGroupmateResponse(response.text, response.gender);
         setIsSpeaking(false);
         return; // Only one AI responds to interruption
       }
@@ -668,8 +562,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
         { name: firstGroupmate.name, gender: firstGroupmate.gender, avatar: firstGroupmate.avatar },
         userName.trim() || undefined,
         false, // Never ask user directly - AI announces next speaker instead
-        grade,
-        true // isRespondingToUser - first response is to user
+        grade
       );
       
       setIsAiThinking(false);
@@ -684,7 +577,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
       );
       lastSpeaker = firstResponse.groupmateName;
       
-      await speakGroupmateResponse(firstResponse.text, firstResponse.gender, firstResponse.groupmateName);
+      await speakGroupmateResponse(firstResponse.text, firstResponse.gender);
 
       // Small pause between responses
       await new Promise(resolve => setTimeout(resolve, 600));
@@ -699,8 +592,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
         { name: secondGroupmate.name, gender: secondGroupmate.gender, avatar: secondGroupmate.avatar },
         userName.trim() || undefined,
         shouldAskQuestion,
-        grade,
-        false // isRespondingToUser - second AI responding to first AI, not user
+        grade
       );
       setIsAiThinking(false);
       
@@ -713,7 +605,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
       );
       lastSpeaker = secondResponse.groupmateName;
       
-      await speakGroupmateResponse(secondResponse.text, secondResponse.gender, secondResponse.groupmateName);
+      await speakGroupmateResponse(secondResponse.text, secondResponse.gender);
 
       // INCREASED: Balanced groupmate (formerly mediator) participation from 40% to 50%
       // Also ensure no consecutive same speaker
@@ -728,8 +620,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
           { name: groupmates.mediator.name, gender: groupmates.mediator.gender, avatar: groupmates.mediator.avatar },
           userName.trim() || undefined,
           true,
-          grade, // Pass grade for language level adjustment
-          false // isRespondingToUser - mediator is responding to what other AIs said, not to user
+          grade // Pass grade for language level adjustment
         );
         
         addMessage(
@@ -741,7 +632,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
         );
         lastSpeaker = mediatorResponse.groupmateName;
         
-        await speakGroupmateResponse(mediatorResponse.text, mediatorResponse.gender, mediatorResponse.groupmateName);
+        await speakGroupmateResponse(mediatorResponse.text, mediatorResponse.gender);
       }
 
       setIsSpeaking(false);
@@ -751,7 +642,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
         // Use varied closing message
         const closingMessage = getRandomClosing(userName.trim() || undefined);
         addMessage('system', closingMessage);
-        await speakGroupmateResponse(closingMessage, groupmates.supporter.gender, groupmates.supporter.name);
+        await speakGroupmateResponse(closingMessage, groupmates.supporter.gender);
         
         // Calculate score and save discussion
         const endTime = new Date();

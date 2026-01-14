@@ -154,16 +154,10 @@ export async function generateBalancedGroupmateResponse(
   groupmateInfo: { name: string; gender: 'male' | 'female'; avatar: string },
   userName?: string,
   shouldAskQuestion: boolean = true,
-  grade?: string,
-  isRespondingToUser: boolean = false // Mediator typically responds to AI discussion, not directly to user
+  grade?: string
 ): Promise<GroupmateResponse> {
-  // Only address user by name if actually responding to them
-  const userAddress = (isRespondingToUser && userName?.trim()) ? userName.trim() : '';
+  const userAddress = userName?.trim() || '';
   const gradeLevelInstructions = getGradeLevelInstructions(grade);
-  
-  const addressInstruction = isRespondingToUser && userAddress
-    ? `The main participant is ${userAddress}. Address them by name naturally.`
-    : 'You are responding to what the other AI groupmates said. Do NOT address the main participant by name - focus on building on their points.';
   
   const systemPrompt = `You are ${groupmateInfo.name}, a balanced and creative thinker in a group discussion exam.
 
@@ -178,7 +172,7 @@ You strike a balance between being SUPPORTIVE and being a CRITICAL THINKER. You:
 - Bring UP innovative solutions or unexpected angles
 - Help the group see the BIGGER PICTURE
 
-${addressInstruction}
+${userAddress ? `The main participant is ${userAddress}. Address them by name naturally.` : ''}
 
 BALANCED RESPONSE TECHNIQUES:
 - "That's a really good point, and it makes me think of something else..."
@@ -200,9 +194,8 @@ ${conversationHistory.slice(-6).join('\n')}
 YOUR TASK as ${groupmateInfo.name} (Balanced Creative Thinker):
 1. Acknowledge something good from the discussion
 2. Offer a CREATIVE new idea or INSIGHTFUL conclusion that others haven't mentioned
-3. ${shouldAskQuestion ? 'Maybe ask a thought-provoking question to the group' : 'Share an insight that connects different viewpoints'}
-4. Keep it natural and conversational - you're a student, not a moderator
-${!isRespondingToUser ? '5. DO NOT mention or address the main participant by name - you are responding to what the other groupmates said' : ''}`;
+3. ${shouldAskQuestion ? `Maybe ask a thought-provoking question to ${userAddress || 'the group'}` : 'Share an insight that connects different viewpoints'}
+4. Keep it natural and conversational - you're a student, not a moderator`;
 
   try {
     const text = await generateDiscussionResponse(systemPrompt, userPrompt, { 
@@ -213,7 +206,7 @@ ${!isRespondingToUser ? '5. DO NOT mention or address the main participant by na
     const cleanedText = text.replace(/^["']|["']$/g, '').trim();
     
     return {
-      text: cleanedText || `That's interesting! I think there might be a creative solution here - what if we looked at it from a completely different angle?`,
+      text: cleanedText || `That's interesting! ${userAddress ? `${userAddress}, ` : ''}I think there might be a creative solution here - what if we looked at it from a completely different angle?`,
       stance: 'mediator', // Keep 'mediator' for UI color coding
       groupmateName: groupmateInfo.name,
       gender: groupmateInfo.gender,
@@ -222,7 +215,7 @@ ${!isRespondingToUser ? '5. DO NOT mention or address the main participant by na
   } catch (error) {
     logger.error('Failed to generate balanced groupmate response', { error });
     return {
-      text: `Great points from everyone! I think there's a creative middle ground here. What if we combined the best aspects of both perspectives?`,
+      text: `Great points from everyone! ${userAddress ? `${userAddress}, ` : ''}I think there's a creative middle ground here. What if we combined the best aspects of both perspectives?`,
       stance: 'mediator',
       groupmateName: groupmateInfo.name,
       gender: groupmateInfo.gender,
@@ -238,10 +231,9 @@ export async function generateMediatorResponse(
   mediatorInfo: { name: string; gender: 'male' | 'female'; avatar: string },
   userName?: string,
   shouldAskQuestion: boolean = true,
-  grade?: string,
-  isRespondingToUser: boolean = false
+  grade?: string
 ): Promise<GroupmateResponse> {
-  return generateBalancedGroupmateResponse(topic, conversationHistory, mediatorInfo, userName, shouldAskQuestion, grade, isRespondingToUser);
+  return generateBalancedGroupmateResponse(topic, conversationHistory, mediatorInfo, userName, shouldAskQuestion, grade);
 }
 
 // Random name pools for variety
@@ -422,17 +414,16 @@ export async function generateGroupmateResponse(
   groupmateInfo?: { name: string; gender: 'male' | 'female'; avatar: string },
   userName?: string,
   shouldAskQuestion: boolean = false,
-  grade?: string,
-  isRespondingToUser: boolean = true // NEW: Whether responding to user or another AI
+  grade?: string
 ): Promise<GroupmateResponse> {
   // Use provided info or generate random
   const groupmate = groupmateInfo || generateRandomGroupmate();
   
-  // Only address user by name when actually responding to them, not to other AI
-  const userAddress = (isRespondingToUser && userName?.trim()) ? userName.trim() : '';
+  // How to address the user
+  const userAddress = userName?.trim() ? userName.trim() : '';
   const addressInstruction = userAddress 
     ? `IMPORTANT: The speaker's name is ${userAddress}. Naturally use their name occasionally (e.g., "I agree with ${userAddress}..." or "That's a great point, ${userAddress}...") but don't overuse it.`
-    : (isRespondingToUser ? '' : 'You are responding to another AI groupmate, NOT to the main participant. Do NOT address the main participant by name.');
+    : '';
   
   // Classify the type of input - BE LIKE WATER, understand human conversation
   const classifyInput = (text: string): 'substantive' | 'social_cue' | 'testing' | 'brief' => {
@@ -617,9 +608,6 @@ ${userAddress ? `- Use their name "${userAddress}" naturally when appropriate` :
 let activeUtterance: SpeechSynthesisUtterance | null = null;
 let activeResolve: (() => void) | null = null;
 
-// Voice ID tracking to ensure unique voices per groupmate
-let assignedVoices: Map<string, SpeechSynthesisVoice> = new Map();
-
 export function stopSpeaking(): void {
   if ('speechSynthesis' in window) {
     window.speechSynthesis.cancel();
@@ -638,111 +626,10 @@ export function stopSpeaking(): void {
   activeUtterance = null;
 }
 
-// Reset voice assignments (call when starting new discussion)
-export function resetVoiceAssignments(): void {
-  assignedVoices.clear();
-}
-
-// Extended male voice patterns - more variety
-const MALE_VOICE_PATTERNS = [
-  'Daniel', 'David', 'James', 'Thomas', 'Alex', 'Fred', 'Gordon', 'Lee',
-  'Oliver', 'Ralph', 'Aaron', 'Arthur', 'Albert', 'Benjamin',
-  'Charles', 'Edward', 'George', 'Henry', 'Joseph', 'Male', 'Guy', 'Man',
-  'Microsoft David', 'Microsoft Mark', 'Google UK English Male',
-  'Microsoft Richard', 'Microsoft Guy', 'Rishi', 'Nathan', 'Eddy',
-  'Jacques', 'Tom', 'Grandpa', 'Trinoids', 'Rocko', 'Junior'
-];
-
-// Extended female voice patterns - more variety
-const FEMALE_VOICE_PATTERNS = [
-  'Karen', 'Moira', 'Samantha', 'Victoria', 'Fiona', 'Tessa', 'Susan',
-  'Veena', 'Kate', 'Serena', 'Allison', 'Ava', 'Emily', 'Emma', 'Isabella',
-  'Kathy', 'Linda', 'Agnes', 'Ellen', 'Female', 'Woman',
-  'Microsoft Zira', 'Microsoft Hazel', 'Google UK English Female',
-  'Microsoft Catherine', 'Microsoft Linda', 'Microsoft Susan',
-  'Nicky', 'Sandy', 'Shelley', 'Superstar', 'Princess',
-  'Grandma', 'Bubbles', 'Trinoids Female', 'Carmit', 'Lesya',
-  'Linh', 'Mei-Jia', 'Melina', 'Milena', 'Mónica', 'Sara', 'Satu',
-  'Sinji', 'Tünde', 'Yelda', 'Yuna', 'Zosia'
-];
-
-// Get a unique voice for a groupmate by name
-function getUniqueVoiceForGroupmate(
-  groupmateName: string,
-  gender: 'male' | 'female',
-  voices: SpeechSynthesisVoice[]
-): SpeechSynthesisVoice | null {
-  // Check if already assigned
-  if (assignedVoices.has(groupmateName)) {
-    return assignedVoices.get(groupmateName) || null;
-  }
-  
-  const englishVoices = voices.filter(v => v.lang.startsWith('en'));
-  const patterns = gender === 'male' ? MALE_VOICE_PATTERNS : FEMALE_VOICE_PATTERNS;
-  const oppositePatterns = gender === 'male' ? FEMALE_VOICE_PATTERNS : MALE_VOICE_PATTERNS;
-  
-  // Get already used voice names
-  const usedVoiceNames = new Set(Array.from(assignedVoices.values()).map(v => v.name));
-  
-  // Find matching voices that haven't been used and match the gender
-  const matchingVoices = englishVoices.filter(v => {
-    if (usedVoiceNames.has(v.name)) return false;
-    const nameLower = v.name.toLowerCase();
-    // Must match a pattern for the correct gender
-    const matchesGender = patterns.some(p => nameLower.includes(p.toLowerCase()));
-    // Must NOT match opposite gender patterns
-    const matchesOpposite = oppositePatterns.some(p => nameLower.includes(p.toLowerCase()));
-    return matchesGender || (!matchesOpposite && nameLower.includes(gender));
-  });
-  
-  let selectedVoice: SpeechSynthesisVoice | null = null;
-  
-  if (matchingVoices.length > 0) {
-    // Pick a random matching voice
-    selectedVoice = matchingVoices[Math.floor(Math.random() * matchingVoices.length)];
-  } else {
-    // Fallback: find any unused English voice that doesn't match opposite gender
-    const safeVoices = englishVoices.filter(v => {
-      if (usedVoiceNames.has(v.name)) return false;
-      const nameLower = v.name.toLowerCase();
-      // Exclude voices that clearly match opposite gender
-      return !oppositePatterns.some(p => nameLower.includes(p.toLowerCase()));
-    });
-    
-    if (safeVoices.length > 0) {
-      selectedVoice = safeVoices[Math.floor(Math.random() * safeVoices.length)];
-    } else {
-      // Last resort: pick any unused English voice
-      const unusedVoices = englishVoices.filter(v => !usedVoiceNames.has(v.name));
-      if (unusedVoices.length > 0) {
-        selectedVoice = unusedVoices[Math.floor(Math.random() * unusedVoices.length)];
-      } else if (englishVoices.length > 0) {
-        // All voices used, just pick one matching gender if possible
-        const genderMatch = englishVoices.find(v => 
-          patterns.some(p => v.name.toLowerCase().includes(p.toLowerCase()))
-        );
-        selectedVoice = genderMatch || englishVoices[0];
-      }
-    }
-  }
-  
-  if (selectedVoice) {
-    assignedVoices.set(groupmateName, selectedVoice);
-    logger.info('Assigned voice to groupmate', { 
-      groupmate: groupmateName, 
-      voice: selectedVoice.name,
-      gender 
-    });
-  }
-  
-  return selectedVoice;
-}
-
 // Text-to-Speech for groupmate responses with natural speed
 export async function speakGroupmateResponse(
   text: string,
-  gender: 'male' | 'female' = 'female',
-  groupmateName?: string
+  gender: 'male' | 'female' = 'female'
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     if (!('speechSynthesis' in window)) {
@@ -769,28 +656,39 @@ export async function speakGroupmateResponse(
 
     // Get voices
     const voices = window.speechSynthesis.getVoices();
-    
+    const englishVoices = voices.filter(v => v.lang.startsWith('en'));
+
+    // Try to get appropriate voice by gender
     let selectedVoice: SpeechSynthesisVoice | null = null;
-    
-    // If groupmate name provided, get unique voice for them
-    if (groupmateName) {
-      selectedVoice = getUniqueVoiceForGroupmate(groupmateName, gender, voices);
-    } else {
-      // Legacy fallback - find any matching voice by gender
-      const englishVoices = voices.filter(v => v.lang.startsWith('en'));
-      const patterns = gender === 'male' ? MALE_VOICE_PATTERNS : FEMALE_VOICE_PATTERNS;
-      
+
+    if (gender === 'male') {
+      // Look for male voices
       selectedVoice = englishVoices.find(v =>
-        patterns.some(p => v.name.toLowerCase().includes(p.toLowerCase()))
+        v.name.includes('Daniel') ||
+        v.name.includes('David') ||
+        v.name.includes('James') ||
+        v.name.includes('Thomas') ||
+        v.name.includes('Alex') ||
+        v.name.includes('Fred') ||
+        v.name.toLowerCase().includes('male')
       ) || null;
-      
-      if (!selectedVoice && englishVoices.length > 0) {
-        selectedVoice = englishVoices[Math.floor(Math.random() * englishVoices.length)];
-      }
+    } else {
+      // Look for female voices
+      selectedVoice = englishVoices.find(v =>
+        v.name.includes('Karen') ||
+        v.name.includes('Moira') ||
+        v.name.includes('Samantha') ||
+        v.name.includes('Victoria') ||
+        v.name.includes('Fiona') ||
+        v.name.toLowerCase().includes('female')
+      ) || null;
     }
 
     if (selectedVoice) {
       utterance.voice = selectedVoice;
+    } else if (englishVoices.length > 0) {
+      // Pick a random English voice
+      utterance.voice = englishVoices[Math.floor(Math.random() * englishVoices.length)];
     }
 
     utterance.rate = 0.9;
@@ -846,15 +744,10 @@ export function createSpeechRecognition(): any {
   }
 
   const recognition = new SpeechRecognitionAPI();
-  
-  // Some mobile browsers are flaky with continuous mode, but auto-restarting
-  // recognition from onend can be blocked because it is not a user gesture.
-  // Use continuous mode everywhere and let the user stop manually.
   recognition.continuous = true;
   recognition.interimResults = true;
   recognition.lang = 'en-US';
-  recognition.maxAlternatives = 1;
-
+  
   return recognition;
 }
 
