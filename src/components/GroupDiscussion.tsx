@@ -375,41 +375,23 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
     setCurrentTranscript('');
   };
 
-  // Handle start speaking - stop AI if speaking and start user recording
-  const handleStartSpeaking = async () => {
-    // If AI is currently speaking, stop it immediately
-    if (isSpeaking) {
-      stopSpeaking();
-      setIsSpeaking(false);
-      setUserInterrupted(true);
-      logger.info('User interrupted AI speech');
-    } else {
-      setUserInterrupted(false);
-    }
-    
-    // Start user recording
-    await startRecording();
-  };
-
   // Submit the (possibly edited) transcript with audio
   const submitTranscript = async () => {
     if (!pendingTranscript.trim()) return;
     
     const finalText = pendingTranscript.trim();
     const audioUrl = pendingAudioUrl;
-    const wasInterruption = userInterrupted;
     
     setIsEditingTranscript(false);
     setPendingTranscript('');
     setPendingAudioUrl(null);
-    setUserInterrupted(false);
     
     // Add user's message with audio URL
     addMessage('user', finalText, undefined, undefined, undefined, audioUrl || undefined);
-    logger.info('User submitted speech', { transcript: finalText, hasAudio: !!audioUrl, wasInterruption });
+    logger.info('User submitted speech', { transcript: finalText, hasAudio: !!audioUrl });
 
-    // Process AI responses - pass if user interrupted
-    await processAIResponses(finalText, wasInterruption);
+    // Process AI responses
+    await processAIResponses(finalText);
     
     setTurnCount(prev => prev + 1);
   };
@@ -482,10 +464,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
     }
   };
 
-  // Track if user interrupted (for random AI responder)
-  const [userInterrupted, setUserInterrupted] = useState(false);
-
-  const processAIResponses = async (userTranscript: string, wasInterruption: boolean = false) => {
+  const processAIResponses = async (userTranscript: string) => {
     if (!topic || !groupmates) return;
 
     setIsProcessing(true);
@@ -496,62 +475,14 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
     let lastSpeaker: string | null = null;
 
     try {
-      // If user interrupted, pick a random AI (supporter, opposer, or mediator) to respond
-      if (wasInterruption) {
-        const allGroupmates = [groupmates.supporter, groupmates.opposer, groupmates.mediator];
-        const randomIndex = Math.floor(Math.random() * 3);
-        const responder = allGroupmates[randomIndex];
-        const isMediatorResponse = randomIndex === 2;
-        
-        let response;
-        if (isMediatorResponse) {
-          response = await generateMediatorResponse(
-            topic.text,
-            conversationHistory,
-            { name: responder.name, gender: responder.gender, avatar: responder.avatar },
-            userName.trim() || undefined,
-            false, // Don't ask question when responding to interruption
-            grade
-          );
-        } else {
-          response = await generateGroupmateResponse(
-            topic.text,
-            userTranscript,
-            responder.stance as 'support' | 'oppose',
-            conversationHistory,
-            { name: responder.name, gender: responder.gender, avatar: responder.avatar },
-            userName.trim() || undefined,
-            false, // Don't ask question
-            grade
-          );
-        }
-        
-        setIsAiThinking(false);
-        setIsSpeaking(true);
-        
-        const speakerRole = randomIndex === 0 ? 'groupmate1' : randomIndex === 1 ? 'groupmate2' : 'groupmate3';
-        addMessage(
-          speakerRole,
-          response.text,
-          response.groupmateName,
-          response.avatar,
-          responder.stance
-        );
-        
-        await speakGroupmateResponse(response.text, response.gender);
-        setIsSpeaking(false);
-        return; // Only one AI responds to interruption
-      }
-
-      // Normal flow - multiple AIs respond
       // Randomly decide order of AI responses, ensuring no same speaker twice in a row
       const supporterFirst = Math.random() > 0.5;
       const firstGroupmate = supporterFirst ? groupmates.supporter : groupmates.opposer;
       const secondGroupmate = supporterFirst ? groupmates.opposer : groupmates.supporter;
 
-      // AI should NOT ask user questions - they announce next speaker instead
-      // Only AI-to-AI questions allowed
+      // INCREASED: AI-to-AI interaction probability from 30% to 50%
       const shouldAskQuestion = Math.random() < 0.5;
+      const questionTarget = Math.random() > 0.5 ? 'user' : 'other';
 
       // Generate first AI response
       const firstResponse = await generateGroupmateResponse(
@@ -561,7 +492,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
         conversationHistory,
         { name: firstGroupmate.name, gender: firstGroupmate.gender, avatar: firstGroupmate.avatar },
         userName.trim() || undefined,
-        false, // Never ask user directly - AI announces next speaker instead
+        shouldAskQuestion && questionTarget === 'user',
         grade
       );
       
@@ -591,7 +522,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
         [...conversationHistory, `${firstResponse.groupmateName}: ${firstResponse.text}`],
         { name: secondGroupmate.name, gender: secondGroupmate.gender, avatar: secondGroupmate.avatar },
         userName.trim() || undefined,
-        shouldAskQuestion,
+        shouldAskQuestion && questionTarget === 'other',
         grade
       );
       setIsAiThinking(false);
@@ -1023,8 +954,8 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
                 {!isRecording ? (
                   <Button
                     size="default"
-                    onClick={handleStartSpeaking}
-                    disabled={isProcessing}
+                    onClick={startRecording}
+                    disabled={isProcessing || isSpeaking}
                     className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3"
                   >
                     <Mic className="w-5 h-5" />
