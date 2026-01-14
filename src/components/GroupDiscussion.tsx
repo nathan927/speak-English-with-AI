@@ -358,16 +358,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
         }
       };
       
-      mediaRecorder.onstop = () => {
-        // Create blob URL for playback
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        const audioUrl = URL.createObjectURL(audioBlob);
-        setPendingAudioUrl(audioUrl);
-        
-        // Stop all tracks
-        stream.getTracks().forEach(track => track.stop());
-        logger.info('Audio recording saved', { blobSize: audioBlob.size });
-      };
+      // onstop handler is set dynamically in stopRecording for mobile async handling
       
       mediaRecorder.start();
       logger.info('MediaRecorder started');
@@ -379,6 +370,9 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
 
   // Detect if mobile device
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+  // Ref to store audio URL when MediaRecorder finishes (for mobile async handling)
+  const pendingAudioUrlRef = useRef<string | null>(null);
 
   const stopRecording = async () => {
     if (!recognitionRef.current) return;
@@ -393,43 +387,87 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
       // Ignore stop errors
     }
     
-    // Stop MediaRecorder
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
-    }
-    
     // Use ref value as it's more reliable
-    const finalTranscript = transcriptRef.current.trim() || currentTranscript.trim();
+    const finalTranscript = transcriptRef.current.trim() || currentTranscript.trim() || accumulatedTranscriptRef.current.trim();
     
-    // Mobile: Submit directly without editable textbox
-    // PC: Show editable textbox for review/editing
-    if (isMobile) {
-      // Mobile version - submit directly like original behavior
-      if (finalTranscript) {
-        setPendingTranscript(finalTranscript);
-        // Don't show editing mode, auto-submit
+    // Stop MediaRecorder and wait for it to finish
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      // Wait for MediaRecorder to finish and get audio URL
+      const audioUrl = await new Promise<string | null>((resolve) => {
+        if (!mediaRecorderRef.current) {
+          resolve(null);
+          return;
+        }
+        
+        const existingOnStop = mediaRecorderRef.current.onstop;
+        mediaRecorderRef.current.onstop = (event) => {
+          // Create blob URL for playback
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          const url = URL.createObjectURL(audioBlob);
+          pendingAudioUrlRef.current = url;
+          
+          // Stop all tracks
+          if (mediaRecorderRef.current?.stream) {
+            mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+          }
+          logger.info('Audio recording saved', { blobSize: audioBlob.size });
+          resolve(url);
+        };
+        
+        try {
+          mediaRecorderRef.current.stop();
+        } catch (e) {
+          resolve(null);
+        }
+        
+        // Timeout fallback
+        setTimeout(() => resolve(pendingAudioUrlRef.current), 500);
+      });
+      
+      // Mobile: Submit directly without editable textbox
+      // PC: Show editable textbox for review/editing
+      if (isMobile) {
+        // Mobile version - submit directly like original behavior
+        if (finalTranscript) {
+          logger.info('Mobile: submitting transcript directly', { transcript: finalTranscript.substring(0, 50) });
+          await submitTranscriptDirect(finalTranscript, audioUrl);
+        } else {
+          logger.info('No speech detected on mobile');
+        }
         transcriptRef.current = '';
+        accumulatedTranscriptRef.current = '';
         setCurrentTranscript('');
-        // Use setTimeout to ensure state updates before submission
-        setTimeout(async () => {
-          await submitTranscriptDirect(finalTranscript, pendingAudioUrl);
-        }, 100);
       } else {
-        logger.info('No speech detected on mobile');
+        // PC version - show editable textbox
+        setPendingTranscript(finalTranscript);
+        setPendingAudioUrl(audioUrl);
+        setIsEditingTranscript(true);
+        
+        if (!finalTranscript) {
+          logger.info('No speech detected - showing text input for manual entry');
+        }
+        
         transcriptRef.current = '';
         setCurrentTranscript('');
       }
     } else {
-      // PC version - show editable textbox
-      setPendingTranscript(finalTranscript);
-      setIsEditingTranscript(true);
-      
-      if (!finalTranscript) {
-        logger.info('No speech detected - showing text input for manual entry');
+      // No MediaRecorder active - just handle transcript
+      if (isMobile) {
+        if (finalTranscript) {
+          logger.info('Mobile: submitting transcript directly (no audio)', { transcript: finalTranscript.substring(0, 50) });
+          await submitTranscriptDirect(finalTranscript, null);
+        } else {
+          logger.info('No speech detected on mobile');
+        }
+        transcriptRef.current = '';
+        accumulatedTranscriptRef.current = '';
+        setCurrentTranscript('');
+      } else {
+        setPendingTranscript(finalTranscript);
+        setIsEditingTranscript(true);
+        transcriptRef.current = '';
+        setCurrentTranscript('');
       }
-      
-      transcriptRef.current = '';
-      setCurrentTranscript('');
     }
   };
   

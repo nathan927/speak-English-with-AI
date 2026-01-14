@@ -81,6 +81,17 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
     initializeSpeech();
   }, []);
 
+  // Auto-read question when it changes or on initial load
+  useEffect(() => {
+    if (currentQuestion && speechInitialized && !isLoadingQuestions) {
+      // Small delay to ensure voices are loaded and UI is ready
+      const timer = setTimeout(() => {
+        speakQuestion(currentQuestion.text);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [currentQuestionIndex, speechInitialized, isLoadingQuestions]);
+
   // Helper function to get short section name
   const getShortSectionName = (section: string) => {
     switch (section.toLowerCase()) {
