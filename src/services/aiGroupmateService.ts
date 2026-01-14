@@ -237,13 +237,13 @@ export async function generateMediatorResponse(
 }
 
 // Random name pools for variety
-const MALE_NAMES = ['Alex', 'Jordan', 'Chris', 'Sam', 'Max', 'Ryan', 'Tom', 'Jake'];
-const FEMALE_NAMES = ['Emma', 'Lily', 'Sophie', 'Mia', 'Chloe', 'Zoe', 'Amy', 'Kate'];
-// Balanced creative thinker names (gender-neutral feel but can be any gender)
-const BALANCED_NAMES = ['Jamie', 'Taylor', 'Morgan', 'Casey', 'Riley', 'Quinn', 'Avery', 'Jordan'];
+const MALE_NAMES = ['Alex', 'Jordan', 'Chris', 'Sam', 'Max', 'Ryan', 'Tom', 'Jake', 'Leo', 'Ethan', 'Lucas', 'Ben', 'Liam', 'Noah', 'Kevin', 'Marcus'];
+const FEMALE_NAMES = ['Emma', 'Lily', 'Sophie', 'Mia', 'Chloe', 'Zoe', 'Amy', 'Kate', 'Grace', 'Ella', 'Olivia', 'Ava', 'Ivy', 'Luna', 'Ruby', 'Stella'];
+// Balanced creative thinker names (expanded pool for variety)
+const BALANCED_NAMES = ['Jamie', 'Taylor', 'Morgan', 'Casey', 'Riley', 'Quinn', 'Avery', 'Jordan', 'Cameron', 'Skyler', 'Harper', 'Reese', 'Finley', 'Blake', 'Rowan', 'Charlie', 'Sage', 'Drew', 'Parker', 'Peyton', 'Hayden', 'Ellis', 'Kendall', 'Emerson'];
 const MALE_AVATARS = ['👨‍🎓', '🧑‍💼', '👦', '🙋‍♂️'];
 const FEMALE_AVATARS = ['👩‍🎓', '👧', '🙋‍♀️', '💁‍♀️'];
-const BALANCED_AVATARS = ['💡', '✨', '🌟', '🎨'];
+const BALANCED_AVATARS = ['💡', '✨', '🌟', '🎨', '🧩', '🎯'];
 
 // Generate random groupmate identity
 export function generateRandomGroupmate(): { name: string; gender: 'male' | 'female'; avatar: string } {
