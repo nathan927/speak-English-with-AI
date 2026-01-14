@@ -154,10 +154,16 @@ export async function generateBalancedGroupmateResponse(
   groupmateInfo: { name: string; gender: 'male' | 'female'; avatar: string },
   userName?: string,
   shouldAskQuestion: boolean = true,
-  grade?: string
+  grade?: string,
+  isRespondingToUser: boolean = false // Mediator typically responds to AI discussion, not directly to user
 ): Promise<GroupmateResponse> {
-  const userAddress = userName?.trim() || '';
+  // Only address user by name if actually responding to them
+  const userAddress = (isRespondingToUser && userName?.trim()) ? userName.trim() : '';
   const gradeLevelInstructions = getGradeLevelInstructions(grade);
+  
+  const addressInstruction = isRespondingToUser && userAddress
+    ? `The main participant is ${userAddress}. Address them by name naturally.`
+    : 'You are responding to what the other AI groupmates said. Do NOT address the main participant by name - focus on building on their points.';
   
   const systemPrompt = `You are ${groupmateInfo.name}, a balanced and creative thinker in a group discussion exam.
 
@@ -172,7 +178,7 @@ You strike a balance between being SUPPORTIVE and being a CRITICAL THINKER. You:
 - Bring UP innovative solutions or unexpected angles
 - Help the group see the BIGGER PICTURE
 
-${userAddress ? `The main participant is ${userAddress}. Address them by name naturally.` : ''}
+${addressInstruction}
 
 BALANCED RESPONSE TECHNIQUES:
 - "That's a really good point, and it makes me think of something else..."
@@ -194,8 +200,9 @@ ${conversationHistory.slice(-6).join('\n')}
 YOUR TASK as ${groupmateInfo.name} (Balanced Creative Thinker):
 1. Acknowledge something good from the discussion
 2. Offer a CREATIVE new idea or INSIGHTFUL conclusion that others haven't mentioned
-3. ${shouldAskQuestion ? `Maybe ask a thought-provoking question to ${userAddress || 'the group'}` : 'Share an insight that connects different viewpoints'}
-4. Keep it natural and conversational - you're a student, not a moderator`;
+3. ${shouldAskQuestion ? 'Maybe ask a thought-provoking question to the group' : 'Share an insight that connects different viewpoints'}
+4. Keep it natural and conversational - you're a student, not a moderator
+${!isRespondingToUser ? '5. DO NOT mention or address the main participant by name - you are responding to what the other groupmates said' : ''}`;
 
   try {
     const text = await generateDiscussionResponse(systemPrompt, userPrompt, { 
@@ -206,7 +213,7 @@ YOUR TASK as ${groupmateInfo.name} (Balanced Creative Thinker):
     const cleanedText = text.replace(/^["']|["']$/g, '').trim();
     
     return {
-      text: cleanedText || `That's interesting! ${userAddress ? `${userAddress}, ` : ''}I think there might be a creative solution here - what if we looked at it from a completely different angle?`,
+      text: cleanedText || `That's interesting! I think there might be a creative solution here - what if we looked at it from a completely different angle?`,
       stance: 'mediator', // Keep 'mediator' for UI color coding
       groupmateName: groupmateInfo.name,
       gender: groupmateInfo.gender,
@@ -215,7 +222,7 @@ YOUR TASK as ${groupmateInfo.name} (Balanced Creative Thinker):
   } catch (error) {
     logger.error('Failed to generate balanced groupmate response', { error });
     return {
-      text: `Great points from everyone! ${userAddress ? `${userAddress}, ` : ''}I think there's a creative middle ground here. What if we combined the best aspects of both perspectives?`,
+      text: `Great points from everyone! I think there's a creative middle ground here. What if we combined the best aspects of both perspectives?`,
       stance: 'mediator',
       groupmateName: groupmateInfo.name,
       gender: groupmateInfo.gender,
@@ -231,9 +238,10 @@ export async function generateMediatorResponse(
   mediatorInfo: { name: string; gender: 'male' | 'female'; avatar: string },
   userName?: string,
   shouldAskQuestion: boolean = true,
-  grade?: string
+  grade?: string,
+  isRespondingToUser: boolean = false
 ): Promise<GroupmateResponse> {
-  return generateBalancedGroupmateResponse(topic, conversationHistory, mediatorInfo, userName, shouldAskQuestion, grade);
+  return generateBalancedGroupmateResponse(topic, conversationHistory, mediatorInfo, userName, shouldAskQuestion, grade, isRespondingToUser);
 }
 
 // Random name pools for variety
@@ -414,16 +422,17 @@ export async function generateGroupmateResponse(
   groupmateInfo?: { name: string; gender: 'male' | 'female'; avatar: string },
   userName?: string,
   shouldAskQuestion: boolean = false,
-  grade?: string
+  grade?: string,
+  isRespondingToUser: boolean = true // NEW: Whether responding to user or another AI
 ): Promise<GroupmateResponse> {
   // Use provided info or generate random
   const groupmate = groupmateInfo || generateRandomGroupmate();
   
-  // How to address the user
-  const userAddress = userName?.trim() ? userName.trim() : '';
+  // Only address user by name when actually responding to them, not to other AI
+  const userAddress = (isRespondingToUser && userName?.trim()) ? userName.trim() : '';
   const addressInstruction = userAddress 
     ? `IMPORTANT: The speaker's name is ${userAddress}. Naturally use their name occasionally (e.g., "I agree with ${userAddress}..." or "That's a great point, ${userAddress}...") but don't overuse it.`
-    : '';
+    : (isRespondingToUser ? '' : 'You are responding to another AI groupmate, NOT to the main participant. Do NOT address the main participant by name.');
   
   // Classify the type of input - BE LIKE WATER, understand human conversation
   const classifyInput = (text: string): 'substantive' | 'social_cue' | 'testing' | 'brief' => {
@@ -744,9 +753,15 @@ export function createSpeechRecognition(): any {
   }
 
   const recognition = new SpeechRecognitionAPI();
-  recognition.continuous = true;
+  
+  // Mobile browsers (especially iOS Safari) have issues with continuous mode
+  // They work better with continuous=false and manual restart on end
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  
+  recognition.continuous = !isMobile; // Disable continuous on mobile for better reliability
   recognition.interimResults = true;
   recognition.lang = 'en-US';
+  recognition.maxAlternatives = 1;
   
   return recognition;
 }

@@ -161,6 +161,9 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
     loadTopic();
   }, [grade]);
 
+  // Track accumulated transcript for mobile (non-continuous mode)
+  const accumulatedTranscriptRef = useRef('');
+
   // Initialize speech recognition - only once
   useEffect(() => {
     const recognition = createSpeechRecognition();
@@ -168,30 +171,57 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
     
     if (recognition) {
       recognition.onresult = (event: any) => {
-        let transcript = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript;
+        // Build complete transcript from all results
+        let finalTranscript = '';
+        let interimTranscript = '';
+        
+        for (let i = 0; i < event.results.length; i++) {
+          const result = event.results[i];
+          if (result.isFinal) {
+            finalTranscript += result[0].transcript + ' ';
+          } else {
+            interimTranscript += result[0].transcript;
+          }
         }
-        transcriptRef.current = transcript;
-        setCurrentTranscript(transcript);
+        
+        // For mobile: accumulate final results across recognition sessions
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        if (isMobile && finalTranscript) {
+          accumulatedTranscriptRef.current += finalTranscript;
+        }
+        
+        // Combine accumulated + current final + interim for display
+        const fullTranscript = isMobile 
+          ? (accumulatedTranscriptRef.current + interimTranscript).trim()
+          : (finalTranscript + interimTranscript).trim();
+        
+        transcriptRef.current = fullTranscript;
+        setCurrentTranscript(fullTranscript);
+        
+        logger.info('Speech recognition result', { 
+          final: finalTranscript.substring(0, 30), 
+          interim: interimTranscript.substring(0, 30),
+          accumulated: accumulatedTranscriptRef.current.substring(0, 30),
+          isMobile
+        });
       };
 
       recognition.onerror = (event: any) => {
         // Ignore aborted errors when intentionally stopping
-        if (event.error === 'aborted') return;
+        if (event.error === 'aborted' || event.error === 'no-speech') return;
         logger.error('Speech recognition error', { error: event.error });
-        isRecordingRef.current = false;
-        setIsRecording(false);
+        // Don't stop recording on error - just log and continue
       };
 
       recognition.onend = () => {
         // Use ref to check actual recording state
         if (isRecordingRef.current) {
-          // Restart if still supposed to be recording
+          // Restart if still supposed to be recording (especially important for mobile)
           try {
             recognition.start();
+            logger.info('Restarted speech recognition');
           } catch (e) {
-            logger.warn('Could not restart recognition');
+            logger.warn('Could not restart recognition', { error: e });
           }
         }
       };
@@ -293,7 +323,9 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
       return;
     }
 
+    // Reset all transcript state
     transcriptRef.current = '';
+    accumulatedTranscriptRef.current = '';
     setCurrentTranscript('');
     isRecordingRef.current = true;
     setIsRecording(true);
@@ -511,7 +543,8 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
             { name: responder.name, gender: responder.gender, avatar: responder.avatar },
             userName.trim() || undefined,
             false, // Don't ask question when responding to interruption
-            grade
+            grade,
+            true // isRespondingToUser - user interrupted, so responding to user
           );
         } else {
           response = await generateGroupmateResponse(
@@ -522,7 +555,8 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
             { name: responder.name, gender: responder.gender, avatar: responder.avatar },
             userName.trim() || undefined,
             false, // Don't ask question
-            grade
+            grade,
+            true // isRespondingToUser - user interrupted, so responding to user
           );
         }
         
@@ -562,7 +596,8 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
         { name: firstGroupmate.name, gender: firstGroupmate.gender, avatar: firstGroupmate.avatar },
         userName.trim() || undefined,
         false, // Never ask user directly - AI announces next speaker instead
-        grade
+        grade,
+        true // isRespondingToUser - first response is to user
       );
       
       setIsAiThinking(false);
@@ -592,7 +627,8 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
         { name: secondGroupmate.name, gender: secondGroupmate.gender, avatar: secondGroupmate.avatar },
         userName.trim() || undefined,
         shouldAskQuestion,
-        grade
+        grade,
+        false // isRespondingToUser - second AI responding to first AI, not user
       );
       setIsAiThinking(false);
       
@@ -620,7 +656,8 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
           { name: groupmates.mediator.name, gender: groupmates.mediator.gender, avatar: groupmates.mediator.avatar },
           userName.trim() || undefined,
           true,
-          grade // Pass grade for language level adjustment
+          grade, // Pass grade for language level adjustment
+          false // isRespondingToUser - mediator is responding to what other AIs said, not to user
         );
         
         addMessage(
