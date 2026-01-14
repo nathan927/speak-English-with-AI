@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    // Validate authorization header
+    // Validate authorization header is present
     const authHeader = req.headers.get("authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       console.error("Missing or invalid authorization header");
@@ -22,27 +22,35 @@ serve(async (req) => {
       );
     }
 
-    // Verify JWT token with Supabase
+    // Verify the token - can be either a user JWT or the anon key
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } }
-    });
-
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
     
-    if (claimsError || !claimsData?.claims) {
-      console.error("Invalid token:", claimsError?.message);
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    let userId = "anonymous";
+    
+    // Check if it's a user JWT (has sub claim) or just the anon key
+    if (token !== supabaseAnonKey) {
+      // Try to validate as user JWT
+      const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authHeader } }
+      });
+      
+      const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+      
+      if (claimsError || !claimsData?.claims) {
+        // Token is neither a valid user JWT nor the anon key
+        console.error("Invalid token provided");
+        return new Response(
+          JSON.stringify({ error: "Unauthorized" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      userId = claimsData.claims.sub as string;
     }
-
-    const userId = claimsData.claims.sub;
-    console.log("Authenticated request from user:", userId);
+    
+    console.log("Request authenticated, user:", userId);
 
     // Parse and validate request body
     const body = await req.json();
@@ -73,7 +81,7 @@ serve(async (req) => {
       );
     }
 
-    console.log("Calling Lovable AI Gateway for user:", userId, "messages:", messages.length);
+    console.log("Calling Lovable AI Gateway, user:", userId, "messages:", messages.length);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
