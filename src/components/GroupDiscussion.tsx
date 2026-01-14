@@ -1024,7 +1024,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
                   <Button
                     size="default"
                     onClick={handleStartSpeaking}
-                    disabled={false}
+                    disabled={isProcessing}
                     className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3"
                   >
                     <Mic className="w-5 h-5" />
