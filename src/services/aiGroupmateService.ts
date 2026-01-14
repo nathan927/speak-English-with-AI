@@ -8,17 +8,12 @@ export async function generateDiscussionOpening(
   supporterName: string,
   opposerName: string,
   userName?: string,
-  grade?: string,
-  balancedThinkerName?: string
+  grade?: string
 ): Promise<string> {
-  const allParticipants = balancedThinkerName 
-    ? `${opposerName} and ${balancedThinkerName}${userName ? `, and welcome ${userName}` : ''}`
-    : `${opposerName}${userName ? ` and welcome ${userName}` : ''}`;
-    
   const systemPrompt = `You are ${supporterName}, a friendly and confident student about to lead a group discussion in a speaking exam.
 
 YOUR TASK: Create a NATURAL, conversational opening that:
-1. Briefly introduces yourself and ${allParticipants}
+1. Briefly introduces yourself and ${opposerName}${userName ? ` and welcome ${userName}` : ''}
 2. REPHRASE the topic in your own words - DO NOT quote it verbatim
 3. Highlight the KEY QUESTION or dilemma in an engaging way
 4. Invite everyone to share their views
@@ -45,10 +40,10 @@ Examples of good openers:
 TOPIC: "${topic}"
 GRADE LEVEL: ${grade || 'Secondary'}
 YOUR NAME: ${supporterName}
-PARTNERS: ${opposerName}${balancedThinkerName ? ` and ${balancedThinkerName}` : ''}
+PARTNER: ${opposerName}
 ${userName ? `PARTICIPANT: ${userName}` : ''}
 
-Remember: Rephrase the topic naturally, don't quote it. Sound like a real student starting a conversation with friends. Make sure to mention ALL your partners by name in the introduction.`;
+Remember: Rephrase the topic naturally, don't quote it. Sound like a real student starting a conversation with friends.`;
 
   try {
     const text = await generateDiscussionResponse(systemPrompt, userPrompt, { 
@@ -146,102 +141,68 @@ Return ONLY valid JSON (no markdown):
   }
 }
 
-// Generate balanced thinker response - a third groupmate who balances support and critique, offers creative insights
-export async function generateBalancedThinkerResponse(
+// Generate mediator response - summarizes and asks follow-up questions
+export async function generateMediatorResponse(
   topic: string,
   conversationHistory: string[],
-  thinkerInfo: { name: string; gender: 'male' | 'female'; avatar: string },
+  mediatorInfo: { name: string; gender: 'male' | 'female'; avatar: string },
   userName?: string,
-  shouldRespondToGroupmate: boolean = false,
-  grade?: string
+  shouldAskQuestion: boolean = true
 ): Promise<GroupmateResponse> {
   const userAddress = userName?.trim() || '';
-  const gradeLevelInstructions = getGradeLevelInstructions(grade);
   
-  // Decide response style randomly - balanced, creative, or insightful
-  const responseStyle = Math.random();
-  let styleInstruction = '';
-  
-  if (responseStyle < 0.33) {
-    // Balanced - acknowledge both sides
-    styleInstruction = `BALANCED PERSPECTIVE:
-- Acknowledge valid points from BOTH the supportive and critical viewpoints
-- Find common ground between different opinions
-- Suggest a middle-ground solution or compromise`;
-  } else if (responseStyle < 0.66) {
-    // Creative - new angle
-    styleInstruction = `CREATIVE ANGLE:
-- Introduce a NEW perspective no one has mentioned
-- Think outside the box - what's being overlooked?
-- Offer an innovative solution or unexpected insight`;
-  } else {
-    // Insightful conclusion
-    styleInstruction = `INSIGHTFUL ANALYSIS:
-- Synthesize what's been discussed into a deeper insight
-- Connect this topic to broader implications
-- Draw a thought-provoking conclusion`;
-  }
+  const systemPrompt = `You are ${mediatorInfo.name}, a thoughtful MEDIATOR in a group discussion exam.
 
-  const targetInstruction = shouldRespondToGroupmate
-    ? `RESPOND TO another groupmate's point (not the user). Challenge or build on what they said.`
-    : `You may address ${userAddress || 'anyone'} or respond to another groupmate.`;
+YOUR ROLE:
+- SUMMARIZE the key points from different speakers concisely
+- CONNECT different viewpoints to show how they relate
+- ASK thought-provoking FOLLOW-UP QUESTIONS to deepen discussion
+- INVITE specific people to respond or share more
 
-  const systemPrompt = `You are ${thinkerInfo.name}, a thoughtful and creative student in a group discussion.
+${userAddress ? `The main participant is ${userAddress}. Address them by name when asking questions.` : ''}
 
-${gradeLevelInstructions}
+MEDIATOR TECHNIQUES:
+- "So we've heard two interesting perspectives: [X] and [Y]. But I'm curious about..."
+- "That's a great point, and it makes me wonder - what do you think about...?"
+- "${userAddress || 'You'}, I'd love to hear your take on [specific aspect]..."
+- "Building on what everyone said, let me ask: [deeper question]?"
+- "It seems like we agree on X but differ on Y. ${userAddress || 'What'}'s your view?"
 
-YOUR PERSONALITY: You are the "balanced thinker" - neither purely supportive nor purely critical. You:
-- See value in DIFFERENT perspectives
-- Often bring up angles others haven't considered
-- Make creative connections between ideas
-- Offer insightful summaries or conclusions
-
-${styleInstruction}
-
-${targetInstruction}
-
-NATURAL CONVERSATION STYLE:
-- "That's interesting, but have we considered...?"
-- "I see what both of you mean, and actually..."
-- "Building on everyone's points, what if we think about it this way..."
-- "Here's something I haven't heard mentioned yet..."
-
-Keep it 3-5 natural sentences. Be warm, curious, and thought-provoking.
-RESPOND IN ENGLISH ONLY.`;
+Keep it 3-4 sentences. Be warm, curious, and encouraging.`;
 
   const userPrompt = `TOPIC: "${topic}"
 
 DISCUSSION SO FAR:
 ${conversationHistory.slice(-6).join('\n')}
 
-YOUR TASK as ${thinkerInfo.name} (Balanced Thinker):
-1. ${shouldRespondToGroupmate ? 'Respond directly to another groupmate\'s point' : 'Contribute your unique perspective'}
-2. Bring something NEW to the discussion - a fresh angle, creative idea, or insightful observation
-3. Keep it natural and engaging`;
+YOUR TASK as ${mediatorInfo.name} (Mediator):
+1. Briefly acknowledge or summarize what's been discussed
+2. ${shouldAskQuestion ? `Ask a thought-provoking follow-up question to ${userAddress || 'the group'}` : 'Share an insight that connects different viewpoints'}
+3. Keep it natural and conversational`;
 
   try {
     const text = await generateDiscussionResponse(systemPrompt, userPrompt, { 
-      maxTokens: 250, 
-      temperature: 0.9 
+      maxTokens: 200, 
+      temperature: 0.85 
     });
     
     const cleanedText = text.replace(/^["']|["']$/g, '').trim();
     
     return {
-      text: cleanedText || `That's a great discussion! I think there's actually a middle ground here - we don't have to choose one side completely. What if we considered both perspectives together?`,
-      stance: 'mediator',  // Keep stance as mediator for backward compatibility
-      groupmateName: thinkerInfo.name,
-      gender: thinkerInfo.gender,
-      avatar: thinkerInfo.avatar
+      text: cleanedText || `That's interesting! ${userAddress ? `${userAddress}, what` : 'What'} do you think about the other side of this issue?`,
+      stance: 'mediator',
+      groupmateName: mediatorInfo.name,
+      gender: mediatorInfo.gender,
+      avatar: mediatorInfo.avatar
     };
   } catch (error) {
-    logger.error('Failed to generate balanced thinker response', { error });
+    logger.error('Failed to generate mediator response', { error });
     return {
-      text: `Interesting points from everyone! I think there's value in both perspectives. What if we looked at this from a different angle - maybe there's a creative solution that combines the best of both ideas?`,
+      text: `Great points from everyone! ${userAddress ? `${userAddress}, I'm` : "I'm"} curious - can you give us a specific example from your own experience?`,
       stance: 'mediator',
-      groupmateName: thinkerInfo.name,
-      gender: thinkerInfo.gender,
-      avatar: thinkerInfo.avatar
+      groupmateName: mediatorInfo.name,
+      gender: mediatorInfo.gender,
+      avatar: mediatorInfo.avatar
     };
   }
 }
@@ -267,15 +228,13 @@ export function generateRandomGroupmate(): { name: string; gender: 'male' | 'fem
   };
 }
 
-// Generate random balanced thinker identity (renamed from mediator)
+// Generate random mediator identity
 export function generateRandomMediator(): { name: string; gender: 'male' | 'female'; avatar: string } {
   const gender = Math.random() > 0.5 ? 'male' : 'female';
-  const names = gender === 'male' ? MALE_NAMES : FEMALE_NAMES;
-  const avatars = gender === 'male' ? MALE_AVATARS : FEMALE_AVATARS;
   return {
-    name: names[Math.floor(Math.random() * names.length)],
+    name: MEDIATOR_NAMES[Math.floor(Math.random() * MEDIATOR_NAMES.length)],
     gender,
-    avatar: avatars[Math.floor(Math.random() * avatars.length)]
+    avatar: MEDIATOR_AVATARS[Math.floor(Math.random() * MEDIATOR_AVATARS.length)]
   };
 }
 
@@ -548,12 +507,8 @@ export function stopSpeaking(): void {
   }
 }
 
-// Text-to-Speech for groupmate responses with natural speed and per-speaker variation
-export async function speakGroupmateResponse(
-  text: string, 
-  gender: 'male' | 'female' = 'female',
-  speakerVariation?: number  // -0.2 to +0.2 for per-speaker rate adjustment
-): Promise<void> {
+// Text-to-Speech for groupmate responses with natural speed
+export async function speakGroupmateResponse(text: string, gender: 'male' | 'female' = 'female'): Promise<void> {
   return new Promise((resolve, reject) => {
     if (!('speechSynthesis' in window)) {
       logger.warn('Speech synthesis not supported');
@@ -602,17 +557,13 @@ export async function speakGroupmateResponse(
       utterance.voice = englishVoices[Math.floor(Math.random() * englishVoices.length)];
     }
 
-    // Natural speech settings with per-speaker variation
-    // Base rate 0.85-1.0, then apply speaker-specific variation (±0.1)
-    const baseRate = 0.85 + Math.random() * 0.15;
-    const variation = speakerVariation ?? (Math.random() * 0.2 - 0.1); // -0.1 to +0.1
-    utterance.rate = Math.max(0.7, Math.min(1.1, baseRate + variation));
-    
+    // Natural speech settings - slightly slower for clarity
+    utterance.rate = 0.85 + Math.random() * 0.15; // 0.85-1.0 for variety
     utterance.pitch = gender === 'male' ? 0.85 + Math.random() * 0.1 : 1.0 + Math.random() * 0.15;
     utterance.volume = 1.0;
 
     utterance.onend = () => {
-      logger.info('Groupmate speech finished', { rate: utterance.rate.toFixed(2) });
+      logger.info('Groupmate speech finished');
       resolve();
     };
 

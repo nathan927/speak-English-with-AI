@@ -4,8 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Mic, MicOff, Volume2, Users, MessageCircle, Loader2, User, Star, Clock, BookOpen, History, Edit3, Check, X } from 'lucide-react';
+import { ArrowLeft, Mic, MicOff, Volume2, Users, MessageCircle, Loader2, User, Star, Clock, BookOpen, History } from 'lucide-react';
 import { logger } from '@/services/logService';
 import { 
   generateGroupmateResponse, 
@@ -15,7 +14,7 @@ import {
   generateRandomMediator,
   stopSpeaking,
   generateDiscussionOpening,
-  generateBalancedThinkerResponse
+  generateMediatorResponse
 } from '@/services/aiGroupmateService';
 import { getRandomQuestionByType, Question } from '@/data/questionBank';
 import { getRandomOpening, getRandomClosing } from '@/services/discussionVariationsService';
@@ -65,16 +64,6 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
   const [discussionScore, setDiscussionScore] = useState<DiscussionScore | null>(null);
   const [discussionStartTime, setDiscussionStartTime] = useState<Date | null>(null);
   const [savedDiscussions, setSavedDiscussions] = useState<SavedDiscussion[]>([]);
-  const [isEditingTranscript, setIsEditingTranscript] = useState(false);
-  const [editedTranscript, setEditedTranscript] = useState('');
-  const [lastSpeaker, setLastSpeaker] = useState<string | null>(null); // Track last AI speaker to prevent consecutive same-speaker
-  
-  // Per-speaker rate variations (generated once per session for each groupmate)
-  const [speakerRateVariations] = useState(() => ({
-    supporter: (Math.random() * 0.2 - 0.1),  // -0.1 to +0.1
-    opposer: (Math.random() * 0.2 - 0.1),
-    balanced: (Math.random() * 0.2 - 0.1)
-  }));
   
   
   // Random groupmates - regenerated each session (including mediator)
@@ -279,14 +268,13 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
     setIsProcessing(true);
     
     try {
-      // Generate AI-powered natural opening - include balanced thinker name
+      // Generate AI-powered natural opening
       const openingResponse = await generateDiscussionOpening(
         topic.text,
         groupmates.supporter.name,
         groupmates.opposer.name,
         userName.trim() || undefined,
-        grade,
-        groupmates.mediator.name  // Include balanced thinker in introduction
+        grade
       );
       
       // Add as first groupmate speaking (not "Moderator")
@@ -297,9 +285,6 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
         groupmates.supporter.avatar,
         'support'
       );
-      
-      // Track last speaker to prevent consecutive same-speaker
-      setLastSpeaker(groupmates.supporter.name);
       
       // Speak the introduction
       setIsSpeaking(true);
@@ -390,36 +375,16 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
       return;
     }
 
-    // Show the editing interface instead of submitting immediately
-    setEditedTranscript(finalTranscript);
-    setIsEditingTranscript(true);
-    logger.info('Recording stopped, showing edit interface', { transcript: finalTranscript });
-  };
-
-  // Submit the transcript (after optional editing)
-  const submitTranscript = async (transcript: string) => {
-    setIsEditingTranscript(false);
-    
     // Add user's message
-    addMessage('user', transcript);
-    logger.info('User submitted speech', { transcript: transcript });
+    addMessage('user', finalTranscript);
+    logger.info('User finished speaking', { transcript: finalTranscript });
 
     // Process AI responses
-    await processAIResponses(transcript);
+    await processAIResponses(finalTranscript);
     
     transcriptRef.current = '';
     setCurrentTranscript('');
-    setEditedTranscript('');
     setTurnCount(prev => prev + 1);
-  };
-
-  // Cancel the transcript edit and discard
-  const cancelTranscript = () => {
-    setIsEditingTranscript(false);
-    setEditedTranscript('');
-    transcriptRef.current = '';
-    setCurrentTranscript('');
-    logger.info('User cancelled transcript');
   };
 
   const processAIResponses = async (userTranscript: string) => {
@@ -430,54 +395,26 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
     const conversationHistory = messages.map(m => `${m.speakerName || m.speaker}: ${m.text}`);
 
     try {
-      // Determine first speaker - MUST be different from last speaker
-      let firstGroupmate: typeof groupmates.supporter;
-      let secondGroupmate: typeof groupmates.supporter;
-      
-      // Get all possible first speakers (not the last speaker)
-      const possibleFirstSpeakers = [groupmates.supporter, groupmates.opposer, groupmates.mediator]
-        .filter(g => g.name !== lastSpeaker);
-      
-      // Pick a random first speaker from those who didn't speak last
-      firstGroupmate = possibleFirstSpeakers[Math.floor(Math.random() * possibleFirstSpeakers.length)];
-      
-      // Second speaker should be different from first
-      const possibleSecondSpeakers = [groupmates.supporter, groupmates.opposer, groupmates.mediator]
-        .filter(g => g.name !== firstGroupmate.name);
-      secondGroupmate = possibleSecondSpeakers[Math.floor(Math.random() * possibleSecondSpeakers.length)];
+      // Randomly decide order of AI responses
+      const supporterFirst = Math.random() > 0.5;
+      const firstGroupmate = supporterFirst ? groupmates.supporter : groupmates.opposer;
+      const secondGroupmate = supporterFirst ? groupmates.opposer : groupmates.supporter;
 
-      // Increased chance for groupmates to ask questions to EACH OTHER (50% now)
-      const shouldRespondToGroupmate = Math.random() < 0.5;
-      // If responding to groupmate, 70% chance to question the other AI, not the user
-      const targetOtherAI = shouldRespondToGroupmate && Math.random() < 0.7;
+      // Randomly decide if groupmates should ask questions (30% chance)
+      const shouldAskQuestion = Math.random() < 0.3;
+      const questionTarget = Math.random() > 0.5 ? 'user' : 'other';
 
-      // Determine which generator to use based on groupmate type
-      const isFirstBalanced = firstGroupmate.stance === 'mediator';
-      const isSecondBalanced = secondGroupmate.stance === 'mediator';
-      
       // Generate first AI response
-      let firstResponse;
-      if (isFirstBalanced) {
-        firstResponse = await generateBalancedThinkerResponse(
-          topic.text,
-          conversationHistory,
-          { name: firstGroupmate.name, gender: firstGroupmate.gender, avatar: firstGroupmate.avatar },
-          userName.trim() || undefined,
-          Math.random() < 0.5,
-          grade
-        );
-      } else {
-        firstResponse = await generateGroupmateResponse(
-          topic.text,
-          userTranscript,
-          firstGroupmate.stance as 'support' | 'oppose',
-          conversationHistory,
-          { name: firstGroupmate.name, gender: firstGroupmate.gender, avatar: firstGroupmate.avatar },
-          userName.trim() || undefined,
-          !targetOtherAI && Math.random() < 0.3,
-          grade
-        );
-      }
+      const firstResponse = await generateGroupmateResponse(
+        topic.text,
+        userTranscript,
+        firstGroupmate.stance as 'support' | 'oppose',
+        conversationHistory,
+        { name: firstGroupmate.name, gender: firstGroupmate.gender, avatar: firstGroupmate.avatar },
+        userName.trim() || undefined,
+        shouldAskQuestion && questionTarget === 'user',
+        grade
+      );
       
       setIsAiThinking(false);
       setIsSpeaking(true);
@@ -490,48 +427,23 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
         firstResponse.stance
       );
       
-      // Track last speaker
-      setLastSpeaker(firstResponse.groupmateName);
-      
-      // Use per-speaker rate variation
-      const firstVariation = firstGroupmate.stance === 'support' 
-        ? speakerRateVariations.supporter 
-        : firstGroupmate.stance === 'oppose' 
-          ? speakerRateVariations.opposer
-          : speakerRateVariations.balanced;
-      await speakGroupmateResponse(firstResponse.text, firstResponse.gender, firstVariation);
+      await speakGroupmateResponse(firstResponse.text, firstResponse.gender);
 
       // Small pause between responses
       await new Promise(resolve => setTimeout(resolve, 600));
 
-      // Generate second AI response - higher chance to respond to first AI (60%)
+      // Generate second AI response
       setIsAiThinking(true);
-      const respondToFirstAI = Math.random() < 0.6;
-      
-      let secondResponse;
-      if (isSecondBalanced) {
-        secondResponse = await generateBalancedThinkerResponse(
-          topic.text,
-          [...conversationHistory, `${firstResponse.groupmateName}: ${firstResponse.text}`],
-          { name: secondGroupmate.name, gender: secondGroupmate.gender, avatar: secondGroupmate.avatar },
-          userName.trim() || undefined,
-          Math.random() < 0.5,
-          grade
-        );
-      } else {
-        secondResponse = await generateGroupmateResponse(
-          topic.text,
-          respondToFirstAI 
-            ? `[Responding to ${firstResponse.groupmateName}]: ${firstResponse.text}`
-            : userTranscript + ' ' + firstResponse.text,
-          secondGroupmate.stance as 'support' | 'oppose',
-          [...conversationHistory, `${firstResponse.groupmateName}: ${firstResponse.text}`],
-          { name: secondGroupmate.name, gender: secondGroupmate.gender, avatar: secondGroupmate.avatar },
-          userName.trim() || undefined,
-          targetOtherAI,
-          grade
-        );
-      }
+      const secondResponse = await generateGroupmateResponse(
+        topic.text,
+        userTranscript + ' ' + firstResponse.text,
+        secondGroupmate.stance as 'support' | 'oppose',
+        [...conversationHistory, `${firstResponse.groupmateName}: ${firstResponse.text}`],
+        { name: secondGroupmate.name, gender: secondGroupmate.gender, avatar: secondGroupmate.avatar },
+        userName.trim() || undefined,
+        shouldAskQuestion && questionTarget === 'other',
+        grade
+      );
       setIsAiThinking(false);
       
       addMessage(
@@ -542,73 +454,31 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
         secondResponse.stance
       );
       
-      // Track last speaker
-      setLastSpeaker(secondResponse.groupmateName);
-      
-      const secondVariation = secondGroupmate.stance === 'support' 
-        ? speakerRateVariations.supporter 
-        : secondGroupmate.stance === 'oppose' 
-          ? speakerRateVariations.opposer
-          : speakerRateVariations.balanced;
-      await speakGroupmateResponse(secondResponse.text, secondResponse.gender, secondVariation);
+      await speakGroupmateResponse(secondResponse.text, secondResponse.gender);
 
-      // Optionally add a third response (40% chance) - pick someone who hasn't spoken
-      const thirdSpeakerChance = Math.random() < 0.4;
-      if (thirdSpeakerChance) {
-        const possibleThirdSpeakers = [groupmates.supporter, groupmates.opposer, groupmates.mediator]
-          .filter(g => g.name !== secondResponse.groupmateName);
-        const thirdGroupmate = possibleThirdSpeakers[Math.floor(Math.random() * possibleThirdSpeakers.length)];
-        
+      // Occasionally (40% chance) add mediator response
+      if (Math.random() < 0.4) {
         await new Promise(resolve => setTimeout(resolve, 600));
-        setIsAiThinking(true);
         
-        const isThirdBalanced = thirdGroupmate.stance === 'mediator';
-        let thirdResponse;
-        
-        if (isThirdBalanced) {
-          thirdResponse = await generateBalancedThinkerResponse(
-            topic.text,
-            [...conversationHistory, 
-             `${firstResponse.groupmateName}: ${firstResponse.text}`,
-             `${secondResponse.groupmateName}: ${secondResponse.text}`],
-            { name: thirdGroupmate.name, gender: thirdGroupmate.gender, avatar: thirdGroupmate.avatar },
-            userName.trim() || undefined,
-            Math.random() < 0.5,
-            grade
-          );
-        } else {
-          thirdResponse = await generateGroupmateResponse(
-            topic.text,
-            `[Responding to ${secondResponse.groupmateName}]: ${secondResponse.text}`,
-            thirdGroupmate.stance as 'support' | 'oppose',
-            [...conversationHistory, 
-             `${firstResponse.groupmateName}: ${firstResponse.text}`,
-             `${secondResponse.groupmateName}: ${secondResponse.text}`],
-            { name: thirdGroupmate.name, gender: thirdGroupmate.gender, avatar: thirdGroupmate.avatar },
-            userName.trim() || undefined,
-            Math.random() < 0.3,
-            grade
-          );
-        }
-        setIsAiThinking(false);
+        const mediatorResponse = await generateMediatorResponse(
+          topic.text,
+          [...conversationHistory, 
+           `${firstResponse.groupmateName}: ${firstResponse.text}`,
+           `${secondResponse.groupmateName}: ${secondResponse.text}`],
+          { name: groupmates.mediator.name, gender: groupmates.mediator.gender, avatar: groupmates.mediator.avatar },
+          userName.trim() || undefined,
+          true
+        );
         
         addMessage(
           'groupmate3',
-          thirdResponse.text,
-          thirdResponse.groupmateName,
-          thirdResponse.avatar,
-          thirdResponse.stance
+          mediatorResponse.text,
+          mediatorResponse.groupmateName,
+          mediatorResponse.avatar,
+          'mediator'
         );
         
-        // Track last speaker
-        setLastSpeaker(thirdResponse.groupmateName);
-        
-        const thirdVariation = thirdGroupmate.stance === 'support' 
-          ? speakerRateVariations.supporter 
-          : thirdGroupmate.stance === 'oppose' 
-            ? speakerRateVariations.opposer
-            : speakerRateVariations.balanced;
-        await speakGroupmateResponse(thirdResponse.text, thirdResponse.gender, thirdVariation);
+        await speakGroupmateResponse(mediatorResponse.text, mediatorResponse.gender);
       }
 
       setIsSpeaking(false);
@@ -690,7 +560,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
     if (message.speaker === 'user') return '🎤 You';
     if (message.speaker === 'system') return '📢 Moderator';
     
-    const stanceLabel = message.stance === 'support' ? 'Supportive' : message.stance === 'mediator' ? 'Balanced' : 'Critical';
+    const stanceLabel = message.stance === 'support' ? 'Supportive' : message.stance === 'mediator' ? 'Mediator' : 'Critical';
     return `${message.speakerAvatar || '👤'} ${message.speakerName || 'Groupmate'} (${stanceLabel})`;
   };
 
@@ -771,7 +641,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
                 <span>{groupmates.mediator.avatar}</span>
                 <span>
                   <strong>{groupmates.mediator.name}</strong>
-                  <span className="text-purple-600 dark:text-purple-400"> - Balanced Thinker</span>
+                  <span className="text-purple-600 dark:text-purple-400"> - Mediator</span>
                 </span>
               </div>
             </div>
@@ -853,44 +723,6 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
                 </div>
               )}
 
-              {/* Transcript editing interface */}
-              {isEditingTranscript && (
-                <div className="p-4 rounded-lg border-2 border-blue-400 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/30">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Edit3 className="w-4 h-4 text-blue-600" />
-                    <span className="font-semibold text-sm text-blue-700 dark:text-blue-300">
-                      Edit your response before submitting
-                    </span>
-                  </div>
-                  <Textarea
-                    value={editedTranscript}
-                    onChange={(e) => setEditedTranscript(e.target.value)}
-                    className="w-full min-h-[80px] text-sm bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 mb-3"
-                    placeholder="Edit your spoken response here..."
-                  />
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={cancelTranscript}
-                      className="flex items-center gap-1"
-                    >
-                      <X className="w-4 h-4" />
-                      Discard
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => submitTranscript(editedTranscript)}
-                      disabled={!editedTranscript.trim()}
-                      className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white"
-                    >
-                      <Check className="w-4 h-4" />
-                      Submit
-                    </Button>
-                  </div>
-                </div>
-              )}
-
 
               {/* AI Thinking indicator */}
               {isAiThinking && (
@@ -916,7 +748,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
         </Card>
 
         {/* Controls - Fixed at bottom */}
-        {discussionPhase === 'discussion' && !isEditingTranscript && (
+        {discussionPhase === 'discussion' && (
           <div className="flex justify-center gap-4 shrink-0 pb-2">
             {!isRecording ? (
               <Button
@@ -935,7 +767,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
                 className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-6 py-3 animate-pulse"
               >
                 <MicOff className="w-5 h-5" />
-                Stop Recording
+                Stop & Submit
               </Button>
             )}
           </div>
