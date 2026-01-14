@@ -876,8 +876,8 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
         {/* Controls - Fixed at bottom */}
         {discussionPhase === 'discussion' && (
           <div className="shrink-0 pb-2 space-y-3">
-            {/* Edit transcript panel */}
-            {isEditingTranscript && pendingTranscript && (
+            {/* Edit transcript panel - show when editing, even if no transcript yet */}
+            {isEditingTranscript && (
               <Card className="bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700">
                 <CardContent className="py-3 px-4">
                   <div className="flex items-center justify-between mb-2">
