@@ -404,6 +404,26 @@ const Settings = () => {
             </CardContent>
           </Card>
 
+          {/* Voice availability notice */}
+          {availableVoices.length <= 3 && (
+            <Card className="border-2 border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/20">
+              <CardContent className="py-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-amber-100 dark:bg-amber-900/50 rounded-lg flex items-center justify-center shrink-0">
+                    <Volume2 className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-amber-800 dark:text-amber-200 mb-1">語音選擇較少?</p>
+                    <p className="text-sm text-amber-700 dark:text-amber-300">
+                      可用的語音數量取決於您的裝置和瀏覽器。手機通常比電腦提供較少的語音選擇。
+                      如需更多語音選項，建議使用桌面版 Chrome 或 Safari 瀏覽器。
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Voice Selection - Female */}
           <Card className="border-2 border-pink-200 dark:border-pink-800 bg-pink-50/50 dark:bg-pink-900/20">
             <CardHeader className="pb-3">
@@ -412,7 +432,7 @@ const Settings = () => {
                 選擇語音 - 女聲
               </CardTitle>
               <CardDescription className="dark:text-gray-400">
-                點擊試聽按鈕預覽語音效果
+                點擊試聽按鈕預覽語音效果 · 共 {availableVoices.length} 個語音
               </CardDescription>
             </CardHeader>
             <CardContent>

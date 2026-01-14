@@ -178,7 +178,11 @@ const Index = () => {
           </h2>
           <p className="text-xl text-gray-600 dark:text-gray-300 mb-12 leading-relaxed">
             專為香港K1-S6學生設計，結合先進語音識別技術與教育局標準，
-            提供精準的發音、詞彙、流暢度及自信程度評估
+            提供精準的發音、詞彙、流暢度及自信程度評估。
+            <br />
+            <span className="text-purple-600 dark:text-purple-400 font-semibold">
+              全新AI小組討論功能 — 與智能AI夥伴進行仿真英語小組對話練習！
+            </span>
           </p>
           <div className="flex justify-center mt-8">
             <Button 
