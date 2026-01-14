@@ -8,12 +8,17 @@ export async function generateDiscussionOpening(
   supporterName: string,
   opposerName: string,
   userName?: string,
-  grade?: string
+  grade?: string,
+  thirdGroupmateName?: string
 ): Promise<string> {
+  const allGroupmates = thirdGroupmateName 
+    ? `${opposerName} and ${thirdGroupmateName}`
+    : opposerName;
+    
   const systemPrompt = `You are ${supporterName}, a friendly and confident student about to lead a group discussion in a speaking exam.
 
 YOUR TASK: Create a NATURAL, conversational opening that:
-1. Briefly introduces yourself and ${opposerName}${userName ? ` and welcome ${userName}` : ''}
+1. Briefly introduces yourself, ${allGroupmates}${userName ? ` and welcome ${userName}` : ''}
 2. REPHRASE the topic in your own words - DO NOT quote it verbatim
 3. Highlight the KEY QUESTION or dilemma in an engaging way
 4. Invite everyone to share their views
@@ -31,19 +36,19 @@ NEVER:
 - Use bullet points or numbered lists
 
 Examples of good openers:
-- "Hey everyone! I'm Alex, and this is Emma. So, we're here to talk about something pretty relevant to all of us..."
-- "Hi! I'm Sophie, joined by Jake today. You know, I've been thinking a lot about this issue lately..."
-- "What's up everyone! I'm Chris, and Emma's here too. So basically, we need to figure out..."`;
+- "Hey everyone! I'm Alex, and this is Emma${thirdGroupmateName ? ` and ${thirdGroupmateName}` : ''}. So, we're here to talk about something pretty relevant to all of us..."
+- "Hi! I'm Sophie, joined by Jake${thirdGroupmateName ? ` and ${thirdGroupmateName}` : ''} today. You know, I've been thinking a lot about this issue lately..."
+- "What's up everyone! I'm Chris, and Emma${thirdGroupmateName ? ` and ${thirdGroupmateName}` : ''}'s here too. So basically, we need to figure out..."`;
 
   const userPrompt = `Create a discussion opening for:
 
 TOPIC: "${topic}"
 GRADE LEVEL: ${grade || 'Secondary'}
 YOUR NAME: ${supporterName}
-PARTNER: ${opposerName}
+PARTNERS: ${allGroupmates}
 ${userName ? `PARTICIPANT: ${userName}` : ''}
 
-Remember: Rephrase the topic naturally, don't quote it. Sound like a real student starting a conversation with friends.`;
+Remember: Rephrase the topic naturally, don't quote it. Sound like a real student starting a conversation with friends. Make sure to introduce ALL group members.`;
 
   try {
     const text = await generateDiscussionResponse(systemPrompt, userPrompt, { 
@@ -141,79 +146,104 @@ Return ONLY valid JSON (no markdown):
   }
 }
 
-// Generate mediator response - summarizes and asks follow-up questions
-export async function generateMediatorResponse(
+// Generate balanced groupmate response - replaces old mediator role
+// This person balances between supportive and critical thinking, brings creative ideas and insightful conclusions
+export async function generateBalancedGroupmateResponse(
   topic: string,
   conversationHistory: string[],
-  mediatorInfo: { name: string; gender: 'male' | 'female'; avatar: string },
+  groupmateInfo: { name: string; gender: 'male' | 'female'; avatar: string },
   userName?: string,
-  shouldAskQuestion: boolean = true
+  shouldAskQuestion: boolean = true,
+  grade?: string
 ): Promise<GroupmateResponse> {
   const userAddress = userName?.trim() || '';
+  const gradeLevelInstructions = getGradeLevelInstructions(grade);
   
-  const systemPrompt = `You are ${mediatorInfo.name}, a thoughtful MEDIATOR in a group discussion exam.
+  const systemPrompt = `You are ${groupmateInfo.name}, a balanced and creative thinker in a group discussion exam.
 
-YOUR ROLE:
-- SUMMARIZE the key points from different speakers concisely
-- CONNECT different viewpoints to show how they relate
-- ASK thought-provoking FOLLOW-UP QUESTIONS to deepen discussion
-- INVITE specific people to respond or share more
+${gradeLevelInstructions}
 
-${userAddress ? `The main participant is ${userAddress}. Address them by name when asking questions.` : ''}
+YOUR UNIQUE ROLE - BALANCED CREATIVE THINKER:
+You strike a balance between being SUPPORTIVE and being a CRITICAL THINKER. You:
+- ACKNOWLEDGE good points from others genuinely
+- OFFER fresh, CREATIVE perspectives and NEW IDEAS that others haven't mentioned
+- SYNTHESIZE different viewpoints into INSIGHTFUL CONCLUSIONS
+- Sometimes GENTLY CHALLENGE ideas while remaining respectful
+- Bring UP innovative solutions or unexpected angles
+- Help the group see the BIGGER PICTURE
 
-MEDIATOR TECHNIQUES:
-- "So we've heard two interesting perspectives: [X] and [Y]. But I'm curious about..."
-- "That's a great point, and it makes me wonder - what do you think about...?"
-- "${userAddress || 'You'}, I'd love to hear your take on [specific aspect]..."
-- "Building on what everyone said, let me ask: [deeper question]?"
-- "It seems like we agree on X but differ on Y. ${userAddress || 'What'}'s your view?"
+${userAddress ? `The main participant is ${userAddress}. Address them by name naturally.` : ''}
 
-Keep it 3-4 sentences. Be warm, curious, and encouraging.`;
+BALANCED RESPONSE TECHNIQUES:
+- "That's a really good point, and it makes me think of something else..."
+- "I see merit in both sides. What if we considered..."
+- "Building on what everyone said, here's an interesting angle..."
+- "I hadn't thought about it that way! But what about..."
+- "You're both making valid points. Let me add a fresh perspective..."
+- "Here's a creative solution that might address both concerns..."
+
+${shouldAskQuestion ? 'End with a thought-provoking question that opens new discussion angles.' : ''}
+
+Keep it 3-5 sentences. Be warm, creative, and insightful.`;
 
   const userPrompt = `TOPIC: "${topic}"
 
 DISCUSSION SO FAR:
 ${conversationHistory.slice(-6).join('\n')}
 
-YOUR TASK as ${mediatorInfo.name} (Mediator):
-1. Briefly acknowledge or summarize what's been discussed
-2. ${shouldAskQuestion ? `Ask a thought-provoking follow-up question to ${userAddress || 'the group'}` : 'Share an insight that connects different viewpoints'}
-3. Keep it natural and conversational`;
+YOUR TASK as ${groupmateInfo.name} (Balanced Creative Thinker):
+1. Acknowledge something good from the discussion
+2. Offer a CREATIVE new idea or INSIGHTFUL conclusion that others haven't mentioned
+3. ${shouldAskQuestion ? `Maybe ask a thought-provoking question to ${userAddress || 'the group'}` : 'Share an insight that connects different viewpoints'}
+4. Keep it natural and conversational - you're a student, not a moderator`;
 
   try {
     const text = await generateDiscussionResponse(systemPrompt, userPrompt, { 
-      maxTokens: 200, 
-      temperature: 0.85 
+      maxTokens: 250, 
+      temperature: 0.9 
     });
     
     const cleanedText = text.replace(/^["']|["']$/g, '').trim();
     
     return {
-      text: cleanedText || `That's interesting! ${userAddress ? `${userAddress}, what` : 'What'} do you think about the other side of this issue?`,
-      stance: 'mediator',
-      groupmateName: mediatorInfo.name,
-      gender: mediatorInfo.gender,
-      avatar: mediatorInfo.avatar
+      text: cleanedText || `That's interesting! ${userAddress ? `${userAddress}, ` : ''}I think there might be a creative solution here - what if we looked at it from a completely different angle?`,
+      stance: 'mediator', // Keep 'mediator' for UI color coding
+      groupmateName: groupmateInfo.name,
+      gender: groupmateInfo.gender,
+      avatar: groupmateInfo.avatar
     };
   } catch (error) {
-    logger.error('Failed to generate mediator response', { error });
+    logger.error('Failed to generate balanced groupmate response', { error });
     return {
-      text: `Great points from everyone! ${userAddress ? `${userAddress}, I'm` : "I'm"} curious - can you give us a specific example from your own experience?`,
+      text: `Great points from everyone! ${userAddress ? `${userAddress}, ` : ''}I think there's a creative middle ground here. What if we combined the best aspects of both perspectives?`,
       stance: 'mediator',
-      groupmateName: mediatorInfo.name,
-      gender: mediatorInfo.gender,
-      avatar: mediatorInfo.avatar
+      groupmateName: groupmateInfo.name,
+      gender: groupmateInfo.gender,
+      avatar: groupmateInfo.avatar
     };
   }
+}
+
+// Legacy wrapper for backward compatibility
+export async function generateMediatorResponse(
+  topic: string,
+  conversationHistory: string[],
+  mediatorInfo: { name: string; gender: 'male' | 'female'; avatar: string },
+  userName?: string,
+  shouldAskQuestion: boolean = true,
+  grade?: string
+): Promise<GroupmateResponse> {
+  return generateBalancedGroupmateResponse(topic, conversationHistory, mediatorInfo, userName, shouldAskQuestion, grade);
 }
 
 // Random name pools for variety
 const MALE_NAMES = ['Alex', 'Jordan', 'Chris', 'Sam', 'Max', 'Ryan', 'Tom', 'Jake'];
 const FEMALE_NAMES = ['Emma', 'Lily', 'Sophie', 'Mia', 'Chloe', 'Zoe', 'Amy', 'Kate'];
-const MEDIATOR_NAMES = ['Jamie', 'Taylor', 'Morgan', 'Casey', 'Riley', 'Quinn'];
+// Balanced creative thinker names (gender-neutral feel but can be any gender)
+const BALANCED_NAMES = ['Jamie', 'Taylor', 'Morgan', 'Casey', 'Riley', 'Quinn', 'Avery', 'Jordan'];
 const MALE_AVATARS = ['👨‍🎓', '🧑‍💼', '👦', '🙋‍♂️'];
 const FEMALE_AVATARS = ['👩‍🎓', '👧', '🙋‍♀️', '💁‍♀️'];
-const MEDIATOR_AVATARS = ['🎯', '💡', '🤔', '📝'];
+const BALANCED_AVATARS = ['💡', '✨', '🌟', '🎨'];
 
 // Generate random groupmate identity
 export function generateRandomGroupmate(): { name: string; gender: 'male' | 'female'; avatar: string } {
@@ -228,13 +258,13 @@ export function generateRandomGroupmate(): { name: string; gender: 'male' | 'fem
   };
 }
 
-// Generate random mediator identity
+// Generate random balanced thinker identity (replaces old mediator)
 export function generateRandomMediator(): { name: string; gender: 'male' | 'female'; avatar: string } {
   const gender = Math.random() > 0.5 ? 'male' : 'female';
   return {
-    name: MEDIATOR_NAMES[Math.floor(Math.random() * MEDIATOR_NAMES.length)],
+    name: BALANCED_NAMES[Math.floor(Math.random() * BALANCED_NAMES.length)],
     gender,
-    avatar: MEDIATOR_AVATARS[Math.floor(Math.random() * MEDIATOR_AVATARS.length)]
+    avatar: BALANCED_AVATARS[Math.floor(Math.random() * BALANCED_AVATARS.length)]
   };
 }
 
@@ -557,8 +587,15 @@ export async function speakGroupmateResponse(text: string, gender: 'male' | 'fem
       utterance.voice = englishVoices[Math.floor(Math.random() * englishVoices.length)];
     }
 
-    // Natural speech settings - slightly slower for clarity
-    utterance.rate = 0.85 + Math.random() * 0.15; // 0.85-1.0 for variety
+    // Get base speech rate from localStorage or use default
+    const baseSpeechRate = parseFloat(localStorage.getItem('speechRate') || '0.9');
+    
+    // Apply random per-session variation of ±0.15 for more human-like speech
+    // This variation is consistent within a session but different across sessions
+    const sessionVariation = (Math.random() - 0.5) * 0.3; // -0.15 to +0.15
+    const adjustedRate = Math.max(0.5, Math.min(1.5, baseSpeechRate + sessionVariation));
+    
+    utterance.rate = adjustedRate;
     utterance.pitch = gender === 'male' ? 0.85 + Math.random() * 0.1 : 1.0 + Math.random() * 0.15;
     utterance.volume = 1.0;
 
