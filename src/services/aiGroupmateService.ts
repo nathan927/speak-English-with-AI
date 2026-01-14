@@ -847,15 +847,14 @@ export function createSpeechRecognition(): any {
 
   const recognition = new SpeechRecognitionAPI();
   
-  // Mobile browsers (especially iOS Safari) have issues with continuous mode
-  // They work better with continuous=false and manual restart on end
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  
-  recognition.continuous = !isMobile; // Disable continuous on mobile for better reliability
+  // Some mobile browsers are flaky with continuous mode, but auto-restarting
+  // recognition from onend can be blocked because it is not a user gesture.
+  // Use continuous mode everywhere and let the user stop manually.
+  recognition.continuous = true;
   recognition.interimResults = true;
   recognition.lang = 'en-US';
   recognition.maxAlternatives = 1;
-  
+
   return recognition;
 }
 

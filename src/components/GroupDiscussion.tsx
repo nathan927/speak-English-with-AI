@@ -175,59 +175,46 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, on
     
     if (recognition) {
       recognition.onresult = (event: any) => {
-        // Build complete transcript from all results
-        let finalTranscript = '';
+        // Mobile Web Speech can behave differently; accumulate FINAL results incrementally.
+        // This avoids losing text when the browser rewrites event.results.
+        const isMobileUA = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
         let interimTranscript = '';
-        
-        for (let i = 0; i < event.results.length; i++) {
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
           const result = event.results[i];
+          const chunk = (result?.[0]?.transcript || '').trim();
+          if (!chunk) continue;
+
           if (result.isFinal) {
-            finalTranscript += result[0].transcript + ' ';
+            accumulatedTranscriptRef.current += chunk + ' ';
           } else {
-            interimTranscript += result[0].transcript;
+            interimTranscript = chunk;
           }
         }
-        
-        // For mobile: accumulate final results across recognition sessions
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        if (isMobile && finalTranscript) {
-          accumulatedTranscriptRef.current += finalTranscript;
-        }
-        
-        // Combine accumulated + current final + interim for display
-        const fullTranscript = isMobile 
-          ? (accumulatedTranscriptRef.current + interimTranscript).trim()
-          : (finalTranscript + interimTranscript).trim();
-        
+
+        const fullTranscript = (accumulatedTranscriptRef.current + interimTranscript).trim();
         transcriptRef.current = fullTranscript;
         setCurrentTranscript(fullTranscript);
-        
-        logger.info('Speech recognition result', { 
-          final: finalTranscript.substring(0, 30), 
+
+        logger.info('Speech recognition result', {
           interim: interimTranscript.substring(0, 30),
           accumulated: accumulatedTranscriptRef.current.substring(0, 30),
-          isMobile
+          isMobile: isMobileUA,
         });
       };
 
       recognition.onerror = (event: any) => {
-        // Ignore aborted errors when intentionally stopping
+        // Ignore aborted/no-speech errors when intentionally stopping or when the user is silent
         if (event.error === 'aborted' || event.error === 'no-speech') return;
         logger.error('Speech recognition error', { error: event.error });
-        // Don't stop recording on error - just log and continue
       };
 
       recognition.onend = () => {
-        // Use ref to check actual recording state
-        if (isRecordingRef.current) {
-          // Restart if still supposed to be recording (especially important for mobile)
-          try {
-            recognition.start();
-            logger.info('Restarted speech recognition');
-          } catch (e) {
-            logger.warn('Could not restart recognition', { error: e });
-          }
-        }
+        // IMPORTANT: Do NOT auto-restart here.
+        // On many phones, calling recognition.start() outside a user gesture is blocked,
+        // which results in "Start Speaking" producing no transcript.
+        logger.info('Speech recognition ended', { isRecording: isRecordingRef.current });
       };
     }
 
