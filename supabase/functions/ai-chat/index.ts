@@ -22,31 +22,35 @@ serve(async (req) => {
       );
     }
 
-    // Verify the token - can be either a user JWT or the anon key
+    // Verify the token - can be either a user JWT or a project key (anon/publishable)
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabasePublishableKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
     const token = authHeader.replace("Bearer ", "");
-    
+
     let userId = "anonymous";
-    
-    // Check if it's a user JWT (has sub claim) or just the anon key
-    if (token !== supabaseAnonKey) {
-      // Try to validate as user JWT
+
+    const isProjectKey =
+      token === supabaseAnonKey ||
+      (typeof supabasePublishableKey === "string" && token === supabasePublishableKey);
+
+    // If it's not a project key, validate as a user JWT
+    if (!isProjectKey) {
       const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-        global: { headers: { Authorization: authHeader } }
+        global: { headers: { Authorization: authHeader } },
       });
-      
+
       const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-      
+
       if (claimsError || !claimsData?.claims) {
-        // Token is neither a valid user JWT nor the anon key
+        // Token is neither a valid user JWT nor an allowed project key
         console.error("Invalid token provided");
-        return new Response(
-          JSON.stringify({ error: "Unauthorized" }),
-          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
-      
+
       userId = claimsData.claims.sub as string;
     }
     
