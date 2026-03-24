@@ -10,6 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { ArrowLeft, Volume2, Play, Check, Settings as SettingsIcon, Mic, Moon, Sun } from 'lucide-react';
 import { logger } from '@/services/logService';
 import ApiSettings from '@/components/ApiSettings';
+import TtsSettings from '@/components/TtsSettings';
 
 interface VoiceOption {
   id: string; // Use voice.name as unique ID
