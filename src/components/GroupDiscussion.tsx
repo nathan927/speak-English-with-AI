@@ -518,7 +518,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, practiceMode =
         // Use varied closing message
         const closingMessage = getRandomClosing(userName.trim() || undefined);
         addMessage('system', closingMessage);
-        await speakGroupmateResponse(closingMessage, groupmates.supporter.gender);
+        await speakGroupmateResponse(closingMessage, groupmates.supporter.gender, 'system');
         
         // Calculate score and save discussion
         const endTime = new Date();
