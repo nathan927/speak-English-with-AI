@@ -107,6 +107,7 @@ const Index = () => {
       <GradeSelector 
         onGradeSelect={handleGradeSelect} 
         onDiscussionSelect={handleDiscussionSelect}
+        onPracticeSelect={handlePracticeSelect}
         onBack={handleReturnHome} 
       />
     );
