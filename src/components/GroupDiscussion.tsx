@@ -29,6 +29,7 @@ import {
 
 interface GroupDiscussionProps {
   grade: string;
+  practiceMode?: boolean;
   onComplete: (results: any) => void;
   onBack: () => void;
 }
