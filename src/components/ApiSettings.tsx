@@ -69,7 +69,6 @@ const ApiSettings: React.FC = () => {
         setReasoningLevel('none');
       }
       setTestResult(null);
-      setShowApiKey(false);
     }
   }, [editingProvider]);
 
