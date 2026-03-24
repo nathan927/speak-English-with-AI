@@ -1,6 +1,7 @@
 // AI Groupmate Service - Generate responses from AI discussion partners
 import { logger } from './logService';
 import { generateDiscussionResponse } from './ai/aiApiService';
+import { getActiveTTSProvider, getActiveTTSProviderConfig } from './ttsProviderService';
 
 // Generate AI-powered natural discussion opening
 export async function generateDiscussionOpening(
