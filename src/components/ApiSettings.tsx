@@ -27,6 +27,7 @@ const ApiSettings: React.FC = () => {
   const [editingProvider, setEditingProvider] = useState<string | null>(null);
   const [apiKey, setApiKey] = useState('');
   const [selectedModel, setSelectedModel] = useState('');
+  const [customModelId, setCustomModelId] = useState('');
   const [reasoningLevel, setReasoningLevel] = useState<'none' | 'low' | 'medium' | 'high'>('none');
   const [showApiKey, setShowApiKey] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; latencyMs?: number } | null>(null);
