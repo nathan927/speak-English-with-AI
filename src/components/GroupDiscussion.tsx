@@ -893,8 +893,18 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, practiceMode =
               </Card>
             )}
 
+            {/* Transcribing indicator */}
+            {isTranscribing && (
+              <div className="flex items-center justify-center gap-2 p-3">
+                <Loader2 className="w-5 h-5 animate-spin text-sky-600" />
+                <span className="text-sm font-medium text-sky-700 dark:text-sky-300">
+                  正在使用 AI 轉錄語音...
+                </span>
+              </div>
+            )}
+
             {/* Recording controls */}
-            {!isEditingTranscript && (
+            {!isEditingTranscript && !isTranscribing && (
               <div className="flex justify-center gap-4">
                 {!isRecording ? (
                   <>
@@ -906,6 +916,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, practiceMode =
                     >
                       <Mic className="w-5 h-5" />
                       Start Speaking
+                      {useExternalSTT && <Badge variant="outline" className="ml-1 text-xs bg-sky-100 text-sky-700 border-sky-300">AI STT</Badge>}
                     </Button>
                     {practiceMode && turnCount > 0 && (
                       <Button
