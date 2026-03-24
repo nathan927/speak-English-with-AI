@@ -83,13 +83,18 @@ const ApiSettings: React.FC = () => {
     }
   }, []);
 
+  const getResolvedModel = (presetModels: { id: string }[]) => {
+    if (selectedModel === '__custom__' && customModelId.trim()) return customModelId.trim();
+    return selectedModel || presetModels[0]?.id || '';
+  };
+
   const handleSaveProvider = (preset: AIProviderPreset) => {
     const config: AIProviderConfig = {
       providerId: preset.id,
       providerName: preset.name,
       baseUrl: preset.baseUrl,
       apiKey,
-      model: selectedModel || preset.models[0]?.id || '',
+      model: getResolvedModel(preset.models),
       reasoningLevel: reasoningLevel !== 'none' ? reasoningLevel : undefined,
     };
     saveProviderConfig(config);
