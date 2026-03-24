@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { ArrowLeft, Volume2, Play, Check, Settings as SettingsIcon, Mic, Moon, Sun } from 'lucide-react';
 import { logger } from '@/services/logService';
+import ApiSettings from '@/components/ApiSettings';
 
 interface VoiceOption {
   id: string; // Use voice.name as unique ID
@@ -335,6 +336,8 @@ const Settings = () => {
         </div>
 
         <div className="max-w-2xl mx-auto space-y-6">
+          {/* AI Provider Settings */}
+          <ApiSettings />
           {/* Dark Mode Toggle */}
           <Card className="border-2 border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80">
             <CardHeader className="pb-3">
