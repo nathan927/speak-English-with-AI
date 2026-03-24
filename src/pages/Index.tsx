@@ -13,7 +13,7 @@ import { logger } from '@/services/logService';
 
 const Index = () => {
   const navigate = useNavigate();
-  const [currentView, setCurrentView] = useState<'home' | 'gradeSelect' | 'test' | 'discussion' | 'results'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'gradeSelect' | 'test' | 'discussion' | 'practice' | 'results'>('home');
   const [selectedGrade, setSelectedGrade] = useState<string>('');
   const [speechRate, setSpeechRate] = useState<number>(0.9);
   const [selectedVoiceId, setSelectedVoiceId] = useState<string>('default');
