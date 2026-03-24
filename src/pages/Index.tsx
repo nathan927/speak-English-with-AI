@@ -76,6 +76,12 @@ const Index = () => {
     setCurrentView('results');
   };
 
+  const handlePracticeSelect = (grade: string) => {
+    logger.info('Practice mode selected', { grade });
+    setSelectedGrade(grade);
+    setCurrentView('practice');
+  };
+
   const renderStars = (maxLevel: number) => {
     return (
       <div className="space-y-2">
