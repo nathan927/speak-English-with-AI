@@ -175,6 +175,7 @@ export async function generateBalancedGroupmateResponse(
   const gradeLevelInstructions = getGradeLevelInstructions(grade);
   
   const systemPrompt = `You are ${groupmateInfo.name}, a balanced and creative thinker in a group discussion exam.
+${getIdentityRule(groupmateInfo.name)}
 
 ${gradeLevelInstructions}
 
