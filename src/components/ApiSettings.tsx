@@ -49,10 +49,19 @@ const ApiSettings: React.FC = () => {
       const config = getProviderConfig(editingProvider);
       if (config) {
         setApiKey(config.apiKey);
-        setSelectedModel(config.model);
+        const preset = AI_PROVIDER_PRESETS.find(p => p.id === editingProvider);
+        const isPresetModel = preset?.models.some(m => m.id === config.model && m.id !== '__custom__');
+        if (isPresetModel) {
+          setSelectedModel(config.model);
+          setCustomModelId('');
+        } else {
+          setSelectedModel('__custom__');
+          setCustomModelId(config.model);
+        }
         setReasoningLevel(config.reasoningLevel || 'none');
       } else {
         setApiKey('');
+        setCustomModelId('');
         const preset = AI_PROVIDER_PRESETS.find(p => p.id === editingProvider);
         setSelectedModel(preset?.models[0]?.id || '');
         setReasoningLevel('none');
