@@ -239,7 +239,7 @@ export function getActiveProvider(): string {
 
 export function getActiveProviderConfig(): AIProviderConfig | null {
   const activeId = getActiveProvider();
-  if (activeId === 'lovable') return null; // Use built-in
+  return getProviderConfig(activeId);
   return getProviderConfig(activeId);
 }
 
