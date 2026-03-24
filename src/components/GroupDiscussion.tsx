@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ArrowLeft, Mic, MicOff, Volume2, Users, MessageCircle, Loader2, User, Star, Clock, BookOpen, History, Edit2, Check, X } from 'lucide-react';
 import { logger } from '@/services/logService';
+import { getActiveSTTProvider, transcribeWithExternalSTT } from '@/services/sttProviderService';
 import { 
   generateGroupmateResponse, 
   speakGroupmateResponse, 
@@ -87,6 +88,9 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, practiceMode =
   const messageIdRef = useRef(0);
   const isRecordingRef = useRef(false);
   const transcriptRef = useRef('');
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const MAX_TURNS = 6; // 6 turns total (user speaks 3 times, AI responds each time)
 
   // Generate random groupmates on mount (including mediator)
@@ -335,52 +339,112 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, practiceMode =
     }]);
   };
 
-  const startRecording = () => {
-    if (!recognitionRef.current) {
-      logger.error('Speech recognition not available');
-      return;
-    }
+  const useExternalSTT = getActiveSTTProvider() !== 'browser';
 
+  const startRecording = async () => {
     transcriptRef.current = '';
     setCurrentTranscript('');
     isRecordingRef.current = true;
     setIsRecording(true);
-    
-    try {
-      recognitionRef.current.start();
-      logger.info('Started recording user speech');
-    } catch (e) {
-      logger.error('Failed to start recording', { error: e });
+
+    // Always start MediaRecorder for external STT
+    if (useExternalSTT) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+        audioChunksRef.current = [];
+        recorder.ondataavailable = (e) => {
+          if (e.data.size > 0) audioChunksRef.current.push(e.data);
+        };
+        recorder.start();
+        mediaRecorderRef.current = recorder;
+        logger.info('Started MediaRecorder for external STT');
+      } catch (e) {
+        logger.error('Failed to start MediaRecorder', { error: e });
+        isRecordingRef.current = false;
+        setIsRecording(false);
+        return;
+      }
+    }
+
+    // Also start browser recognition as live preview (or primary if browser mode)
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.start();
+        logger.info('Started browser speech recognition');
+      } catch (e) {
+        logger.error('Failed to start recognition', { error: e });
+        if (!useExternalSTT) {
+          isRecordingRef.current = false;
+          setIsRecording(false);
+        }
+      }
+    } else if (!useExternalSTT) {
+      logger.error('Speech recognition not available');
       isRecordingRef.current = false;
       setIsRecording(false);
     }
   };
 
   const stopRecording = async () => {
-    if (!recognitionRef.current) return;
-
-    // Stop recording first
     isRecordingRef.current = false;
     setIsRecording(false);
-    
-    try {
-      recognitionRef.current.stop();
-    } catch (e) {
-      // Ignore stop errors
-    }
-    
-    // Use ref value as it's more reliable
-    const finalTranscript = transcriptRef.current.trim() || currentTranscript.trim();
-    
-    if (!finalTranscript) {
-      logger.warn('No speech detected');
-      return;
+
+    // Stop browser recognition
+    try { recognitionRef.current?.stop(); } catch {}
+
+    if (useExternalSTT && mediaRecorderRef.current) {
+      // Stop MediaRecorder and transcribe via external API
+      const recorder = mediaRecorderRef.current;
+      mediaRecorderRef.current = null;
+
+      const audioBlob = await new Promise<Blob>((resolve) => {
+        recorder.onstop = () => {
+          const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          // Stop all tracks to release microphone
+          recorder.stream.getTracks().forEach(t => t.stop());
+          resolve(blob);
+        };
+        recorder.stop();
+      });
+
+      if (audioBlob.size < 1000) {
+        logger.warn('Audio too short for transcription');
+        return;
+      }
+
+      setIsTranscribing(true);
+      try {
+        logger.info('Sending audio to external STT', { size: audioBlob.size });
+        const transcript = await transcribeWithExternalSTT(audioBlob);
+        if (transcript.trim()) {
+          setPendingTranscript(transcript.trim());
+          setIsEditingTranscript(true);
+        } else {
+          logger.warn('External STT returned empty transcript');
+        }
+      } catch (error) {
+        logger.error('External STT failed, using browser transcript', { error });
+        // Fallback to browser transcript
+        const browserTranscript = transcriptRef.current.trim() || currentTranscript.trim();
+        if (browserTranscript) {
+          setPendingTranscript(browserTranscript);
+          setIsEditingTranscript(true);
+        }
+      } finally {
+        setIsTranscribing(false);
+      }
+    } else {
+      // Browser-only mode
+      const finalTranscript = transcriptRef.current.trim() || currentTranscript.trim();
+      if (!finalTranscript) {
+        logger.warn('No speech detected');
+        return;
+      }
+      setPendingTranscript(finalTranscript);
+      setIsEditingTranscript(true);
     }
 
-    // Instead of immediately submitting, show the transcript for editing
-    setPendingTranscript(finalTranscript);
-    setIsEditingTranscript(true);
-    
     transcriptRef.current = '';
     setCurrentTranscript('');
   };
@@ -829,8 +893,18 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, practiceMode =
               </Card>
             )}
 
+            {/* Transcribing indicator */}
+            {isTranscribing && (
+              <div className="flex items-center justify-center gap-2 p-3">
+                <Loader2 className="w-5 h-5 animate-spin text-sky-600" />
+                <span className="text-sm font-medium text-sky-700 dark:text-sky-300">
+                  正在使用 AI 轉錄語音...
+                </span>
+              </div>
+            )}
+
             {/* Recording controls */}
-            {!isEditingTranscript && (
+            {!isEditingTranscript && !isTranscribing && (
               <div className="flex justify-center gap-4">
                 {!isRecording ? (
                   <>
@@ -842,6 +916,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, practiceMode =
                     >
                       <Mic className="w-5 h-5" />
                       Start Speaking
+                      {useExternalSTT && <Badge variant="outline" className="ml-1 text-xs bg-sky-100 text-sky-700 border-sky-300">AI STT</Badge>}
                     </Button>
                     {practiceMode && turnCount > 0 && (
                       <Button
