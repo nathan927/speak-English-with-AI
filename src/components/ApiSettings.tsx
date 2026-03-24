@@ -407,22 +407,13 @@ const ApiSettings: React.FC = () => {
 
               <div className="space-y-1">
                 <Label className="text-xs">API Key</Label>
-                <div className="relative">
-                  <Input
-                    type={showCustomApiKey ? 'text' : 'password'}
-                    value={customApiKey}
-                    onChange={(e) => setCustomApiKey(e.target.value)}
-                    placeholder="sk-..."
-                    className="pr-10 h-9 text-sm"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowCustomApiKey(!showCustomApiKey)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    {showCustomApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
+                <Input
+                  type="password"
+                  value={customApiKey}
+                  onChange={(e) => setCustomApiKey(e.target.value)}
+                  placeholder="sk-..."
+                  className="h-9 text-sm"
+                />
               </div>
 
               <div className="space-y-1">
