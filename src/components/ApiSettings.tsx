@@ -300,7 +300,7 @@ const ApiSettings: React.FC = () => {
                           />
                           <p className="text-xs text-muted-foreground">請輸入提供商支援的完整模型 ID</p>
                         </div>
-                      )
+                      )}
 
                       {/* Reasoning level (for supported providers) */}
                       {preset.supportsReasoning && (
