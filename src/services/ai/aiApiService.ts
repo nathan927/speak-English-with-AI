@@ -32,7 +32,7 @@ export async function callAI(
     const body: any = { messages, maxTokens, temperature };
 
     // If using a custom provider, pass config to edge function
-    if (providerConfig && activeProvider !== 'lovable') {
+    if (providerConfig) {
       body.customBaseUrl = providerConfig.baseUrl;
       body.customApiKey = providerConfig.apiKey;
       body.customModel = providerConfig.model;
