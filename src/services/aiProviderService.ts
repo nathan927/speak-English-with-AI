@@ -234,7 +234,7 @@ export function setActiveProvider(providerId: string): void {
 }
 
 export function getActiveProvider(): string {
-  return localStorage.getItem(ACTIVE_PROVIDER_KEY) || 'lovable';
+  return localStorage.getItem(ACTIVE_PROVIDER_KEY) || 'minimax';
 }
 
 export function getActiveProviderConfig(): AIProviderConfig | null {
