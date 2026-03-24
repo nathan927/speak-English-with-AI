@@ -51,7 +51,7 @@ const SttSettings: React.FC = () => {
   const [baseUrl, setBaseUrl] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [model, setModel] = useState('');
-  const [showApiKey] = useState(false);
+  
 
   useEffect(() => {
     if (editingProvider && editingProvider !== 'browser') {
