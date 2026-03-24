@@ -40,7 +40,7 @@ const ApiSettings: React.FC = () => {
   const [customModel, setCustomModel] = useState('');
   const [customName, setCustomName] = useState('');
   const [customReasoningLevel, setCustomReasoningLevel] = useState<'none' | 'low' | 'medium' | 'high'>('none');
-  const [showCustomApiKey, setShowCustomApiKey] = useState(false);
+  const [showCustomApiKey] = useState(false);
   const [customTestResult, setCustomTestResult] = useState<{ success: boolean; message: string; latencyMs?: number } | null>(null);
   const [isCustomTesting, setIsCustomTesting] = useState(false);
 

@@ -615,6 +615,8 @@ const Settings = () => {
             </Card>
            )}
 
+          {/* Import/Export Settings */}
+          <SettingsImportExport />
           {/* AI Provider Settings */}
           <ApiSettings />
           {/* TTS Provider Settings */}
