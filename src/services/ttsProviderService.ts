@@ -1,0 +1,295 @@
+// TTS Provider Service - Manage Text-to-Speech API provider settings
+import { logger } from './logService';
+
+export interface TTSProviderConfig {
+  providerId: string;
+  providerName: string;
+  baseUrl: string;
+  apiKey: string;
+  model: string;
+  voiceId: string;
+  speed?: number;
+}
+
+export interface TTSVoiceOption {
+  id: string;
+  name: string;
+  gender?: string;
+  language?: string;
+}
+
+export interface TTSProviderPreset {
+  id: string;
+  name: string;
+  icon: string;
+  baseUrl: string;
+  description: string;
+  models: { id: string; name: string; category: string }[];
+  voices: TTSVoiceOption[];
+  supportsSpeed?: boolean;
+}
+
+export const TTS_PROVIDER_PRESETS: TTSProviderPreset[] = [
+  {
+    id: 'browser',
+    name: '瀏覽器內建 (Built-in)',
+    icon: '🌐',
+    baseUrl: '',
+    description: '使用瀏覽器內建語音合成，免費但效果較機械',
+    models: [],
+    voices: [],
+  },
+  {
+    id: 'elevenlabs',
+    name: 'ElevenLabs',
+    icon: '🎙️',
+    baseUrl: 'https://api.elevenlabs.io/v1',
+    description: '業界頂尖仿真人語音，支持多語言、情感表達',
+    supportsSpeed: true,
+    models: [
+      { id: 'eleven_multilingual_v2', name: 'Multilingual v2 (最佳)', category: 'Premium' },
+      { id: 'eleven_turbo_v2_5', name: 'Turbo v2.5 (低延遲)', category: 'Fast' },
+      { id: 'eleven_turbo_v2', name: 'Turbo v2', category: 'Fast' },
+      { id: 'eleven_flash_v2_5', name: 'Flash v2.5 (最快)', category: 'Fast' },
+      { id: '__custom__', name: '🔧 自行輸入模型...', category: 'Custom' },
+    ],
+    voices: [
+      { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Sarah', gender: 'Female', language: 'en' },
+      { id: 'JBFqnCBsd6RMkjVDRZzb', name: 'George', gender: 'Male', language: 'en' },
+      { id: 'FGY2WhTYpPnrIDTdsKH5', name: 'Laura', gender: 'Female', language: 'en' },
+      { id: 'TX3LPaxmHKxFdv7VOQHJ', name: 'Liam', gender: 'Male', language: 'en' },
+      { id: 'Xb7hH8MSUJpSbSDYk0k2', name: 'Alice', gender: 'Female', language: 'en' },
+      { id: 'XrExE9yKIg1WjnnlVkGX', name: 'Matilda', gender: 'Female', language: 'en' },
+      { id: 'pFZP5JQG7iQjIQuC4Bku', name: 'Lily', gender: 'Female', language: 'en' },
+      { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel', gender: 'Male', language: 'en' },
+      { id: 'cgSgspJ2msm6clMCkdW9', name: 'Jessica', gender: 'Female', language: 'en' },
+      { id: 'cjVigY5qzO86Huf0OWal', name: 'Eric', gender: 'Male', language: 'en' },
+      { id: 'CwhRBWXzGAHq8TQ4Fs17', name: 'Roger', gender: 'Male', language: 'en' },
+      { id: 'SAz9YHcvj6GT2YYXdXww', name: 'River', gender: 'Non-binary', language: 'en' },
+    ],
+  },
+  {
+    id: 'openai-tts',
+    name: 'OpenAI TTS',
+    icon: '🟢',
+    baseUrl: 'https://api.openai.com/v1',
+    description: 'GPT 系列語音合成，自然流暢',
+    supportsSpeed: true,
+    models: [
+      { id: 'tts-1-hd', name: 'TTS-1 HD (高品質)', category: 'Premium' },
+      { id: 'tts-1', name: 'TTS-1 (標準)', category: 'Standard' },
+      { id: 'gpt-4o-mini-tts', name: 'GPT-4o Mini TTS', category: 'Latest' },
+      { id: '__custom__', name: '🔧 自行輸入模型...', category: 'Custom' },
+    ],
+    voices: [
+      { id: 'alloy', name: 'Alloy', gender: 'Neutral' },
+      { id: 'ash', name: 'Ash', gender: 'Male' },
+      { id: 'ballad', name: 'Ballad', gender: 'Male' },
+      { id: 'coral', name: 'Coral', gender: 'Female' },
+      { id: 'echo', name: 'Echo', gender: 'Male' },
+      { id: 'fable', name: 'Fable', gender: 'Male' },
+      { id: 'nova', name: 'Nova', gender: 'Female' },
+      { id: 'onyx', name: 'Onyx', gender: 'Male' },
+      { id: 'sage', name: 'Sage', gender: 'Female' },
+      { id: 'shimmer', name: 'Shimmer', gender: 'Female' },
+    ],
+  },
+  {
+    id: 'google-tts',
+    name: 'Google Cloud TTS',
+    icon: '🔵',
+    baseUrl: 'https://texttospeech.googleapis.com/v1',
+    description: 'Google WaveNet / Neural2 / Studio 語音',
+    supportsSpeed: true,
+    models: [
+      { id: 'Studio', name: 'Studio (最佳)', category: 'Premium' },
+      { id: 'Neural2', name: 'Neural2', category: 'Standard' },
+      { id: 'WaveNet', name: 'WaveNet', category: 'Standard' },
+      { id: 'Standard', name: 'Standard', category: 'Basic' },
+      { id: '__custom__', name: '🔧 自行輸入模型...', category: 'Custom' },
+    ],
+    voices: [
+      { id: 'en-US-Studio-O', name: 'Studio-O (Female)', gender: 'Female', language: 'en-US' },
+      { id: 'en-US-Studio-Q', name: 'Studio-Q (Male)', gender: 'Male', language: 'en-US' },
+      { id: 'en-US-Neural2-C', name: 'Neural2-C (Female)', gender: 'Female', language: 'en-US' },
+      { id: 'en-US-Neural2-D', name: 'Neural2-D (Male)', gender: 'Male', language: 'en-US' },
+      { id: 'en-GB-Neural2-A', name: 'Neural2-A UK (Female)', gender: 'Female', language: 'en-GB' },
+      { id: 'en-GB-Neural2-B', name: 'Neural2-B UK (Male)', gender: 'Male', language: 'en-GB' },
+    ],
+  },
+  {
+    id: 'azure-tts',
+    name: 'Azure Speech',
+    icon: '🔷',
+    baseUrl: '',
+    description: 'Microsoft Azure 語音服務，支持 SSML',
+    supportsSpeed: true,
+    models: [
+      { id: 'neural', name: 'Neural (標準)', category: 'Standard' },
+      { id: 'neural-hd', name: 'Neural HD (高品質)', category: 'Premium' },
+      { id: '__custom__', name: '🔧 自行輸入模型...', category: 'Custom' },
+    ],
+    voices: [
+      { id: 'en-US-JennyNeural', name: 'Jenny (Female)', gender: 'Female', language: 'en-US' },
+      { id: 'en-US-GuyNeural', name: 'Guy (Male)', gender: 'Male', language: 'en-US' },
+      { id: 'en-US-AriaNeural', name: 'Aria (Female)', gender: 'Female', language: 'en-US' },
+      { id: 'en-US-DavisNeural', name: 'Davis (Male)', gender: 'Male', language: 'en-US' },
+      { id: 'en-GB-SoniaNeural', name: 'Sonia UK (Female)', gender: 'Female', language: 'en-GB' },
+      { id: 'en-GB-RyanNeural', name: 'Ryan UK (Male)', gender: 'Male', language: 'en-GB' },
+    ],
+  },
+  {
+    id: 'minimax-tts',
+    name: 'MiniMax TTS',
+    icon: '🤖',
+    baseUrl: 'https://api.minimax.chat/v1',
+    description: 'MiniMax 語音合成，支持中英雙語',
+    supportsSpeed: true,
+    models: [
+      { id: 'speech-02-hd', name: 'Speech-02 HD', category: 'Premium' },
+      { id: 'speech-02', name: 'Speech-02', category: 'Standard' },
+      { id: 'speech-01-turbo', name: 'Speech-01 Turbo', category: 'Fast' },
+      { id: '__custom__', name: '🔧 自行輸入模型...', category: 'Custom' },
+    ],
+    voices: [
+      { id: 'male-qn-qingse', name: '青澀青年', gender: 'Male' },
+      { id: 'female-shaonv', name: '少女', gender: 'Female' },
+      { id: 'female-yujie', name: '御姐', gender: 'Female' },
+      { id: 'male-qn-jingying', name: '精英青年', gender: 'Male' },
+      { id: 'presenter_female', name: 'Presenter Female', gender: 'Female' },
+      { id: 'presenter_male', name: 'Presenter Male', gender: 'Male' },
+    ],
+  },
+  {
+    id: 'fish-audio',
+    name: 'Fish Audio',
+    icon: '🐟',
+    baseUrl: 'https://api.fish.audio/v1',
+    description: '開源高品質語音合成，支持 voice cloning',
+    supportsSpeed: true,
+    models: [
+      { id: 'speech-1.5', name: 'Speech 1.5', category: 'Latest' },
+      { id: 'speech-1', name: 'Speech 1', category: 'Stable' },
+      { id: '__custom__', name: '🔧 自行輸入模型...', category: 'Custom' },
+    ],
+    voices: [
+      { id: 'default', name: 'Default', gender: 'Female' },
+    ],
+  },
+  {
+    id: 'volcengine-tts',
+    name: '火山引擎 TTS (ByteDance)',
+    icon: '🌋',
+    baseUrl: 'https://openspeech.bytedance.com/api/v1',
+    description: '字節跳動語音合成，高品質中英文',
+    supportsSpeed: true,
+    models: [
+      { id: 'mega_tts', name: 'Mega TTS (最佳)', category: 'Premium' },
+      { id: 'tts_async', name: 'TTS Async', category: 'Standard' },
+      { id: '__custom__', name: '🔧 自行輸入模型...', category: 'Custom' },
+    ],
+    voices: [
+      { id: 'en_us_narrator', name: 'US Narrator', gender: 'Male', language: 'en-US' },
+      { id: 'en_female_sarah', name: 'Sarah', gender: 'Female', language: 'en-US' },
+    ],
+  },
+  {
+    id: 'xunfei-tts',
+    name: '訊飛語音 (iFlytek)',
+    icon: '🎤',
+    baseUrl: 'https://tts-api.xfyun.cn/v2',
+    description: '科大訊飛語音合成，中文優化',
+    models: [
+      { id: 'xtts', name: 'xTTS (最新)', category: 'Latest' },
+      { id: 'normal', name: '標準合成', category: 'Standard' },
+      { id: '__custom__', name: '🔧 自行輸入模型...', category: 'Custom' },
+    ],
+    voices: [
+      { id: 'xiaoyan', name: '小燕 (Female)', gender: 'Female' },
+      { id: 'aisjiuxu', name: '許久 (Male)', gender: 'Male' },
+      { id: 'catherine', name: 'Catherine (English)', gender: 'Female', language: 'en' },
+    ],
+  },
+];
+
+const TTS_STORAGE_KEY = 'tts_provider_config';
+const TTS_ACTIVE_KEY = 'tts_active_provider';
+
+export function saveTTSProviderConfig(config: TTSProviderConfig): void {
+  try {
+    const allConfigs = getAllTTSProviderConfigs();
+    const idx = allConfigs.findIndex(c => c.providerId === config.providerId);
+    if (idx >= 0) allConfigs[idx] = config;
+    else allConfigs.push(config);
+    localStorage.setItem(TTS_STORAGE_KEY, JSON.stringify(allConfigs));
+    logger.info('TTS provider config saved', { providerId: config.providerId });
+  } catch (error) {
+    logger.error('Failed to save TTS provider config', { error });
+  }
+}
+
+export function getAllTTSProviderConfigs(): TTSProviderConfig[] {
+  try {
+    const stored = localStorage.getItem(TTS_STORAGE_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch { return []; }
+}
+
+export function getTTSProviderConfig(providerId: string): TTSProviderConfig | null {
+  return getAllTTSProviderConfigs().find(c => c.providerId === providerId) || null;
+}
+
+export function deleteTTSProviderConfig(providerId: string): void {
+  const configs = getAllTTSProviderConfigs().filter(c => c.providerId !== providerId);
+  localStorage.setItem(TTS_STORAGE_KEY, JSON.stringify(configs));
+}
+
+export function setActiveTTSProvider(providerId: string): void {
+  localStorage.setItem(TTS_ACTIVE_KEY, providerId);
+  logger.info('Active TTS provider set', { providerId });
+}
+
+export function getActiveTTSProvider(): string {
+  return localStorage.getItem(TTS_ACTIVE_KEY) || 'browser';
+}
+
+export function getActiveTTSProviderConfig(): TTSProviderConfig | null {
+  const id = getActiveTTSProvider();
+  if (id === 'browser') return null;
+  return getTTSProviderConfig(id);
+}
+
+// Test TTS connectivity by generating a short audio clip
+export async function testTTSConnectivity(config: TTSProviderConfig): Promise<{ success: boolean; message: string; latencyMs?: number }> {
+  const startTime = Date.now();
+  const testText = 'Hello, this is a voice test.';
+
+  try {
+    if (config.providerId === 'browser') {
+      return { success: true, message: '瀏覽器內建語音正常', latencyMs: 0 };
+    }
+
+    const { supabase } = await import('@/integrations/supabase/client');
+    const { data, error } = await supabase.functions.invoke('tts-proxy', {
+      body: {
+        text: testText,
+        providerId: config.providerId,
+        baseUrl: config.baseUrl,
+        apiKey: config.apiKey,
+        model: config.model,
+        voiceId: config.voiceId,
+        speed: config.speed || 1.0,
+        testOnly: true,
+      }
+    });
+
+    const latencyMs = Date.now() - startTime;
+
+    if (error) return { success: false, message: `Edge function error: ${error.message}` };
+    if (data?.error) return { success: false, message: `API error: ${data.error}` };
+
+    return { success: true, message: `連線成功！延遲 ${latencyMs}ms`, latencyMs };
+  } catch (error) {
+    return { success: false, message: error instanceof Error ? error.message : 'Unknown error' };
+  }
+}
