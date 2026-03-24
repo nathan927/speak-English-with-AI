@@ -51,7 +51,7 @@ interface DiscussionMessage {
   timestamp: Date;
 }
 
-const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, onComplete, onBack }) => {
+const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, practiceMode = false, onComplete, onBack }) => {
   const [topic, setTopic] = useState<Question | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
