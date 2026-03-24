@@ -22,23 +22,6 @@ export interface AIProviderPreset {
 
 export const AI_PROVIDER_PRESETS: AIProviderPreset[] = [
   {
-    id: 'lovable',
-    name: 'Lovable AI (內建)',
-    icon: '💜',
-    baseUrl: '',
-    description: '內建AI服務，無需API Key',
-    models: [
-      { id: 'google/gemini-3-flash-preview', name: 'Gemini 3 Flash Preview', category: 'Google' },
-      { id: 'google/gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro Preview', category: 'Google' },
-      { id: 'google/gemini-2.5-pro', name: 'Gemini 2.5 Pro', category: 'Google' },
-      { id: 'google/gemini-2.5-flash', name: 'Gemini 2.5 Flash', category: 'Google' },
-      { id: 'openai/gpt-5.2', name: 'GPT-5.2', category: 'OpenAI' },
-      { id: 'openai/gpt-5', name: 'GPT-5', category: 'OpenAI' },
-      { id: 'openai/gpt-5-mini', name: 'GPT-5 Mini', category: 'OpenAI' },
-      { id: 'openai/gpt-5-nano', name: 'GPT-5 Nano', category: 'OpenAI' },
-    ]
-  },
-  {
     id: 'openai',
     name: 'OpenAI',
     icon: '🟢',
