@@ -54,6 +54,7 @@ const TtsSettings: React.FC = () => {
       const preset = TTS_PROVIDER_PRESETS.find(p => p.id === editingProvider);
       if (config) {
         setApiKey(config.apiKey);
+        setPresetBaseUrl(config.baseUrl || preset?.baseUrl || '');
         const isPresetModel = preset?.models.some(m => m.id === config.model && m.id !== '__custom__');
         if (isPresetModel) { setSelectedModel(config.model); setCustomModelId(''); }
         else { setSelectedModel('__custom__'); setCustomModelId(config.model); }
@@ -63,6 +64,7 @@ const TtsSettings: React.FC = () => {
         setSpeed(config.speed || 1.0);
       } else {
         setApiKey('');
+        setPresetBaseUrl(preset?.baseUrl || '');
         setCustomModelId('');
         setCustomVoiceId('');
         setSelectedModel(preset?.models[0]?.id || '');
