@@ -51,9 +51,9 @@ export const TTS_PROVIDER_PRESETS: TTSProviderPreset[] = [
       { id: '__custom__', name: '🔧 自行輸入模型...', category: 'Custom' },
     ],
     voices: [
-      { id: 'ara', name: 'Ara', gender: 'Female' },
-      { id: 'eve', name: 'Eve', gender: 'Female' },
-      { id: 'leo', name: 'Leo', gender: 'Male' },
+      { id: 'ara', name: 'Ara (溫暖友善)', gender: 'Female' },
+      { id: 'eve', name: 'Eve (活力開朗)', gender: 'Female' },
+      { id: 'leo', name: 'Leo (權威有力)', gender: 'Male' },
       { id: 'rex', name: 'Rex (自信專業)', gender: 'Male' },
       { id: 'sal', name: 'Sal (流暢多用途)', gender: 'Male' },
     ],
