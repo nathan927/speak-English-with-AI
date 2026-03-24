@@ -155,7 +155,7 @@ const TtsSettings: React.FC = () => {
           body: JSON.stringify({
             text: 'Hello! This is a voice preview test. How does my voice sound?',
             providerId: preset.id,
-            baseUrl: preset.baseUrl,
+            baseUrl: presetBaseUrl || preset.baseUrl,
             apiKey,
             model: getResolvedModel(preset),
             voiceId: getResolvedVoice(preset),
