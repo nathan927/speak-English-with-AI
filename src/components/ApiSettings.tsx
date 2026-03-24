@@ -122,7 +122,7 @@ const ApiSettings: React.FC = () => {
       providerName: preset.name,
       baseUrl: preset.baseUrl,
       apiKey,
-      model: selectedModel || preset.models[0]?.id || '',
+      model: getResolvedModel(preset.models),
       reasoningLevel: reasoningLevel !== 'none' ? reasoningLevel : undefined,
     };
     const result = await testProviderConnectivity(config);
