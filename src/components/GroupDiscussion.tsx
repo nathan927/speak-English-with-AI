@@ -833,15 +833,62 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, practiceMode =
             {!isEditingTranscript && (
               <div className="flex justify-center gap-4">
                 {!isRecording ? (
-                  <Button
-                    size="default"
-                    onClick={startRecording}
-                    disabled={isProcessing || isSpeaking}
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3"
-                  >
-                    <Mic className="w-5 h-5" />
-                    Start Speaking
-                  </Button>
+                  <>
+                    <Button
+                      size="default"
+                      onClick={startRecording}
+                      disabled={isProcessing || isSpeaking}
+                      className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3"
+                    >
+                      <Mic className="w-5 h-5" />
+                      Start Speaking
+                    </Button>
+                    {practiceMode && turnCount > 0 && (
+                      <Button
+                        size="default"
+                        variant="outline"
+                        onClick={() => {
+                          stopSpeaking();
+                          const endTime = new Date();
+                          const durationSeconds = discussionStartTime 
+                            ? Math.round((endTime.getTime() - discussionStartTime.getTime()) / 1000)
+                            : 0;
+                          const score = calculateDiscussionScore(
+                            messages.map(m => ({ speaker: m.speaker, text: m.text })),
+                            durationSeconds,
+                            turnCount
+                          );
+                          setDiscussionScore(score);
+                          if (topic && groupmates) {
+                            saveDiscussion({
+                              date: new Date().toISOString(),
+                              grade,
+                              topic: topic.text,
+                              userName: userName.trim() || undefined,
+                              groupmates: {
+                                supporter: { name: groupmates.supporter.name, gender: groupmates.supporter.gender },
+                                opposer: { name: groupmates.opposer.name, gender: groupmates.opposer.gender }
+                              },
+                              messages: messages.map(m => ({
+                                speaker: m.speaker,
+                                speakerName: m.speakerName,
+                                text: m.text,
+                                timestamp: m.timestamp.toISOString()
+                              })),
+                              score,
+                              durationSeconds
+                            });
+                          }
+                          setDiscussionPhase('results');
+                        }}
+                        disabled={isProcessing || isSpeaking}
+                        className="flex items-center gap-2 border-orange-300 text-orange-700 hover:bg-orange-50 dark:border-orange-600 dark:text-orange-300 dark:hover:bg-orange-900/30 px-6 py-3"
+                      >
+                        <Check className="w-5 h-5" />
+                        End Practice
+                      </Button>
+                    )}
+                  </>
                 ) : (
                   <Button
                     size="default"

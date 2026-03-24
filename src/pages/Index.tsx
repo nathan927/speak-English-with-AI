@@ -123,6 +123,17 @@ const Index = () => {
     );
   }
 
+  if (currentView === 'practice') {
+    return (
+      <GroupDiscussion
+        grade={selectedGrade}
+        practiceMode={true}
+        onComplete={handleDiscussionComplete}
+        onBack={() => setCurrentView('gradeSelect')}
+      />
+    );
+  }
+
   if (currentView === 'test') {
     return (
       <VoiceTest 

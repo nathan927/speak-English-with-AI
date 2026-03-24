@@ -129,6 +129,17 @@ export const GradeSelector = ({ onGradeSelect, onDiscussionSelect, onPracticeSel
                           Discussion
                         </Button>
                       )}
+                      {/* Practice mode button for P4+ */}
+                      {supportsDiscussion(grade) && onPracticeSelect && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onPracticeSelect(grade)}
+                          className="h-8 text-xs font-medium bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700 hover:border-emerald-400 transition-all"
+                        >
+                          ♾️ Practice
+                        </Button>
+                      )}
                     </div>
                   ))}
                 </div>
