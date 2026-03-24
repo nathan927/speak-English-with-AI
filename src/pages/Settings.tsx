@@ -618,6 +618,8 @@ const Settings = () => {
           <ApiSettings />
           {/* TTS Provider Settings */}
           <TtsSettings />
+          {/* STT Provider Settings */}
+          <SttSettings />
         </div>
       </div>
     </div>
