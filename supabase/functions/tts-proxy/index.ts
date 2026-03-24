@@ -77,7 +77,7 @@ serve(async (req) => {
       const audioBuffer = await response.arrayBuffer();
       audioBase64 = base64Encode(audioBuffer);
 
-    } else if (providerId === "xai-tts") {
+    } else if (providerId === "xai-tts" || providerId === "grok2api-tts") {
       // xAI Grok TTS - also supports grok2api proxies
       const effectiveBaseUrl = baseUrl || "https://api.x.ai/v1";
       const url = `${effectiveBaseUrl}/tts`;

@@ -40,11 +40,30 @@ export const TTS_PROVIDER_PRESETS: TTSProviderPreset[] = [
     voices: [],
   },
   {
+    id: 'grok2api-tts',
+    name: 'Grok2API TTS (xAI)',
+    icon: '✖️',
+    baseUrl: '',
+    description: '透過 Grok2API 代理使用 xAI TTS，需填入你的 Grok2API 地址',
+    supportsSpeed: false,
+    models: [
+      { id: 'grok-tts', name: 'Grok TTS', category: 'Standard' },
+      { id: '__custom__', name: '🔧 自行輸入模型...', category: 'Custom' },
+    ],
+    voices: [
+      { id: 'ara', name: 'Ara', gender: 'Female' },
+      { id: 'eve', name: 'Eve', gender: 'Female' },
+      { id: 'leo', name: 'Leo', gender: 'Male' },
+      { id: 'nova', name: 'Nova', gender: 'Female' },
+      { id: 'zephyr', name: 'Zephyr', gender: 'Non-binary' },
+    ],
+  },
+  {
     id: 'xai-tts',
-    name: 'xAI Grok TTS',
+    name: 'xAI Grok TTS (官方)',
     icon: '✖️',
     baseUrl: 'https://api.x.ai/v1',
-    description: 'xAI Grok TTS，5種表達力語音，支持 20+ 語言，$4.2/百萬字。也可使用 grok2api 代理',
+    description: 'xAI 官方 TTS API，$4.2/百萬字，5種表達力語音',
     supportsSpeed: false,
     models: [
       { id: 'grok-tts', name: 'Grok TTS', category: 'Standard' },

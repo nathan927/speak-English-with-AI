@@ -28,6 +28,7 @@ const ApiSettings: React.FC = () => {
   const [apiKey, setApiKey] = useState('');
   const [selectedModel, setSelectedModel] = useState('');
   const [customModelId, setCustomModelId] = useState('');
+  const [presetBaseUrl, setPresetBaseUrl] = useState('');
   const [reasoningLevel, setReasoningLevel] = useState<'none' | 'low' | 'medium' | 'high'>('none');
   const [showApiKey, setShowApiKey] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; latencyMs?: number } | null>(null);
@@ -47,9 +48,10 @@ const ApiSettings: React.FC = () => {
   useEffect(() => {
     if (editingProvider) {
       const config = getProviderConfig(editingProvider);
+      const preset = AI_PROVIDER_PRESETS.find(p => p.id === editingProvider);
       if (config) {
         setApiKey(config.apiKey);
-        const preset = AI_PROVIDER_PRESETS.find(p => p.id === editingProvider);
+        setPresetBaseUrl(config.baseUrl || preset?.baseUrl || '');
         const isPresetModel = preset?.models.some(m => m.id === config.model && m.id !== '__custom__');
         if (isPresetModel) {
           setSelectedModel(config.model);
@@ -62,7 +64,7 @@ const ApiSettings: React.FC = () => {
       } else {
         setApiKey('');
         setCustomModelId('');
-        const preset = AI_PROVIDER_PRESETS.find(p => p.id === editingProvider);
+        setPresetBaseUrl(preset?.baseUrl || '');
         setSelectedModel(preset?.models[0]?.id || '');
         setReasoningLevel('none');
       }
@@ -92,7 +94,7 @@ const ApiSettings: React.FC = () => {
     const config: AIProviderConfig = {
       providerId: preset.id,
       providerName: preset.name,
-      baseUrl: preset.baseUrl,
+      baseUrl: presetBaseUrl || preset.baseUrl,
       apiKey,
       model: getResolvedModel(preset.models),
       reasoningLevel: reasoningLevel !== 'none' ? reasoningLevel : undefined,
@@ -109,7 +111,7 @@ const ApiSettings: React.FC = () => {
   const handleDeleteProvider = (providerId: string) => {
     deleteProviderConfig(providerId);
     if (activeProviderId === providerId) {
-      handleActivateProvider('lovable');
+      handleActivateProvider('minimax');
     }
     setEditingProvider(null);
   };
@@ -120,7 +122,7 @@ const ApiSettings: React.FC = () => {
     const config: AIProviderConfig = {
       providerId: preset.id,
       providerName: preset.name,
-      baseUrl: preset.baseUrl,
+      baseUrl: presetBaseUrl || preset.baseUrl,
       apiKey,
       model: getResolvedModel(preset.models),
       reasoningLevel: reasoningLevel !== 'none' ? reasoningLevel : undefined,
@@ -244,7 +246,20 @@ const ApiSettings: React.FC = () => {
 
                   {/* Editing form */}
                   {isEditing && (
-                    <div className="px-3 pb-3 space-y-3 border-t border-gray-200 dark:border-gray-700 pt-3">
+                    <div className="px-3 pb-3 space-y-3 border-t border-border pt-3">
+                      {/* Base URL (for providers without fixed URL) */}
+                      {!preset.baseUrl && (
+                        <div className="space-y-1">
+                          <Label className="text-xs">Base URL <span className="text-destructive">*</span></Label>
+                          <Input
+                            value={presetBaseUrl}
+                            onChange={(e) => setPresetBaseUrl(e.target.value)}
+                            placeholder="https://your-grok2api-host:8000/v1"
+                            className="h-9 text-sm font-mono"
+                          />
+                          <p className="text-xs text-muted-foreground">請輸入你的服務地址，例如 https://your-host:8000/v1</p>
+                        </div>
+                      )}
                       {/* API Key */}
                       <div className="space-y-1">
                         <Label className="text-xs">API Key</Label>

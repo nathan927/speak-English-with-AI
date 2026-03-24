@@ -22,6 +22,28 @@ export interface AIProviderPreset {
 
 export const AI_PROVIDER_PRESETS: AIProviderPreset[] = [
   {
+    id: 'grok2api',
+    name: 'Grok2API (xAI Proxy)',
+    icon: '✖️',
+    baseUrl: '',
+    description: 'OpenAI 相容 Grok 代理，支持 grok-4 / grok-4.20 / 語音聊天',
+    supportsReasoning: true,
+    models: [
+      { id: 'grok-4.20-beta', name: 'Grok 4.20 Beta', category: 'Flagship' },
+      { id: 'grok-4.1-expert', name: 'Grok 4.1 Expert', category: 'Flagship' },
+      { id: 'grok-4.1-thinking', name: 'Grok 4.1 Thinking', category: 'Reasoning' },
+      { id: 'grok-4.1-fast', name: 'Grok 4.1 Fast', category: 'Fast' },
+      { id: 'grok-4.1-mini', name: 'Grok 4.1 Mini', category: 'Fast' },
+      { id: 'grok-4', name: 'Grok 4', category: 'Flagship' },
+      { id: 'grok-4-thinking', name: 'Grok 4 Thinking', category: 'Reasoning' },
+      { id: 'grok-4-heavy', name: 'Grok 4 Heavy (Super)', category: 'Premium' },
+      { id: 'grok-3', name: 'Grok 3', category: 'Stable' },
+      { id: 'grok-3-thinking', name: 'Grok 3 Thinking', category: 'Reasoning' },
+      { id: 'grok-3-mini', name: 'Grok 3 Mini', category: 'Fast' },
+      { id: '__custom__', name: '🔧 自行輸入模型...', category: 'Custom' },
+    ]
+  },
+  {
     id: 'openai',
     name: 'OpenAI',
     icon: '🟢',
