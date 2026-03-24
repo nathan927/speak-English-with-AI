@@ -102,7 +102,7 @@ const TtsSettings: React.FC = () => {
     const config: TTSProviderConfig = {
       providerId: preset.id,
       providerName: preset.name,
-      baseUrl: preset.baseUrl,
+      baseUrl: presetBaseUrl || preset.baseUrl,
       apiKey,
       model: getResolvedModel(preset),
       voiceId: getResolvedVoice(preset),
