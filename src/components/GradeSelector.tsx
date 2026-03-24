@@ -7,6 +7,7 @@ import { logger } from '@/services/logService';
 interface GradeSelectorProps {
   onGradeSelect: (grade: string) => void;
   onDiscussionSelect?: (grade: string) => void;
+  onPracticeSelect?: (grade: string) => void;
   onBack: () => void;
 }
 
