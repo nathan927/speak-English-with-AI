@@ -309,7 +309,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, practiceMode =
       );
       setIsSpeaking(true);
       try {
-        await speakGroupmateResponse(fallbackOpening, groupmates.supporter.gender);
+        await speakGroupmateResponse(fallbackOpening, groupmates.supporter.gender, 'support');
       } catch {}
     }
     setIsSpeaking(false);
