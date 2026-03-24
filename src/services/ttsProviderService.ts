@@ -40,6 +40,25 @@ export const TTS_PROVIDER_PRESETS: TTSProviderPreset[] = [
     voices: [],
   },
   {
+    id: 'xai-tts',
+    name: 'xAI Grok TTS',
+    icon: '✖️',
+    baseUrl: 'https://api.x.ai/v1',
+    description: 'xAI Grok TTS，5種表達力語音，支持 20+ 語言，$4.2/百萬字。也可使用 grok2api 代理',
+    supportsSpeed: false,
+    models: [
+      { id: 'grok-tts', name: 'Grok TTS', category: 'Standard' },
+      { id: '__custom__', name: '🔧 自行輸入模型...', category: 'Custom' },
+    ],
+    voices: [
+      { id: 'ara', name: 'Ara', gender: 'Female' },
+      { id: 'eve', name: 'Eve', gender: 'Female' },
+      { id: 'leo', name: 'Leo', gender: 'Male' },
+      { id: 'nova', name: 'Nova', gender: 'Female' },
+      { id: 'zephyr', name: 'Zephyr', gender: 'Non-binary' },
+    ],
+  },
+  {
     id: 'elevenlabs',
     name: 'ElevenLabs',
     icon: '🎙️',
