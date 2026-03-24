@@ -88,6 +88,9 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, practiceMode =
   const messageIdRef = useRef(0);
   const isRecordingRef = useRef(false);
   const transcriptRef = useRef('');
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const MAX_TURNS = 6; // 6 turns total (user speaks 3 times, AI responds each time)
 
   // Generate random groupmates on mount (including mediator)
