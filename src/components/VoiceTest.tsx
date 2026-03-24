@@ -40,7 +40,7 @@ const VoiceTest: React.FC<VoiceTestProps> = ({
   const [playingRecordingId, setPlayingRecordingId] = useState<number | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const speechTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const speechTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const recordingAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Load questions on component mount
