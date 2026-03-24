@@ -339,6 +339,8 @@ const Settings = () => {
         <div className="max-w-2xl mx-auto space-y-6">
           {/* AI Provider Settings */}
           <ApiSettings />
+          {/* TTS Provider Settings */}
+          <TtsSettings />
           {/* Dark Mode Toggle */}
           <Card className="border-2 border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80">
             <CardHeader className="pb-3">
