@@ -12,6 +12,7 @@ import { logger } from '@/services/logService';
 import ApiSettings from '@/components/ApiSettings';
 import TtsSettings from '@/components/TtsSettings';
 import SttSettings from '@/components/SttSettings';
+import SettingsImportExport from '@/components/SettingsImportExport';
 
 interface VoiceOption {
   id: string; // Use voice.name as unique ID
