@@ -453,7 +453,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, practiceMode =
       );
       lastSpeaker = firstResponse.groupmateName;
       
-      await speakGroupmateResponse(firstResponse.text, firstResponse.gender);
+      await speakGroupmateResponse(firstResponse.text, firstResponse.gender, firstResponse.stance);
 
       // Small pause between responses
       await new Promise(resolve => setTimeout(resolve, 600));
