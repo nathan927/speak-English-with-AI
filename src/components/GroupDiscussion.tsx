@@ -513,8 +513,8 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, practiceMode =
 
       setIsSpeaking(false);
 
-      // Check if discussion should end (using dynamic maxTurns)
-      if (turnCount + 1 >= maxTurns) {
+      // Check if discussion should end (skip in practice mode)
+      if (!practiceMode && turnCount + 1 >= maxTurns) {
         // Use varied closing message
         const closingMessage = getRandomClosing(userName.trim() || undefined);
         addMessage('system', closingMessage);
