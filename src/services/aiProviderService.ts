@@ -20,7 +20,6 @@ export interface AIProviderPreset {
   description: string;
 }
 
-// Updated to 2026-03-24 with latest models
 export const AI_PROVIDER_PRESETS: AIProviderPreset[] = [
   {
     id: 'lovable',
@@ -33,9 +32,10 @@ export const AI_PROVIDER_PRESETS: AIProviderPreset[] = [
       { id: 'google/gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro Preview', category: 'Google' },
       { id: 'google/gemini-2.5-pro', name: 'Gemini 2.5 Pro', category: 'Google' },
       { id: 'google/gemini-2.5-flash', name: 'Gemini 2.5 Flash', category: 'Google' },
+      { id: 'openai/gpt-5.2', name: 'GPT-5.2', category: 'OpenAI' },
       { id: 'openai/gpt-5', name: 'GPT-5', category: 'OpenAI' },
       { id: 'openai/gpt-5-mini', name: 'GPT-5 Mini', category: 'OpenAI' },
-      { id: 'openai/gpt-5.2', name: 'GPT-5.2', category: 'OpenAI' },
+      { id: 'openai/gpt-5-nano', name: 'GPT-5 Nano', category: 'OpenAI' },
     ]
   },
   {
@@ -43,17 +43,20 @@ export const AI_PROVIDER_PRESETS: AIProviderPreset[] = [
     name: 'OpenAI',
     icon: '🟢',
     baseUrl: 'https://api.openai.com/v1',
-    description: 'GPT-5 / GPT-4.1 / o3 / o4-mini 系列模型',
+    description: 'GPT-5.4 / GPT-5.3 Codex / o3 / o4-mini 系列模型',
     supportsReasoning: true,
     models: [
+      { id: 'gpt-5.4', name: 'GPT-5.4', category: 'Flagship' },
+      { id: 'gpt-5.3-codex', name: 'GPT-5.3 Codex', category: 'Flagship' },
+      { id: 'gpt-5.2', name: 'GPT-5.2', category: 'Flagship' },
       { id: 'gpt-5', name: 'GPT-5', category: 'Flagship' },
-      { id: 'gpt-5-mini', name: 'GPT-5 Mini', category: 'Flagship' },
+      { id: 'gpt-5-mini', name: 'GPT-5 Mini', category: 'Fast' },
       { id: 'gpt-4.1', name: 'GPT-4.1', category: 'Fast' },
       { id: 'gpt-4.1-mini', name: 'GPT-4.1 Mini', category: 'Fast' },
       { id: 'gpt-4.1-nano', name: 'GPT-4.1 Nano', category: 'Fast' },
       { id: 'o3', name: 'o3 (Reasoning)', category: 'Reasoning' },
       { id: 'o4-mini', name: 'o4-mini (Reasoning)', category: 'Reasoning' },
-      { id: 'o3-mini', name: 'o3-mini (Reasoning)', category: 'Reasoning' },
+      { id: '__custom__', name: '🔧 自行輸入模型...', category: 'Custom' },
     ]
   },
   {
@@ -61,12 +64,15 @@ export const AI_PROVIDER_PRESETS: AIProviderPreset[] = [
     name: 'Anthropic',
     icon: '🔶',
     baseUrl: 'https://api.anthropic.com/v1',
-    description: 'Claude 4 / Claude 3.7 系列模型',
+    description: 'Opus 4.6 / Sonnet 4.6 / Claude 4 系列模型',
     models: [
+      { id: 'claude-opus-4.6-20260320', name: 'Opus 4.6', category: 'Flagship' },
+      { id: 'claude-sonnet-4.6-20260320', name: 'Sonnet 4.6', category: 'Balanced' },
       { id: 'claude-4-opus-20260301', name: 'Claude 4 Opus', category: 'Flagship' },
       { id: 'claude-4-sonnet-20260301', name: 'Claude 4 Sonnet', category: 'Balanced' },
       { id: 'claude-3.7-sonnet-20250219', name: 'Claude 3.7 Sonnet', category: 'Balanced' },
       { id: 'claude-3.5-haiku-20241022', name: 'Claude 3.5 Haiku', category: 'Fast' },
+      { id: '__custom__', name: '🔧 自行輸入模型...', category: 'Custom' },
     ]
   },
   {
@@ -81,6 +87,7 @@ export const AI_PROVIDER_PRESETS: AIProviderPreset[] = [
       { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', category: 'Stable' },
       { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', category: 'Fast' },
       { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite', category: 'Fast' },
+      { id: '__custom__', name: '🔧 自行輸入模型...', category: 'Custom' },
     ]
   },
   {
@@ -91,13 +98,16 @@ export const AI_PROVIDER_PRESETS: AIProviderPreset[] = [
     description: '聚合多家AI提供商，支持數百個模型',
     supportsReasoning: true,
     models: [
-      { id: 'openai/gpt-5', name: 'GPT-5 (via OpenRouter)', category: 'OpenAI' },
-      { id: 'anthropic/claude-4-sonnet', name: 'Claude 4 Sonnet', category: 'Anthropic' },
+      { id: 'openai/gpt-5.4', name: 'GPT-5.4', category: 'OpenAI' },
+      { id: 'openai/gpt-5.3-codex', name: 'GPT-5.3 Codex', category: 'OpenAI' },
+      { id: 'anthropic/claude-opus-4.6', name: 'Opus 4.6', category: 'Anthropic' },
+      { id: 'anthropic/claude-sonnet-4.6', name: 'Sonnet 4.6', category: 'Anthropic' },
       { id: 'google/gemini-2.5-pro', name: 'Gemini 2.5 Pro', category: 'Google' },
       { id: 'deepseek/deepseek-r1', name: 'DeepSeek R1', category: 'DeepSeek' },
       { id: 'deepseek/deepseek-v3-0324', name: 'DeepSeek V3', category: 'DeepSeek' },
       { id: 'meta-llama/llama-4-maverick', name: 'Llama 4 Maverick', category: 'Meta' },
       { id: 'qwen/qwen3-235b-a22b', name: 'Qwen3 235B', category: 'Alibaba' },
+      { id: '__custom__', name: '🔧 自行輸入模型...', category: 'Custom' },
     ]
   },
   {
@@ -109,6 +119,7 @@ export const AI_PROVIDER_PRESETS: AIProviderPreset[] = [
     models: [
       { id: 'deepseek-reasoner', name: 'DeepSeek R1 (推理)', category: 'Reasoning' },
       { id: 'deepseek-chat', name: 'DeepSeek V3 (對話)', category: 'Chat' },
+      { id: '__custom__', name: '🔧 自行輸入模型...', category: 'Custom' },
     ]
   },
   {
@@ -122,6 +133,7 @@ export const AI_PROVIDER_PRESETS: AIProviderPreset[] = [
       { id: 'glm-4-long', name: 'GLM-4 Long (長文本)', category: 'Long Context' },
       { id: 'glm-4-flash', name: 'GLM-4 Flash', category: 'Fast' },
       { id: 'glm-4-air', name: 'GLM-4 Air', category: 'Balanced' },
+      { id: '__custom__', name: '🔧 自行輸入模型...', category: 'Custom' },
     ]
   },
   {
@@ -136,6 +148,7 @@ export const AI_PROVIDER_PRESETS: AIProviderPreset[] = [
       { id: 'qwen-plus', name: 'Qwen Plus', category: 'Fast' },
       { id: 'qwen-turbo', name: 'Qwen Turbo', category: 'Fast' },
       { id: 'qwen-max', name: 'Qwen Max', category: 'Flagship' },
+      { id: '__custom__', name: '🔧 自行輸入模型...', category: 'Custom' },
     ]
   },
   {
@@ -145,8 +158,10 @@ export const AI_PROVIDER_PRESETS: AIProviderPreset[] = [
     baseUrl: 'https://api.minimax.chat/v1',
     description: 'MiniMax 大模型，支持超長上下文',
     models: [
+      { id: 'MiniMax-2.7', name: 'MiniMax-2.7', category: 'Latest' },
       { id: 'MiniMax-M1', name: 'MiniMax-M1 (推理)', category: 'Reasoning' },
       { id: 'MiniMax-Text-01', name: 'MiniMax-Text-01', category: 'Chat' },
+      { id: '__custom__', name: '🔧 自行輸入模型...', category: 'Custom' },
     ]
   },
   {
@@ -158,6 +173,7 @@ export const AI_PROVIDER_PRESETS: AIProviderPreset[] = [
     models: [
       { id: 'Baichuan4-Turbo', name: 'Baichuan4 Turbo', category: 'Flagship' },
       { id: 'Baichuan4-Air', name: 'Baichuan4 Air', category: 'Fast' },
+      { id: '__custom__', name: '🔧 自行輸入模型...', category: 'Custom' },
     ]
   },
   {
@@ -171,6 +187,7 @@ export const AI_PROVIDER_PRESETS: AIProviderPreset[] = [
       { id: 'moonshot-v1-128k', name: 'Moonshot 128K', category: 'Long Context' },
       { id: 'moonshot-v1-32k', name: 'Moonshot 32K', category: 'Balanced' },
       { id: 'moonshot-v1-8k', name: 'Moonshot 8K', category: 'Fast' },
+      { id: '__custom__', name: '🔧 自行輸入模型...', category: 'Custom' },
     ]
   },
   {
@@ -185,6 +202,7 @@ export const AI_PROVIDER_PRESETS: AIProviderPreset[] = [
       { id: 'qwen/qwen3-235b-a22b', name: 'Qwen3 235B', category: 'Qwen' },
       { id: 'google/gemma-3-27b-it', name: 'Gemma 3 27B', category: 'Google' },
       { id: 'nvidia/llama-3.1-nemotron-ultra-253b-v1', name: 'Nemotron Ultra 253B', category: 'NVIDIA' },
+      { id: '__custom__', name: '🔧 自行輸入模型...', category: 'Custom' },
     ]
   },
 ];
