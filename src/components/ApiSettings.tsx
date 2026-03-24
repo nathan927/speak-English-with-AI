@@ -94,7 +94,7 @@ const ApiSettings: React.FC = () => {
     const config: AIProviderConfig = {
       providerId: preset.id,
       providerName: preset.name,
-      baseUrl: preset.baseUrl,
+      baseUrl: presetBaseUrl || preset.baseUrl,
       apiKey,
       model: getResolvedModel(preset.models),
       reasoningLevel: reasoningLevel !== 'none' ? reasoningLevel : undefined,
