@@ -295,7 +295,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, practiceMode =
       
       // Speak the introduction
       setIsSpeaking(true);
-      await speakGroupmateResponse(openingResponse, groupmates.supporter.gender);
+      await speakGroupmateResponse(openingResponse, groupmates.supporter.gender, 'support');
     } catch (e) {
       logger.warn('Could not generate AI opening, using fallback');
       // Fallback to static opening with all 3 members
@@ -309,7 +309,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, practiceMode =
       );
       setIsSpeaking(true);
       try {
-        await speakGroupmateResponse(fallbackOpening, groupmates.supporter.gender);
+        await speakGroupmateResponse(fallbackOpening, groupmates.supporter.gender, 'support');
       } catch {}
     }
     setIsSpeaking(false);
@@ -453,7 +453,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, practiceMode =
       );
       lastSpeaker = firstResponse.groupmateName;
       
-      await speakGroupmateResponse(firstResponse.text, firstResponse.gender);
+      await speakGroupmateResponse(firstResponse.text, firstResponse.gender, firstResponse.stance);
 
       // Small pause between responses
       await new Promise(resolve => setTimeout(resolve, 600));
@@ -481,7 +481,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, practiceMode =
       );
       lastSpeaker = secondResponse.groupmateName;
       
-      await speakGroupmateResponse(secondResponse.text, secondResponse.gender);
+      await speakGroupmateResponse(secondResponse.text, secondResponse.gender, secondResponse.stance);
 
       // INCREASED: Balanced groupmate (formerly mediator) participation from 40% to 50%
       // Also ensure no consecutive same speaker
@@ -508,7 +508,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, practiceMode =
         );
         lastSpeaker = mediatorResponse.groupmateName;
         
-        await speakGroupmateResponse(mediatorResponse.text, mediatorResponse.gender);
+        await speakGroupmateResponse(mediatorResponse.text, mediatorResponse.gender, 'mediator');
       }
 
       setIsSpeaking(false);
@@ -518,7 +518,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, practiceMode =
         // Use varied closing message
         const closingMessage = getRandomClosing(userName.trim() || undefined);
         addMessage('system', closingMessage);
-        await speakGroupmateResponse(closingMessage, groupmates.supporter.gender);
+        await speakGroupmateResponse(closingMessage, groupmates.supporter.gender, 'system');
         
         // Calculate score and save discussion
         const endTime = new Date();
