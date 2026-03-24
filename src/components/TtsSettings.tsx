@@ -72,7 +72,6 @@ const TtsSettings: React.FC = () => {
         setSpeed(1.0);
       }
       setTestResult(null);
-      setShowApiKey(false);
     }
   }, [editingProvider]);
 
