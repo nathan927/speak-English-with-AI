@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ArrowLeft, Mic, MicOff, Volume2, Users, MessageCircle, Loader2, User, Star, Clock, BookOpen, History, Edit2, Check, X } from 'lucide-react';
 import { logger } from '@/services/logService';
+import { getActiveSTTProvider, transcribeWithExternalSTT } from '@/services/sttProviderService';
 import { 
   generateGroupmateResponse, 
   speakGroupmateResponse, 
