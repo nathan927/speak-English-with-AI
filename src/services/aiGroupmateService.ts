@@ -30,6 +30,7 @@ export async function generateDiscussionOpening(
     : opposerName;
     
   const systemPrompt = `You are ${supporterName}, a friendly and confident student about to lead a group discussion in a speaking exam.
+${getIdentityRule(supporterName)}
 
 YOUR TASK: Create a NATURAL, conversational opening that:
 1. Briefly introduces yourself, ${allGroupmates}${userName ? ` and welcome ${userName}` : ''}
