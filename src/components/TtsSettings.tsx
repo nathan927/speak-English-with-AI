@@ -33,7 +33,7 @@ const TtsSettings: React.FC = () => {
   const [customVoiceId, setCustomVoiceId] = useState('');
   const [presetBaseUrl, setPresetBaseUrl] = useState('');
   const [speed, setSpeed] = useState(1.0);
-  const [showApiKey] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string; latencyMs?: number } | null>(null);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; latencyMs?: number } | null>(null);
   const [isTesting, setIsTesting] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
