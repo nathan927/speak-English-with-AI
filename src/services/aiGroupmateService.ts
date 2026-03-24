@@ -1,6 +1,7 @@
 // AI Groupmate Service - Generate responses from AI discussion partners
 import { logger } from './logService';
 import { generateDiscussionResponse } from './ai/aiApiService';
+import { getActiveTTSProvider, getActiveTTSProviderConfig } from './ttsProviderService';
 
 // Generate AI-powered natural discussion opening
 export async function generateDiscussionOpening(
@@ -530,15 +531,76 @@ ${userAddress ? `- Use their name "${userAddress}" naturally when appropriate` :
   }
 }
 
+// Track current audio element for external TTS playback
+let currentAudioElement: HTMLAudioElement | null = null;
+
 // Stop any ongoing speech
 export function stopSpeaking(): void {
   if ('speechSynthesis' in window) {
     window.speechSynthesis.cancel();
   }
+  if (currentAudioElement) {
+    currentAudioElement.pause();
+    currentAudioElement.src = '';
+    currentAudioElement = null;
+  }
 }
 
-// Text-to-Speech for groupmate responses with natural speed
+// Play audio via external TTS provider (Grok, ElevenLabs, etc.)
+async function speakViaExternalTTS(text: string): Promise<void> {
+  const config = getActiveTTSProviderConfig();
+  if (!config) throw new Error('No external TTS config found');
+
+  const { supabase } = await import('@/integrations/supabase/client');
+  const { data, error } = await supabase.functions.invoke('tts-proxy', {
+    body: {
+      text,
+      providerId: config.providerId,
+      baseUrl: config.baseUrl,
+      apiKey: config.apiKey,
+      model: config.model,
+      voiceId: config.voiceId,
+      speed: config.speed || 1.0,
+    }
+  });
+
+  if (error) throw new Error(`TTS edge function error: ${error.message}`);
+  if (data?.error) throw new Error(`TTS API error: ${data.error}`);
+  if (!data?.audioContent) throw new Error('No audio content returned');
+
+  // Play the base64 audio
+  return new Promise((resolve, reject) => {
+    const audio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
+    currentAudioElement = audio;
+    audio.onended = () => {
+      currentAudioElement = null;
+      resolve();
+    };
+    audio.onerror = (e) => {
+      currentAudioElement = null;
+      reject(new Error('Audio playback failed'));
+    };
+    audio.play().catch(reject);
+  });
+}
+
+// Text-to-Speech for groupmate responses - auto-selects external TTS or browser fallback
 export async function speakGroupmateResponse(text: string, gender: 'male' | 'female' = 'female'): Promise<void> {
+  const activeProvider = getActiveTTSProvider();
+
+  // If external TTS is active (not browser), use it
+  if (activeProvider !== 'browser') {
+    try {
+      logger.info('Using external TTS provider', { provider: activeProvider });
+      await speakViaExternalTTS(text);
+      return;
+    } catch (error) {
+      logger.warn('External TTS failed, falling back to browser', { error, provider: activeProvider });
+      // Fall through to browser TTS
+    }
+  }
+
+  // Browser built-in speech synthesis fallback
   return new Promise((resolve, reject) => {
     if (!('speechSynthesis' in window)) {
       logger.warn('Speech synthesis not supported');
@@ -550,15 +612,12 @@ export async function speakGroupmateResponse(text: string, gender: 'male' | 'fem
 
     const utterance = new SpeechSynthesisUtterance(text);
     
-    // Get voices
     const voices = window.speechSynthesis.getVoices();
     const englishVoices = voices.filter(v => v.lang.startsWith('en'));
     
-    // Try to get appropriate voice by gender
     let selectedVoice = null;
     
     if (gender === 'male') {
-      // Look for male voices
       selectedVoice = englishVoices.find(v => 
         v.name.includes('Daniel') || 
         v.name.includes('David') ||
@@ -569,7 +628,6 @@ export async function speakGroupmateResponse(text: string, gender: 'male' | 'fem
         v.name.toLowerCase().includes('male')
       );
     } else {
-      // Look for female voices
       selectedVoice = englishVoices.find(v => 
         v.name.includes('Karen') || 
         v.name.includes('Moira') ||
@@ -583,16 +641,11 @@ export async function speakGroupmateResponse(text: string, gender: 'male' | 'fem
     if (selectedVoice) {
       utterance.voice = selectedVoice;
     } else if (englishVoices.length > 0) {
-      // Pick a random English voice
       utterance.voice = englishVoices[Math.floor(Math.random() * englishVoices.length)];
     }
 
-    // Get base speech rate from localStorage or use default
     const baseSpeechRate = parseFloat(localStorage.getItem('speechRate') || '0.9');
-    
-    // Apply random per-session variation of ±0.15 for more human-like speech
-    // This variation is consistent within a session but different across sessions
-    const sessionVariation = (Math.random() - 0.5) * 0.3; // -0.15 to +0.15
+    const sessionVariation = (Math.random() - 0.5) * 0.3;
     const adjustedRate = Math.max(0.5, Math.min(1.5, baseSpeechRate + sessionVariation));
     
     utterance.rate = adjustedRate;
