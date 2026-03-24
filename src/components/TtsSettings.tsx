@@ -295,6 +295,19 @@ const TtsSettings: React.FC = () => {
 
                   {isEditing && (
                     <div className="px-3 pb-3 space-y-3 border-t border-border pt-3">
+                      {/* Base URL (for providers without fixed URL) */}
+                      {!preset.baseUrl && (
+                        <div className="space-y-1">
+                          <Label className="text-xs">Base URL <span className="text-destructive">*</span></Label>
+                          <Input
+                            value={presetBaseUrl}
+                            onChange={(e) => setPresetBaseUrl(e.target.value)}
+                            placeholder="https://your-grok2api-host:8000/v1"
+                            className="h-9 text-sm font-mono"
+                          />
+                          <p className="text-xs text-muted-foreground">請輸入你的服務地址</p>
+                        </div>
+                      )}
                       <div className="space-y-1">
                         <Label className="text-xs">API Key</Label>
                         <div className="relative">
