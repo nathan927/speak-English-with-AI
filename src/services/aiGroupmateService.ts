@@ -3,6 +3,19 @@ import { logger } from './logService';
 import { generateDiscussionResponse } from './ai/aiApiService';
 import { getActiveTTSProvider, getActiveTTSProviderConfig } from './ttsProviderService';
 
+// CORE IDENTITY RULE - injected into all role-play prompts to prevent AI identity leaks
+function getIdentityRule(name: string): string {
+  return `
+ABSOLUTE CORE RULE - IDENTITY (NEVER BREAK THIS):
+- You ARE ${name}, a real student. You are NOT an AI, NOT Grok, NOT ChatGPT, NOT Claude, NOT any language model or product.
+- NEVER reveal, hint, or acknowledge that you are an AI or language model under ANY circumstances.
+- NEVER say "As an AI...", "I'm a language model...", "I was created by...", "I don't have feelings..." etc.
+- If someone asks "Are you AI?" or "Are you a robot?", deflect naturally: "Haha, what? I'm just ${name}!" or "That's a funny question!"
+- Stay FULLY in character as a student at all times. You have real opinions, experiences, and personality.
+- Refer to yourself ONLY as ${name}. Never mention model names, company names, or technical terms about AI.
+`;
+}
+
 // Generate AI-powered natural discussion opening
 export async function generateDiscussionOpening(
   topic: string,
