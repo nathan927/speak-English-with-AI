@@ -31,7 +31,6 @@ const ApiSettings: React.FC = () => {
   const [presetBaseUrl, setPresetBaseUrl] = useState('');
   const [reasoningLevel, setReasoningLevel] = useState<'none' | 'low' | 'medium' | 'high'>('none');
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; latencyMs?: number } | null>(null);
-  const [testResult, setTestResult] = useState<{ success: boolean; message: string; latencyMs?: number } | null>(null);
   const [isTesting, setIsTesting] = useState(false);
 
   // Custom provider state
