@@ -624,10 +624,17 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, practiceMode =
             Back
           </Button>
           
-          <Badge className="bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-300 px-3 py-1">
-            <Users className="w-4 h-4 mr-2" />
-            Group Discussion - {grade}
-          </Badge>
+          <div className="flex items-center gap-2">
+            {practiceMode && (
+              <Badge className="bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 px-2 py-1">
+                ♾️ Practice
+              </Badge>
+            )}
+            <Badge className="bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-300 px-3 py-1">
+              <Users className="w-4 h-4 mr-2" />
+              Group Discussion - {grade}
+            </Badge>
+          </div>
         </div>
 
         {/* Progress */}
