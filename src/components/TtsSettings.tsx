@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  Loader2, Check, X, Volume2, Eye, EyeOff, Save, Trash2, Wifi, Clock, Play, Square
+  Loader2, Check, X, Volume2, Save, Trash2, Wifi, Clock, Play, Square
 } from 'lucide-react';
 import {
   TTS_PROVIDER_PRESETS,
