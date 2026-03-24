@@ -481,7 +481,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, practiceMode =
       );
       lastSpeaker = secondResponse.groupmateName;
       
-      await speakGroupmateResponse(secondResponse.text, secondResponse.gender);
+      await speakGroupmateResponse(secondResponse.text, secondResponse.gender, secondResponse.stance);
 
       // INCREASED: Balanced groupmate (formerly mediator) participation from 40% to 50%
       // Also ensure no consecutive same speaker
