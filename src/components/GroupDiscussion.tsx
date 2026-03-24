@@ -508,7 +508,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, practiceMode =
         );
         lastSpeaker = mediatorResponse.groupmateName;
         
-        await speakGroupmateResponse(mediatorResponse.text, mediatorResponse.gender);
+        await speakGroupmateResponse(mediatorResponse.text, mediatorResponse.gender, 'mediator');
       }
 
       setIsSpeaking(false);
