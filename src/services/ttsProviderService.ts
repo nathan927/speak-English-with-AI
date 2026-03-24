@@ -111,12 +111,12 @@ export const TTS_PROVIDER_PRESETS: TTSProviderPreset[] = [
     name: 'OpenAI TTS',
     icon: '🟢',
     baseUrl: 'https://api.openai.com/v1',
-    description: 'GPT 系列語音合成，自然流暢',
+    description: 'GPT-4o Mini TTS / TTS-1 HD 系列語音合成',
     supportsSpeed: true,
     models: [
+      { id: 'gpt-4o-mini-tts', name: 'GPT-4o Mini TTS (最新)', category: 'Latest' },
       { id: 'tts-1-hd', name: 'TTS-1 HD (高品質)', category: 'Premium' },
       { id: 'tts-1', name: 'TTS-1 (標準)', category: 'Standard' },
-      { id: 'gpt-4o-mini-tts', name: 'GPT-4o Mini TTS', category: 'Latest' },
       { id: '__custom__', name: '🔧 自行輸入模型...', category: 'Custom' },
     ],
     voices: [
