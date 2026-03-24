@@ -77,6 +77,34 @@ serve(async (req) => {
       const audioBuffer = await response.arrayBuffer();
       audioBase64 = base64Encode(audioBuffer);
 
+    } else if (providerId === "xai-tts") {
+      // xAI Grok TTS - also supports grok2api proxies
+      const effectiveBaseUrl = baseUrl || "https://api.x.ai/v1";
+      const url = `${effectiveBaseUrl}/tts`;
+      const body: any = {
+        text,
+        voice_id: voiceId || "ara",
+        language: "en",
+        output_format: { codec: "mp3", sample_rate: 24000, bit_rate: 128000 },
+      };
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        return new Response(
+          JSON.stringify({ error: `xAI TTS error (${response.status}): ${errText.substring(0, 200)}` }),
+          { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const audioBuffer = await response.arrayBuffer();
+      audioBase64 = base64Encode(audioBuffer);
+
     } else if (providerId === "minimax-tts") {
       const url = `${baseUrl || "https://api.minimax.chat/v1"}/t2a_v2`;
       const body: any = {
