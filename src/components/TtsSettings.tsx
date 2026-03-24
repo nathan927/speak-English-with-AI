@@ -31,6 +31,7 @@ const TtsSettings: React.FC = () => {
   const [customModelId, setCustomModelId] = useState('');
   const [selectedVoice, setSelectedVoice] = useState('');
   const [customVoiceId, setCustomVoiceId] = useState('');
+  const [presetBaseUrl, setPresetBaseUrl] = useState('');
   const [speed, setSpeed] = useState(1.0);
   const [showApiKey, setShowApiKey] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; latencyMs?: number } | null>(null);
