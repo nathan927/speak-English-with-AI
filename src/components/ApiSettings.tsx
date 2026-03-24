@@ -48,9 +48,10 @@ const ApiSettings: React.FC = () => {
   useEffect(() => {
     if (editingProvider) {
       const config = getProviderConfig(editingProvider);
+      const preset = AI_PROVIDER_PRESETS.find(p => p.id === editingProvider);
       if (config) {
         setApiKey(config.apiKey);
-        const preset = AI_PROVIDER_PRESETS.find(p => p.id === editingProvider);
+        setPresetBaseUrl(config.baseUrl || preset?.baseUrl || '');
         const isPresetModel = preset?.models.some(m => m.id === config.model && m.id !== '__custom__');
         if (isPresetModel) {
           setSelectedModel(config.model);
@@ -63,7 +64,7 @@ const ApiSettings: React.FC = () => {
       } else {
         setApiKey('');
         setCustomModelId('');
-        const preset = AI_PROVIDER_PRESETS.find(p => p.id === editingProvider);
+        setPresetBaseUrl(preset?.baseUrl || '');
         setSelectedModel(preset?.models[0]?.id || '');
         setReasoningLevel('none');
       }
