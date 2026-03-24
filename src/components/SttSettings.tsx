@@ -66,7 +66,7 @@ const SttSettings: React.FC = () => {
         const preset = STT_PRESETS.find(p => p.id === editingProvider);
         setModel(preset?.models?.[0]?.id || 'grok-4');
       }
-      setShowApiKey(false);
+      
     }
   }, [editingProvider]);
 
