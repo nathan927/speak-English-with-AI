@@ -1,6 +1,7 @@
-// AI API Service - Calls the Lovable AI Edge Function
+// AI API Service - Calls AI via Edge Function, supporting custom providers
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '../logService';
+import { getActiveProvider, getActiveProviderConfig } from '../aiProviderService';
 
 interface Message {
   role: 'system' | 'user' | 'assistant';
@@ -18,15 +19,29 @@ export async function callAI(
 ): Promise<string> {
   const { maxTokens = 350, temperature = 0.85 } = options;
 
-  logger.info('Calling AI via Edge Function', { 
+  const activeProvider = getActiveProvider();
+  const providerConfig = getActiveProviderConfig();
+
+  logger.info('Calling AI', { 
+    provider: activeProvider,
     messageCount: messages.length,
     lastMessage: messages[messages.length - 1]?.content?.substring(0, 50)
   });
 
   try {
-    const { data, error } = await supabase.functions.invoke('ai-chat', {
-      body: { messages, maxTokens, temperature }
-    });
+    const body: any = { messages, maxTokens, temperature };
+
+    // If using a custom provider, pass config to edge function
+    if (providerConfig && activeProvider !== 'lovable') {
+      body.customBaseUrl = providerConfig.baseUrl;
+      body.customApiKey = providerConfig.apiKey;
+      body.customModel = providerConfig.model;
+      body.customReasoningLevel = providerConfig.reasoningLevel;
+      body.isAnthropic = providerConfig.providerId === 'anthropic' || 
+                          providerConfig.baseUrl.includes('anthropic.com');
+    }
+
+    const { data, error } = await supabase.functions.invoke('ai-chat', { body });
 
     if (error) {
       logger.error('Edge function error', { error });
@@ -44,7 +59,7 @@ export async function callAI(
       throw new Error('Empty response from AI');
     }
 
-    logger.info('AI response received', { preview: content.substring(0, 50) });
+    logger.info('AI response received', { provider: activeProvider, preview: content.substring(0, 50) });
     return content;
   } catch (error) {
     logger.error('Failed to call AI', { error });
@@ -68,7 +83,5 @@ export async function generateDiscussionResponse(
 
 // Legacy function for backward compatibility with evaluation service
 export async function callApi(systemPrompt: string, userPrompt: string, base64Audio: string[] = []): Promise<string> {
-  // Note: base64Audio is currently not supported by the new API
-  // The evaluation will work based on text transcription
   return generateDiscussionResponse(systemPrompt, userPrompt, { maxTokens: 8192, temperature: 0.3 });
 }
