@@ -193,7 +193,7 @@ const ApiSettings: React.FC = () => {
               const isActive = activeProviderId === preset.id;
               const isEditing = editingProvider === preset.id;
               const hasSaved = hasSavedConfig(preset.id);
-              const isLovable = preset.id === 'lovable';
+              const isLovable = false;
 
               return (
                 <div
