@@ -611,7 +611,12 @@ const Settings = () => {
                 </div>
               </CardContent>
             </Card>
-          )}
+           )}
+
+          {/* AI Provider Settings */}
+          <ApiSettings />
+          {/* TTS Provider Settings */}
+          <TtsSettings />
         </div>
       </div>
     </div>
