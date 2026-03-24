@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  Loader2, Check, X, Volume2, Eye, EyeOff, Save, Trash2, Wifi, Clock, Play, Square
+  Loader2, Check, X, Volume2, Save, Trash2, Wifi, Clock, Play, Square
 } from 'lucide-react';
 import {
   TTS_PROVIDER_PRESETS,
@@ -33,7 +33,6 @@ const TtsSettings: React.FC = () => {
   const [customVoiceId, setCustomVoiceId] = useState('');
   const [presetBaseUrl, setPresetBaseUrl] = useState('');
   const [speed, setSpeed] = useState(1.0);
-  const [showApiKey, setShowApiKey] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; latencyMs?: number } | null>(null);
   const [isTesting, setIsTesting] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -44,7 +43,6 @@ const TtsSettings: React.FC = () => {
   const [customName, setCustomName] = useState('');
   const [customVoice, setCustomVoice] = useState('');
   const [customSpeed, setCustomSpeed] = useState(1.0);
-  const [showCustomApiKey, setShowCustomApiKey] = useState(false);
   const [customTestResult, setCustomTestResult] = useState<{ success: boolean; message: string; latencyMs?: number } | null>(null);
   const [isCustomTesting, setIsCustomTesting] = useState(false);
 
@@ -72,7 +70,6 @@ const TtsSettings: React.FC = () => {
         setSpeed(1.0);
       }
       setTestResult(null);
-      setShowApiKey(false);
     }
   }, [editingProvider]);
 
@@ -310,12 +307,13 @@ const TtsSettings: React.FC = () => {
                       )}
                       <div className="space-y-1">
                         <Label className="text-xs">API Key</Label>
-                        <div className="relative">
-                          <Input type={showApiKey ? 'text' : 'password'} value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="sk-..." className="pr-10 text-sm h-9" />
-                          <button type="button" onClick={() => setShowApiKey(!showApiKey)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                            {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                          </button>
-                        </div>
+                        <Input
+                          type="password"
+                          value={apiKey}
+                          onChange={(e) => setApiKey(e.target.value)}
+                          placeholder="sk-..."
+                          className="text-sm h-9"
+                        />
                       </div>
 
                       {preset.models.length > 0 && (
@@ -432,12 +430,13 @@ const TtsSettings: React.FC = () => {
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">API Key</Label>
-                <div className="relative">
-                  <Input type={showCustomApiKey ? 'text' : 'password'} value={customApiKey} onChange={(e) => setCustomApiKey(e.target.value)} placeholder="sk-..." className="pr-10 h-9 text-sm" />
-                  <button type="button" onClick={() => setShowCustomApiKey(!showCustomApiKey)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                    {showCustomApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
+                <Input
+                  type="password"
+                  value={customApiKey}
+                  onChange={(e) => setCustomApiKey(e.target.value)}
+                  placeholder="sk-..."
+                  className="h-9 text-sm"
+                />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">模型名稱</Label>

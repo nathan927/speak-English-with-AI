@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Mic, Eye, EyeOff, Save, Check, Wifi } from 'lucide-react';
+import { Mic, Save, Check, Wifi } from 'lucide-react';
 import {
   getActiveSTTProvider,
   setActiveSTTProvider,
@@ -51,7 +51,7 @@ const SttSettings: React.FC = () => {
   const [baseUrl, setBaseUrl] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [model, setModel] = useState('');
-  const [showApiKey, setShowApiKey] = useState(false);
+  
 
   useEffect(() => {
     if (editingProvider && editingProvider !== 'browser') {
@@ -66,7 +66,7 @@ const SttSettings: React.FC = () => {
         const preset = STT_PRESETS.find(p => p.id === editingProvider);
         setModel(preset?.models?.[0]?.id || 'grok-4');
       }
-      setShowApiKey(false);
+      
     }
   }, [editingProvider]);
 
@@ -181,22 +181,13 @@ const SttSettings: React.FC = () => {
 
                   <div className="space-y-1">
                     <Label className="text-xs">API Key</Label>
-                    <div className="relative">
-                      <Input
-                        type={showApiKey ? 'text' : 'password'}
-                        value={apiKey}
-                        onChange={(e) => setApiKey(e.target.value)}
-                        placeholder="sk-..."
-                        className="pr-10 text-sm h-9"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowApiKey(!showApiKey)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      >
-                        {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
+                    <Input
+                      type="password"
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
+                      placeholder="sk-..."
+                      className="text-sm h-9"
+                    />
                   </div>
 
                   {preset.models && (

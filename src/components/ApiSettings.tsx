@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
-  Loader2, Check, X, Zap, Eye, EyeOff, Save, Trash2, Wifi, WifiOff, Clock
+  Loader2, Check, X, Zap, Save, Trash2, Wifi, WifiOff, Clock
 } from 'lucide-react';
 import {
   AI_PROVIDER_PRESETS,
@@ -30,7 +30,6 @@ const ApiSettings: React.FC = () => {
   const [customModelId, setCustomModelId] = useState('');
   const [presetBaseUrl, setPresetBaseUrl] = useState('');
   const [reasoningLevel, setReasoningLevel] = useState<'none' | 'low' | 'medium' | 'high'>('none');
-  const [showApiKey, setShowApiKey] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; latencyMs?: number } | null>(null);
   const [isTesting, setIsTesting] = useState(false);
 
@@ -40,7 +39,6 @@ const ApiSettings: React.FC = () => {
   const [customModel, setCustomModel] = useState('');
   const [customName, setCustomName] = useState('');
   const [customReasoningLevel, setCustomReasoningLevel] = useState<'none' | 'low' | 'medium' | 'high'>('none');
-  const [showCustomApiKey, setShowCustomApiKey] = useState(false);
   const [customTestResult, setCustomTestResult] = useState<{ success: boolean; message: string; latencyMs?: number } | null>(null);
   const [isCustomTesting, setIsCustomTesting] = useState(false);
 
@@ -69,7 +67,6 @@ const ApiSettings: React.FC = () => {
         setReasoningLevel('none');
       }
       setTestResult(null);
-      setShowApiKey(false);
     }
   }, [editingProvider]);
 
@@ -263,24 +260,13 @@ const ApiSettings: React.FC = () => {
                       {/* API Key */}
                       <div className="space-y-1">
                         <Label className="text-xs">API Key</Label>
-                        <div className="flex gap-2">
-                          <div className="relative flex-1">
-                            <Input
-                              type={showApiKey ? 'text' : 'password'}
-                              value={apiKey}
-                              onChange={(e) => setApiKey(e.target.value)}
-                              placeholder="sk-..."
-                              className="pr-10 text-sm h-9"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowApiKey(!showApiKey)}
-                              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                            >
-                              {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                            </button>
-                          </div>
-                        </div>
+                        <Input
+                          type="password"
+                          value={apiKey}
+                          onChange={(e) => setApiKey(e.target.value)}
+                          placeholder="sk-..."
+                          className="text-sm h-9"
+                        />
                       </div>
 
                       {/* Model selector */}
@@ -419,22 +405,13 @@ const ApiSettings: React.FC = () => {
 
               <div className="space-y-1">
                 <Label className="text-xs">API Key</Label>
-                <div className="relative">
-                  <Input
-                    type={showCustomApiKey ? 'text' : 'password'}
-                    value={customApiKey}
-                    onChange={(e) => setCustomApiKey(e.target.value)}
-                    placeholder="sk-..."
-                    className="pr-10 h-9 text-sm"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowCustomApiKey(!showCustomApiKey)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    {showCustomApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
+                <Input
+                  type="password"
+                  value={customApiKey}
+                  onChange={(e) => setCustomApiKey(e.target.value)}
+                  placeholder="sk-..."
+                  className="h-9 text-sm"
+                />
               </div>
 
               <div className="space-y-1">
