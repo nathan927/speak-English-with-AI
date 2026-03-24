@@ -546,10 +546,26 @@ export function stopSpeaking(): void {
   }
 }
 
-// Play audio via external TTS provider (Grok, ElevenLabs, etc.)
-async function speakViaExternalTTS(text: string): Promise<void> {
+// Map stance/role to different Grok TTS voices for distinct character recognition
+const STANCE_VOICE_MAP: Record<string, string> = {
+  support: 'ara',    // Ara - warm and friendly (supporter)
+  oppose: 'leo',     // Leo - authoritative and strong (critical thinker)
+  mediator: 'eve',   // Eve - energetic and upbeat (balanced creative)
+  system: 'sal',     // Sal - smooth and versatile (system/closing)
+};
+
+// Play audio via external TTS provider with optional voice override per stance
+async function speakViaExternalTTS(text: string, stance?: string): Promise<void> {
   const config = getActiveTTSProviderConfig();
   if (!config) throw new Error('No external TTS config found');
+
+  // For Grok TTS providers, override voice based on stance
+  let voiceId = config.voiceId;
+  const isGrokProvider = config.providerId === 'grok2api-tts' || config.providerId === 'xai-tts';
+  if (isGrokProvider && stance && STANCE_VOICE_MAP[stance]) {
+    voiceId = STANCE_VOICE_MAP[stance];
+    logger.info('Using stance-specific Grok voice', { stance, voiceId });
+  }
 
   const { supabase } = await import('@/integrations/supabase/client');
   const { data, error } = await supabase.functions.invoke('tts-proxy', {
@@ -559,7 +575,7 @@ async function speakViaExternalTTS(text: string): Promise<void> {
       baseUrl: config.baseUrl,
       apiKey: config.apiKey,
       model: config.model,
-      voiceId: config.voiceId,
+      voiceId,
       speed: config.speed || 1.0,
     }
   });
@@ -585,14 +601,15 @@ async function speakViaExternalTTS(text: string): Promise<void> {
 }
 
 // Text-to-Speech for groupmate responses - auto-selects external TTS or browser fallback
-export async function speakGroupmateResponse(text: string, gender: 'male' | 'female' = 'female'): Promise<void> {
+// stance parameter enables per-character voice mapping for Grok TTS
+export async function speakGroupmateResponse(text: string, gender: 'male' | 'female' = 'female', stance?: string): Promise<void> {
   const activeProvider = getActiveTTSProvider();
 
   // If external TTS is active (not browser), use it
   if (activeProvider !== 'browser') {
     try {
-      logger.info('Using external TTS provider', { provider: activeProvider });
-      await speakViaExternalTTS(text);
+      logger.info('Using external TTS provider', { provider: activeProvider, stance });
+      await speakViaExternalTTS(text, stance);
       return;
     } catch (error) {
       logger.warn('External TTS failed, falling back to browser', { error, provider: activeProvider });
