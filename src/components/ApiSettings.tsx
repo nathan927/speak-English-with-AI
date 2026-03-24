@@ -111,7 +111,7 @@ const ApiSettings: React.FC = () => {
   const handleDeleteProvider = (providerId: string) => {
     deleteProviderConfig(providerId);
     if (activeProviderId === providerId) {
-      handleActivateProvider('lovable');
+      handleActivateProvider('minimax');
     }
     setEditingProvider(null);
   };
