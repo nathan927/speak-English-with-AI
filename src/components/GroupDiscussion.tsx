@@ -640,12 +640,14 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, practiceMode =
         {/* Progress */}
         <div className="mb-3">
           <div className="flex justify-between items-center mb-1">
-            <h1 className="text-lg font-bold text-gray-900 dark:text-white">AI Group Discussion</h1>
+            <h1 className="text-lg font-bold text-gray-900 dark:text-white">
+              {practiceMode ? 'Practice Mode' : 'AI Group Discussion'}
+            </h1>
             <span className="text-sm text-gray-600 dark:text-gray-300">
-              Turn {Math.min(turnCount + 1, maxTurns)} / {maxTurns}
+              {practiceMode ? `Turn ${turnCount}` : `Turn ${Math.min(turnCount + 1, maxTurns)} / ${maxTurns}`}
             </span>
           </div>
-          <Progress value={(turnCount / maxTurns) * 100} className="h-1.5" />
+          {!practiceMode && <Progress value={(turnCount / maxTurns) * 100} className="h-1.5" />}
         </div>
 
         {/* Topic Card - Compact */}
