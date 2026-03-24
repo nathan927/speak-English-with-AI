@@ -271,7 +271,7 @@ const ApiSettings: React.FC = () => {
                       {/* Model selector */}
                       <div className="space-y-1">
                         <Label className="text-xs">模型</Label>
-                        <Select value={selectedModel} onValueChange={setSelectedModel}>
+                        <Select value={selectedModel} onValueChange={(v) => { setSelectedModel(v); if (v !== '__custom__') setCustomModelId(''); }}>
                           <SelectTrigger className="h-9 text-sm">
                             <SelectValue placeholder="選擇模型" />
                           </SelectTrigger>
@@ -287,6 +287,20 @@ const ApiSettings: React.FC = () => {
                           </SelectContent>
                         </Select>
                       </div>
+
+                      {/* Custom model input */}
+                      {selectedModel === '__custom__' && (
+                        <div className="space-y-1">
+                          <Label className="text-xs">自訂模型 ID</Label>
+                          <Input
+                            value={customModelId}
+                            onChange={(e) => setCustomModelId(e.target.value)}
+                            placeholder="輸入模型代碼，例如 gpt-5.4, claude-opus-4.6..."
+                            className="h-9 text-sm font-mono"
+                          />
+                          <p className="text-xs text-muted-foreground">請輸入提供商支援的完整模型 ID</p>
+                        </div>
+                      )
 
                       {/* Reasoning level (for supported providers) */}
                       {preset.supportsReasoning && (
