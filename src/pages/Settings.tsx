@@ -11,6 +11,7 @@ import { ArrowLeft, Volume2, Play, Check, Settings as SettingsIcon, Mic, Moon, S
 import { logger } from '@/services/logService';
 import ApiSettings from '@/components/ApiSettings';
 import TtsSettings from '@/components/TtsSettings';
+import SttSettings from '@/components/SttSettings';
 
 interface VoiceOption {
   id: string; // Use voice.name as unique ID
