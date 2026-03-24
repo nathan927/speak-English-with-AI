@@ -13,7 +13,7 @@ import { logger } from '@/services/logService';
 
 const Index = () => {
   const navigate = useNavigate();
-  const [currentView, setCurrentView] = useState<'home' | 'gradeSelect' | 'test' | 'discussion' | 'results'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'gradeSelect' | 'test' | 'discussion' | 'practice' | 'results'>('home');
   const [selectedGrade, setSelectedGrade] = useState<string>('');
   const [speechRate, setSpeechRate] = useState<number>(0.9);
   const [selectedVoiceId, setSelectedVoiceId] = useState<string>('default');
@@ -76,6 +76,12 @@ const Index = () => {
     setCurrentView('results');
   };
 
+  const handlePracticeSelect = (grade: string) => {
+    logger.info('Practice mode selected', { grade });
+    setSelectedGrade(grade);
+    setCurrentView('practice');
+  };
+
   const renderStars = (maxLevel: number) => {
     return (
       <div className="space-y-2">
@@ -101,6 +107,7 @@ const Index = () => {
       <GradeSelector 
         onGradeSelect={handleGradeSelect} 
         onDiscussionSelect={handleDiscussionSelect}
+        onPracticeSelect={handlePracticeSelect}
         onBack={handleReturnHome} 
       />
     );
@@ -110,6 +117,17 @@ const Index = () => {
     return (
       <GroupDiscussion
         grade={selectedGrade}
+        onComplete={handleDiscussionComplete}
+        onBack={() => setCurrentView('gradeSelect')}
+      />
+    );
+  }
+
+  if (currentView === 'practice') {
+    return (
+      <GroupDiscussion
+        grade={selectedGrade}
+        practiceMode={true}
         onComplete={handleDiscussionComplete}
         onBack={() => setCurrentView('gradeSelect')}
       />

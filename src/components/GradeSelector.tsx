@@ -7,10 +7,11 @@ import { logger } from '@/services/logService';
 interface GradeSelectorProps {
   onGradeSelect: (grade: string) => void;
   onDiscussionSelect?: (grade: string) => void;
+  onPracticeSelect?: (grade: string) => void;
   onBack: () => void;
 }
 
-export const GradeSelector = ({ onGradeSelect, onDiscussionSelect, onBack }: GradeSelectorProps) => {
+export const GradeSelector = ({ onGradeSelect, onDiscussionSelect, onPracticeSelect, onBack }: GradeSelectorProps) => {
   const navigate = useNavigate();
 
   // Check if grade supports group discussion (P4+)
@@ -126,6 +127,17 @@ export const GradeSelector = ({ onGradeSelect, onDiscussionSelect, onBack }: Gra
                         >
                           <Users className="w-3 h-3 mr-1" />
                           Discussion
+                        </Button>
+                      )}
+                      {/* Practice mode button for P4+ */}
+                      {supportsDiscussion(grade) && onPracticeSelect && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onPracticeSelect(grade)}
+                          className="h-8 text-xs font-medium bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700 hover:border-emerald-400 transition-all"
+                        >
+                          ♾️ Practice
                         </Button>
                       )}
                     </div>
