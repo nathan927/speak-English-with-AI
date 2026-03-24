@@ -27,6 +27,7 @@ const ApiSettings: React.FC = () => {
   const [editingProvider, setEditingProvider] = useState<string | null>(null);
   const [apiKey, setApiKey] = useState('');
   const [selectedModel, setSelectedModel] = useState('');
+  const [customModelId, setCustomModelId] = useState('');
   const [reasoningLevel, setReasoningLevel] = useState<'none' | 'low' | 'medium' | 'high'>('none');
   const [showApiKey, setShowApiKey] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; latencyMs?: number } | null>(null);
@@ -48,10 +49,19 @@ const ApiSettings: React.FC = () => {
       const config = getProviderConfig(editingProvider);
       if (config) {
         setApiKey(config.apiKey);
-        setSelectedModel(config.model);
+        const preset = AI_PROVIDER_PRESETS.find(p => p.id === editingProvider);
+        const isPresetModel = preset?.models.some(m => m.id === config.model && m.id !== '__custom__');
+        if (isPresetModel) {
+          setSelectedModel(config.model);
+          setCustomModelId('');
+        } else {
+          setSelectedModel('__custom__');
+          setCustomModelId(config.model);
+        }
         setReasoningLevel(config.reasoningLevel || 'none');
       } else {
         setApiKey('');
+        setCustomModelId('');
         const preset = AI_PROVIDER_PRESETS.find(p => p.id === editingProvider);
         setSelectedModel(preset?.models[0]?.id || '');
         setReasoningLevel('none');
@@ -73,13 +83,18 @@ const ApiSettings: React.FC = () => {
     }
   }, []);
 
+  const getResolvedModel = (presetModels: { id: string }[]) => {
+    if (selectedModel === '__custom__' && customModelId.trim()) return customModelId.trim();
+    return selectedModel || presetModels[0]?.id || '';
+  };
+
   const handleSaveProvider = (preset: AIProviderPreset) => {
     const config: AIProviderConfig = {
       providerId: preset.id,
       providerName: preset.name,
       baseUrl: preset.baseUrl,
       apiKey,
-      model: selectedModel || preset.models[0]?.id || '',
+      model: getResolvedModel(preset.models),
       reasoningLevel: reasoningLevel !== 'none' ? reasoningLevel : undefined,
     };
     saveProviderConfig(config);
@@ -107,7 +122,7 @@ const ApiSettings: React.FC = () => {
       providerName: preset.name,
       baseUrl: preset.baseUrl,
       apiKey,
-      model: selectedModel || preset.models[0]?.id || '',
+      model: getResolvedModel(preset.models),
       reasoningLevel: reasoningLevel !== 'none' ? reasoningLevel : undefined,
     };
     const result = await testProviderConnectivity(config);
@@ -256,7 +271,7 @@ const ApiSettings: React.FC = () => {
                       {/* Model selector */}
                       <div className="space-y-1">
                         <Label className="text-xs">模型</Label>
-                        <Select value={selectedModel} onValueChange={setSelectedModel}>
+                        <Select value={selectedModel} onValueChange={(v) => { setSelectedModel(v); if (v !== '__custom__') setCustomModelId(''); }}>
                           <SelectTrigger className="h-9 text-sm">
                             <SelectValue placeholder="選擇模型" />
                           </SelectTrigger>
@@ -272,6 +287,20 @@ const ApiSettings: React.FC = () => {
                           </SelectContent>
                         </Select>
                       </div>
+
+                      {/* Custom model input */}
+                      {selectedModel === '__custom__' && (
+                        <div className="space-y-1">
+                          <Label className="text-xs">自訂模型 ID</Label>
+                          <Input
+                            value={customModelId}
+                            onChange={(e) => setCustomModelId(e.target.value)}
+                            placeholder="輸入模型代碼，例如 gpt-5.4, claude-opus-4.6..."
+                            className="h-9 text-sm font-mono"
+                          />
+                          <p className="text-xs text-muted-foreground">請輸入提供商支援的完整模型 ID</p>
+                        </div>
+                      )}
 
                       {/* Reasoning level (for supported providers) */}
                       {preset.supportsReasoning && (
