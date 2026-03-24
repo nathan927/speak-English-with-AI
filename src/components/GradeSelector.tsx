@@ -11,7 +11,7 @@ interface GradeSelectorProps {
   onBack: () => void;
 }
 
-export const GradeSelector = ({ onGradeSelect, onDiscussionSelect, onBack }: GradeSelectorProps) => {
+export const GradeSelector = ({ onGradeSelect, onDiscussionSelect, onPracticeSelect, onBack }: GradeSelectorProps) => {
   const navigate = useNavigate();
 
   // Check if grade supports group discussion (P4+)
