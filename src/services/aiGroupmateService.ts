@@ -451,6 +451,7 @@ export async function generateGroupmateResponse(
   const gradeLevelInstructions = getGradeLevelInstructions(grade);
 
   const systemPrompt = `You are ${groupmate.name}, a ${grade || 'secondary'} school student in Hong Kong participating in a group discussion.
+${getIdentityRule(groupmate.name)}
 
 ${gradeLevelInstructions}
 
