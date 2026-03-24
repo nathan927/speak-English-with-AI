@@ -295,7 +295,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ grade, practiceMode =
       
       // Speak the introduction
       setIsSpeaking(true);
-      await speakGroupmateResponse(openingResponse, groupmates.supporter.gender);
+      await speakGroupmateResponse(openingResponse, groupmates.supporter.gender, 'support');
     } catch (e) {
       logger.warn('Could not generate AI opening, using fallback');
       // Fallback to static opening with all 3 members
