@@ -56,6 +56,8 @@ const SettingsImportExport: React.FC = () => {
         speechRate: parseFloat(localStorage.getItem('speechRate') || '0.9'),
         selectedVoiceId: localStorage.getItem('selectedVoiceId') || 'default',
         darkMode: localStorage.getItem('darkMode') === 'true',
+        showQuestions: localStorage.getItem('showQuestions') === 'true',
+        selectedGrade: localStorage.getItem('selectedGrade') || '',
       },
     };
 
