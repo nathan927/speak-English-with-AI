@@ -40,6 +40,76 @@ const Settings = () => {
     return saved === 'true';
   });
 
+  // 5-click settings icon to download project
+  const clickCountRef = useRef(0);
+  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleSettingsIconClick = useCallback(() => {
+    clickCountRef.current += 1;
+    if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
+    
+    if (clickCountRef.current >= 5) {
+      clickCountRef.current = 0;
+      downloadProjectAsZip();
+      return;
+    }
+    
+    clickTimerRef.current = setTimeout(() => {
+      clickCountRef.current = 0;
+    }, 1500);
+  }, []);
+
+  const downloadProjectAsZip = async () => {
+    toast.info('正在打包項目原始碼...', { duration: 5000 });
+    try {
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+
+      // Use Vite's import.meta.glob to collect all source files
+      const allFiles = import.meta.glob([
+        '/src/**/*',
+        '/public/**/*',
+        '/supabase/**/*',
+        '/*.ts',
+        '/*.js',
+        '/*.json',
+        '/*.html',
+        '/*.css',
+        '/*.md',
+        '/*.toml',
+      ], { query: '?raw', import: 'default', eager: false });
+
+      const entries = Object.entries(allFiles);
+      let loaded = 0;
+
+      for (const [path, loader] of entries) {
+        try {
+          const content = await (loader as () => Promise<string>)();
+          // Remove leading slash
+          const filePath = path.startsWith('/') ? path.slice(1) : path;
+          zip.file(filePath, content);
+          loaded++;
+        } catch {
+          // Skip files that can't be loaded as raw
+        }
+      }
+
+      // Also include package.json content from current state
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `project-source-${new Date().toISOString().slice(0, 10)}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(`已下載 ${loaded} 個檔案的項目原始碼 ZIP`);
+      logger.info('Project downloaded as ZIP', { fileCount: loaded });
+    } catch (err) {
+      toast.error('打包失敗：' + (err instanceof Error ? err.message : '未知錯誤'));
+      logger.error('Project ZIP download failed', { error: err });
+    }
+  };
+
   // Apply dark mode
   useEffect(() => {
     if (isDarkMode) {
