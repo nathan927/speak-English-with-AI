@@ -65,18 +65,13 @@ const Settings = () => {
       const JSZip = (await import('jszip')).default;
       const zip = new JSZip();
 
-      // Use Vite's import.meta.glob to collect all source files
+      // Use Vite's import.meta.glob to collect all source files - comprehensive patterns
       const allFiles = import.meta.glob([
-        '/src/**/*',
+        '/src/**/*.{ts,tsx,js,jsx,css,json,md,svg,png,jpg,jpeg,gif,ico,webp}',
         '/public/**/*',
-        '/supabase/**/*',
-        '/*.ts',
-        '/*.js',
-        '/*.json',
-        '/*.html',
-        '/*.css',
-        '/*.md',
-        '/*.toml',
+        '/supabase/**/*.{ts,tsx,js,json,toml,sql}',
+        '/*.{ts,js,json,html,css,md,toml,mjs,cjs}',
+        '/.env.example',
       ], { query: '?raw', import: 'default', eager: false });
 
       const entries = Object.entries(allFiles);
@@ -85,7 +80,6 @@ const Settings = () => {
       for (const [path, loader] of entries) {
         try {
           const content = await (loader as () => Promise<string>)();
-          // Remove leading slash
           const filePath = path.startsWith('/') ? path.slice(1) : path;
           zip.file(filePath, content);
           loaded++;
@@ -94,7 +88,27 @@ const Settings = () => {
         }
       }
 
-      // Also include package.json content from current state
+      // Also add settings export as a convenience file
+      try {
+        const { getAllProviderConfigs, getActiveProvider } = await import('@/services/aiProviderService');
+        const { getAllTTSProviderConfigs, getActiveTTSProvider } = await import('@/services/ttsProviderService');
+        const { getSTTProviderConfig, getActiveSTTProvider } = await import('@/services/sttProviderService');
+        
+        const settingsExport = {
+          _format: 'app-settings-v1',
+          _exportedAt: new Date().toISOString(),
+          ai: { activeProvider: getActiveProvider(), configs: getAllProviderConfigs() },
+          tts: { activeProvider: getActiveTTSProvider(), configs: getAllTTSProviderConfigs() },
+          stt: { activeProvider: getActiveSTTProvider(), config: getSTTProviderConfig() },
+          browser: {
+            speechRate: parseFloat(localStorage.getItem('speechRate') || '0.9'),
+            selectedVoiceId: localStorage.getItem('selectedVoiceId') || 'default',
+            darkMode: localStorage.getItem('darkMode') === 'true',
+          },
+        };
+        zip.file('app-settings-export.json', JSON.stringify(settingsExport, null, 2));
+      } catch { /* settings export is optional */ }
+
       const blob = await zip.generateAsync({ type: 'blob' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -138,18 +152,32 @@ const Settings = () => {
       
       logger.info('Loading voices', { totalVoices: voices.length, englishVoices: englishVoices.length });
       
-      // Enhanced preferred voice names for elegant female voices
+      // Enhanced preferred voice names - comprehensive list for maximum browser coverage
       const preferredFemale = [
         'Samantha', 'Karen', 'Moira', 'Tessa', 'Fiona', 'Victoria', 'Allison',
         'Google UK English Female', 'Google US English Female',
         'Microsoft Zira', 'Microsoft Hazel', 'Microsoft Susan', 'Microsoft Catherine',
-        'Siri Female', 'Ellen', 'Serena', 'Nicky', 'Veena', 'Ava'
+        'Microsoft Jenny', 'Microsoft Aria', 'Microsoft Sara', 'Microsoft Michelle',
+        'Siri Female', 'Ellen', 'Serena', 'Nicky', 'Veena', 'Ava',
+        'Kathy', 'Princess', 'Vicki', 'Sandy', 'Shelley',
+        'Kate', 'Joelle', 'Amelie', 'Anna', 'Helena', 'Ioana', 'Luciana',
+        'Mei-Jia', 'Milena', 'Monica', 'Paulina', 'Zosia',
+        'Rishi', 'Kanya', 'Kyoko', 'Yuna',
+        'en-US-Standard-C', 'en-US-Standard-E', 'en-US-Standard-F', 'en-US-Standard-G', 'en-US-Standard-H',
+        'en-GB-Standard-A', 'en-GB-Standard-C',
       ];
       const preferredMale = [
         'Daniel', 'Alex', 'Tom', 'Oliver', 'James', 'Arthur',
         'Google UK English Male', 'Google US English Male',
         'Microsoft David', 'Microsoft Mark', 'Microsoft George', 'Microsoft Richard',
-        'Siri Male', 'Thomas', 'Lee', 'Ralph'
+        'Microsoft Guy', 'Microsoft Davis', 'Microsoft Jason', 'Microsoft Tony',
+        'Microsoft Christopher', 'Microsoft Brandon',
+        'Siri Male', 'Thomas', 'Lee', 'Ralph',
+        'Fred', 'Junior', 'Albert', 'Bruce', 'Reed', 'Rocko',
+        'Aaron', 'Eddy', 'Evan', 'Gordon', 'Jacques', 'Luca', 'Magnus',
+        'Otis', 'Remy', 'Sandy',
+        'en-US-Standard-A', 'en-US-Standard-B', 'en-US-Standard-D', 'en-US-Standard-I', 'en-US-Standard-J',
+        'en-GB-Standard-B', 'en-GB-Standard-D',
       ];
       
       const voiceOptions: VoiceOption[] = [];
@@ -226,62 +254,31 @@ const Settings = () => {
         });
       });
       
-      // Add regional accent voices (that weren't already added)
-      const ukVoices = englishVoices.filter(v => v.lang === 'en-GB' && !addedVoiceNames.has(v.name));
-      const usVoices = englishVoices.filter(v => v.lang === 'en-US' && !addedVoiceNames.has(v.name));
-      const auVoices = englishVoices.filter(v => v.lang === 'en-AU' && !addedVoiceNames.has(v.name));
-      const ieVoices = englishVoices.filter(v => v.lang === 'en-IE' && !addedVoiceNames.has(v.name));
-      const inVoices = englishVoices.filter(v => v.lang === 'en-IN' && !addedVoiceNames.has(v.name));
+      // Add ALL remaining English voices that weren't categorized
+      const remainingVoices = englishVoices.filter(v => !addedVoiceNames.has(v.name));
       
-      ukVoices.slice(0, 3).forEach((voice) => {
+      // Categorize remaining voices by region
+      const regionMap: Record<string, { flag: string; label: string }> = {
+        'en-GB': { flag: '🇬🇧', label: 'UK' },
+        'en-US': { flag: '🇺🇸', label: 'US' },
+        'en-AU': { flag: '🇦🇺', label: 'AU' },
+        'en-IE': { flag: '🇮🇪', label: 'IE' },
+        'en-IN': { flag: '🇮🇳', label: 'IN' },
+        'en-ZA': { flag: '🇿🇦', label: 'ZA' },
+        'en-NZ': { flag: '🇳🇿', label: 'NZ' },
+        'en-SG': { flag: '🇸🇬', label: 'SG' },
+        'en-PH': { flag: '🇵🇭', label: 'PH' },
+        'en-HK': { flag: '🇭🇰', label: 'HK' },
+        'en-CA': { flag: '🇨🇦', label: 'CA' },
+        'en-SC': { flag: '🏴', label: 'SC' },
+      };
+      
+      remainingVoices.forEach((voice) => {
+        const region = regionMap[voice.lang] || { flag: '🌍', label: voice.lang.replace('en-', '') };
         voiceOptions.push({
           id: voice.name,
-          displayName: `🇬🇧 ${voice.name.split(' ').slice(0, 2).join(' ')}`,
-          description: `${voice.name}`,
-          voice: voice,
-          category: 'regional'
-        });
-        addedVoiceNames.add(voice.name);
-      });
-      
-      usVoices.slice(0, 3).forEach((voice) => {
-        voiceOptions.push({
-          id: voice.name,
-          displayName: `🇺🇸 ${voice.name.split(' ').slice(0, 2).join(' ')}`,
-          description: `${voice.name}`,
-          voice: voice,
-          category: 'regional'
-        });
-        addedVoiceNames.add(voice.name);
-      });
-      
-      auVoices.slice(0, 2).forEach((voice) => {
-        voiceOptions.push({
-          id: voice.name,
-          displayName: `🇦🇺 ${voice.name.split(' ').slice(0, 2).join(' ')}`,
-          description: `${voice.name}`,
-          voice: voice,
-          category: 'regional'
-        });
-        addedVoiceNames.add(voice.name);
-      });
-      
-      ieVoices.slice(0, 1).forEach((voice) => {
-        voiceOptions.push({
-          id: voice.name,
-          displayName: `🇮🇪 ${voice.name.split(' ').slice(0, 2).join(' ')}`,
-          description: `${voice.name}`,
-          voice: voice,
-          category: 'regional'
-        });
-        addedVoiceNames.add(voice.name);
-      });
-      
-      inVoices.slice(0, 1).forEach((voice) => {
-        voiceOptions.push({
-          id: voice.name,
-          displayName: `🇮🇳 ${voice.name.split(' ').slice(0, 2).join(' ')}`,
-          description: `${voice.name}`,
+          displayName: `${region.flag} ${voice.name.split(' ').slice(0, 2).join(' ')}`,
+          description: `${voice.name} (${voice.lang})`,
           voice: voice,
           category: 'regional'
         });

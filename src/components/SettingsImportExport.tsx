@@ -27,6 +27,8 @@ interface ExportData {
     speechRate: number;
     selectedVoiceId: string;
     darkMode: boolean;
+    showQuestions?: boolean;
+    selectedGrade?: string;
   };
 }
 
@@ -54,6 +56,8 @@ const SettingsImportExport: React.FC = () => {
         speechRate: parseFloat(localStorage.getItem('speechRate') || '0.9'),
         selectedVoiceId: localStorage.getItem('selectedVoiceId') || 'default',
         darkMode: localStorage.getItem('darkMode') === 'true',
+        showQuestions: localStorage.getItem('showQuestions') === 'true',
+        selectedGrade: localStorage.getItem('selectedGrade') || '',
       },
     };
 
@@ -113,6 +117,8 @@ const SettingsImportExport: React.FC = () => {
             if (data.browser.darkMode) document.documentElement.classList.add('dark');
             else document.documentElement.classList.remove('dark');
           }
+          if (data.browser.showQuestions !== undefined) localStorage.setItem('showQuestions', data.browser.showQuestions.toString());
+          if (data.browser.selectedGrade) localStorage.setItem('selectedGrade', data.browser.selectedGrade);
         }
 
         logger.info('Settings imported', { imported });
