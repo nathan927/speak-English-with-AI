@@ -65,18 +65,13 @@ const Settings = () => {
       const JSZip = (await import('jszip')).default;
       const zip = new JSZip();
 
-      // Use Vite's import.meta.glob to collect all source files
+      // Use Vite's import.meta.glob to collect all source files - comprehensive patterns
       const allFiles = import.meta.glob([
-        '/src/**/*',
+        '/src/**/*.{ts,tsx,js,jsx,css,json,md,svg,png,jpg,jpeg,gif,ico,webp}',
         '/public/**/*',
-        '/supabase/**/*',
-        '/*.ts',
-        '/*.js',
-        '/*.json',
-        '/*.html',
-        '/*.css',
-        '/*.md',
-        '/*.toml',
+        '/supabase/**/*.{ts,tsx,js,json,toml,sql}',
+        '/*.{ts,js,json,html,css,md,toml,mjs,cjs}',
+        '/.env.example',
       ], { query: '?raw', import: 'default', eager: false });
 
       const entries = Object.entries(allFiles);
@@ -85,7 +80,6 @@ const Settings = () => {
       for (const [path, loader] of entries) {
         try {
           const content = await (loader as () => Promise<string>)();
-          // Remove leading slash
           const filePath = path.startsWith('/') ? path.slice(1) : path;
           zip.file(filePath, content);
           loaded++;
@@ -94,7 +88,27 @@ const Settings = () => {
         }
       }
 
-      // Also include package.json content from current state
+      // Also add settings export as a convenience file
+      try {
+        const { getAllProviderConfigs, getActiveProvider } = await import('@/services/aiProviderService');
+        const { getAllTTSProviderConfigs, getActiveTTSProvider } = await import('@/services/ttsProviderService');
+        const { getSTTProviderConfig, getActiveSTTProvider } = await import('@/services/sttProviderService');
+        
+        const settingsExport = {
+          _format: 'app-settings-v1',
+          _exportedAt: new Date().toISOString(),
+          ai: { activeProvider: getActiveProvider(), configs: getAllProviderConfigs() },
+          tts: { activeProvider: getActiveTTSProvider(), configs: getAllTTSProviderConfigs() },
+          stt: { activeProvider: getActiveSTTProvider(), config: getSTTProviderConfig() },
+          browser: {
+            speechRate: parseFloat(localStorage.getItem('speechRate') || '0.9'),
+            selectedVoiceId: localStorage.getItem('selectedVoiceId') || 'default',
+            darkMode: localStorage.getItem('darkMode') === 'true',
+          },
+        };
+        zip.file('app-settings-export.json', JSON.stringify(settingsExport, null, 2));
+      } catch { /* settings export is optional */ }
+
       const blob = await zip.generateAsync({ type: 'blob' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
