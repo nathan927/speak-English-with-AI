@@ -138,18 +138,32 @@ const Settings = () => {
       
       logger.info('Loading voices', { totalVoices: voices.length, englishVoices: englishVoices.length });
       
-      // Enhanced preferred voice names for elegant female voices
+      // Enhanced preferred voice names - comprehensive list for maximum browser coverage
       const preferredFemale = [
         'Samantha', 'Karen', 'Moira', 'Tessa', 'Fiona', 'Victoria', 'Allison',
         'Google UK English Female', 'Google US English Female',
         'Microsoft Zira', 'Microsoft Hazel', 'Microsoft Susan', 'Microsoft Catherine',
-        'Siri Female', 'Ellen', 'Serena', 'Nicky', 'Veena', 'Ava'
+        'Microsoft Jenny', 'Microsoft Aria', 'Microsoft Sara', 'Microsoft Michelle',
+        'Siri Female', 'Ellen', 'Serena', 'Nicky', 'Veena', 'Ava',
+        'Kathy', 'Princess', 'Vicki', 'Sandy', 'Shelley',
+        'Kate', 'Joelle', 'Amelie', 'Anna', 'Helena', 'Ioana', 'Luciana',
+        'Mei-Jia', 'Milena', 'Monica', 'Paulina', 'Zosia',
+        'Rishi', 'Kanya', 'Kyoko', 'Yuna',
+        'en-US-Standard-C', 'en-US-Standard-E', 'en-US-Standard-F', 'en-US-Standard-G', 'en-US-Standard-H',
+        'en-GB-Standard-A', 'en-GB-Standard-C',
       ];
       const preferredMale = [
         'Daniel', 'Alex', 'Tom', 'Oliver', 'James', 'Arthur',
         'Google UK English Male', 'Google US English Male',
         'Microsoft David', 'Microsoft Mark', 'Microsoft George', 'Microsoft Richard',
-        'Siri Male', 'Thomas', 'Lee', 'Ralph'
+        'Microsoft Guy', 'Microsoft Davis', 'Microsoft Jason', 'Microsoft Tony',
+        'Microsoft Christopher', 'Microsoft Brandon',
+        'Siri Male', 'Thomas', 'Lee', 'Ralph',
+        'Fred', 'Junior', 'Albert', 'Bruce', 'Reed', 'Rocko',
+        'Aaron', 'Eddy', 'Evan', 'Gordon', 'Jacques', 'Luca', 'Magnus',
+        'Otis', 'Remy', 'Sandy',
+        'en-US-Standard-A', 'en-US-Standard-B', 'en-US-Standard-D', 'en-US-Standard-I', 'en-US-Standard-J',
+        'en-GB-Standard-B', 'en-GB-Standard-D',
       ];
       
       const voiceOptions: VoiceOption[] = [];
