@@ -117,6 +117,8 @@ const SettingsImportExport: React.FC = () => {
             if (data.browser.darkMode) document.documentElement.classList.add('dark');
             else document.documentElement.classList.remove('dark');
           }
+          if (data.browser.showQuestions !== undefined) localStorage.setItem('showQuestions', data.browser.showQuestions.toString());
+          if (data.browser.selectedGrade) localStorage.setItem('selectedGrade', data.browser.selectedGrade);
         }
 
         logger.info('Settings imported', { imported });
