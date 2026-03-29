@@ -240,62 +240,31 @@ const Settings = () => {
         });
       });
       
-      // Add regional accent voices (that weren't already added)
-      const ukVoices = englishVoices.filter(v => v.lang === 'en-GB' && !addedVoiceNames.has(v.name));
-      const usVoices = englishVoices.filter(v => v.lang === 'en-US' && !addedVoiceNames.has(v.name));
-      const auVoices = englishVoices.filter(v => v.lang === 'en-AU' && !addedVoiceNames.has(v.name));
-      const ieVoices = englishVoices.filter(v => v.lang === 'en-IE' && !addedVoiceNames.has(v.name));
-      const inVoices = englishVoices.filter(v => v.lang === 'en-IN' && !addedVoiceNames.has(v.name));
+      // Add ALL remaining English voices that weren't categorized
+      const remainingVoices = englishVoices.filter(v => !addedVoiceNames.has(v.name));
       
-      ukVoices.slice(0, 3).forEach((voice) => {
+      // Categorize remaining voices by region
+      const regionMap: Record<string, { flag: string; label: string }> = {
+        'en-GB': { flag: '🇬🇧', label: 'UK' },
+        'en-US': { flag: '🇺🇸', label: 'US' },
+        'en-AU': { flag: '🇦🇺', label: 'AU' },
+        'en-IE': { flag: '🇮🇪', label: 'IE' },
+        'en-IN': { flag: '🇮🇳', label: 'IN' },
+        'en-ZA': { flag: '🇿🇦', label: 'ZA' },
+        'en-NZ': { flag: '🇳🇿', label: 'NZ' },
+        'en-SG': { flag: '🇸🇬', label: 'SG' },
+        'en-PH': { flag: '🇵🇭', label: 'PH' },
+        'en-HK': { flag: '🇭🇰', label: 'HK' },
+        'en-CA': { flag: '🇨🇦', label: 'CA' },
+        'en-SC': { flag: '🏴', label: 'SC' },
+      };
+      
+      remainingVoices.forEach((voice) => {
+        const region = regionMap[voice.lang] || { flag: '🌍', label: voice.lang.replace('en-', '') };
         voiceOptions.push({
           id: voice.name,
-          displayName: `🇬🇧 ${voice.name.split(' ').slice(0, 2).join(' ')}`,
-          description: `${voice.name}`,
-          voice: voice,
-          category: 'regional'
-        });
-        addedVoiceNames.add(voice.name);
-      });
-      
-      usVoices.slice(0, 3).forEach((voice) => {
-        voiceOptions.push({
-          id: voice.name,
-          displayName: `🇺🇸 ${voice.name.split(' ').slice(0, 2).join(' ')}`,
-          description: `${voice.name}`,
-          voice: voice,
-          category: 'regional'
-        });
-        addedVoiceNames.add(voice.name);
-      });
-      
-      auVoices.slice(0, 2).forEach((voice) => {
-        voiceOptions.push({
-          id: voice.name,
-          displayName: `🇦🇺 ${voice.name.split(' ').slice(0, 2).join(' ')}`,
-          description: `${voice.name}`,
-          voice: voice,
-          category: 'regional'
-        });
-        addedVoiceNames.add(voice.name);
-      });
-      
-      ieVoices.slice(0, 1).forEach((voice) => {
-        voiceOptions.push({
-          id: voice.name,
-          displayName: `🇮🇪 ${voice.name.split(' ').slice(0, 2).join(' ')}`,
-          description: `${voice.name}`,
-          voice: voice,
-          category: 'regional'
-        });
-        addedVoiceNames.add(voice.name);
-      });
-      
-      inVoices.slice(0, 1).forEach((voice) => {
-        voiceOptions.push({
-          id: voice.name,
-          displayName: `🇮🇳 ${voice.name.split(' ').slice(0, 2).join(' ')}`,
-          description: `${voice.name}`,
+          displayName: `${region.flag} ${voice.name.split(' ').slice(0, 2).join(' ')}`,
+          description: `${voice.name} (${voice.lang})`,
           voice: voice,
           category: 'regional'
         });
