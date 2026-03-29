@@ -27,6 +27,8 @@ interface ExportData {
     speechRate: number;
     selectedVoiceId: string;
     darkMode: boolean;
+    showQuestions?: boolean;
+    selectedGrade?: string;
   };
 }
 
