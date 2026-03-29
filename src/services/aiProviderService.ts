@@ -22,6 +22,26 @@ export interface AIProviderPreset {
 
 export const AI_PROVIDER_PRESETS: AIProviderPreset[] = [
   {
+    id: 'cliproxyapi',
+    name: 'CLIProxyAPI',
+    icon: '🔀',
+    baseUrl: '',
+    description: '聚合 Gemini CLI / Claude Code / OpenAI Codex / Qwen Code，OpenAI 相容代理',
+    supportsReasoning: true,
+    models: [
+      { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro (via CLI)', category: 'Google' },
+      { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash (via CLI)', category: 'Google' },
+      { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro Preview', category: 'Google' },
+      { id: 'claude-sonnet-4.6', name: 'Claude Sonnet 4.6 (via Code)', category: 'Anthropic' },
+      { id: 'claude-opus-4.6', name: 'Claude Opus 4.6 (via Code)', category: 'Anthropic' },
+      { id: 'gpt-5', name: 'GPT-5 (via Codex)', category: 'OpenAI' },
+      { id: 'gpt-5.3-codex', name: 'GPT-5.3 Codex', category: 'OpenAI' },
+      { id: 'qwen3-235b-a22b', name: 'Qwen3 235B (via Code)', category: 'Qwen' },
+      { id: 'qwen3-coder', name: 'Qwen3 Coder', category: 'Qwen' },
+      { id: '__custom__', name: '🔧 自行輸入模型...', category: 'Custom' },
+    ]
+  },
+  {
     id: 'grok2api',
     name: 'Grok2API (xAI Proxy)',
     icon: '✖️',
